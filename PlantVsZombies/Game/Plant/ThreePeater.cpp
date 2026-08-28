@@ -162,7 +162,8 @@ void ThreePeater::FireRow(int targetRow)
 		targetRow = sourceRow;
 	}
 	const Vector bulletPosition = GetPosition() + Vector(kBulletOffsetX, kBulletOffsetY);
-	Bullet* bullet = mBoard->CreateBullet(BulletType::BULLET_PEA, targetRow, bulletPosition);
+	Bullet* bullet = mBoard->CreatePlantBullet(
+		BulletType::BULLET_PEA, targetRow, bulletPosition, mPlantType);
 	if (bullet && isBoundaryCompensation) {
 		bullet->SetVelocityX(kBoundaryCompensationBulletSpeed);
 	}

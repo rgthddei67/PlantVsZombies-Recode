@@ -15,7 +15,7 @@ void PuffShroom::SetupPlant()
 		if (!mBoard) return;
 		AudioSystem::PlaySound("SOUND_PUFF", 0.28f);
 		Vector bulletPosition = GetPosition() + Vector(13, 13);
-		mBoard->CreateBullet(BulletType::BULLET_PUFF, mRow, bulletPosition);
+		mBoard->CreatePlantBullet(BulletType::BULLET_PUFF, mRow, bulletPosition, mPlantType);
 		}, true);
 }
 

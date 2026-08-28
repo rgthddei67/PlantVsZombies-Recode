@@ -133,8 +133,8 @@ void MelonPult::FireMelon()
 		AudioSystem::PlaySound(
 			ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES, kShootSoundVolume);
 	}
-	Bullet* melon = mBoard->CreateBullet(
-		bulletType, mRow, launchPosition);
+	Bullet* melon = mBoard->CreatePlantBullet(
+		bulletType, mRow, launchPosition, mPlantType);
 	if (!melon) return;
 	melon->ConfigureLobbedMotion(
 		landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);

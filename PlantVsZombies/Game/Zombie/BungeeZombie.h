@@ -49,7 +49,8 @@ public:
 	void Draw(Graphics* g) override;
 	void StartEat(ColliderComponent*) override {}
 	void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
-		bool discardShieldOverflow = false, bool bypassShield = false) override;
+		bool discardShieldOverflow = false, bool bypassShield = false,
+		PlantDamageOrigin plantOrigin = {}) override;
 	void TakePlantAshDamage(int damage) override;
 	bool TakePlantInstantKill() override;
 	void Die() override;

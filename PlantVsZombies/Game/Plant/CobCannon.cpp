@@ -194,8 +194,8 @@ void CobCannon::LaunchCob()
 	if (mShotLaunched || !mBoard || mPendingTargetRow < 0) return;
 	mShotLaunched = true;
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COBLAUNCH, kLaunchVolume);
-	Bullet* cob = mBoard->CreateBullet(BulletType::BULLET_COBBIG, mPendingTargetRow,
-		GetVisualPosition() + kLaunchOffset);
+	Bullet* cob = mBoard->CreatePlantBullet(BulletType::BULLET_COBBIG, mPendingTargetRow,
+		GetVisualPosition() + kLaunchOffset, mPlantType);
 	if (!cob) return;
 	cob->SetBulletDamage(kCobDamage);
 	cob->ConfigureCobCannonMotion(

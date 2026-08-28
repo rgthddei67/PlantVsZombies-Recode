@@ -157,9 +157,9 @@ void KernelPult::FireProjectile()
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
 		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, kShootSoundVolume);
-	Bullet* projectile = mBoard->CreateBullet(
+	Bullet* projectile = mBoard->CreatePlantBullet(
 		fireButter ? BulletType::BULLET_BUTTER : BulletType::BULLET_KERNEL,
-		mRow, launchPosition);
+		mRow, launchPosition, mPlantType);
 	if (projectile) {
 		projectile->SetBulletDamage(fireButter ? kButterDamage : kKernelDamage);
 		projectile->ConfigureLobbedMotion(

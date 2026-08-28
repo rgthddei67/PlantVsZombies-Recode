@@ -154,8 +154,8 @@ void StarFruit::FireStarVolley()
 	const Vector launchPosition =
 		GetPosition() + Vector(kBulletOffsetX, kBulletOffsetY);
 	for (const Vector& velocity : velocities) {
-		Bullet* star = mBoard->CreateBullet(
-			BulletType::BULLET_STAR, mRow, launchPosition);
+		Bullet* star = mBoard->CreatePlantBullet(
+			BulletType::BULLET_STAR, mRow, launchPosition, mPlantType);
 		if (!star) continue;
 		star->SetBulletDamage(kStarDamage);
 		star->SetVelocityX(velocity.x);

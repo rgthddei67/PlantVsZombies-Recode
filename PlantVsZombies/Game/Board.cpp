@@ -294,6 +294,8 @@ namespace {
 	constexpr int kSnowBurrowTutorialMaxPerWave = 1;      // 8-1 每波与同时最多一只潜雪僵尸
 	constexpr int kSnowBurrowCompositeMaxPerWave = 2;     // 8-2 起每波与同时最多两只潜雪僵尸
 	constexpr int kSnowBurrowTutorialLevel = 64;           // 内部 64 即 8-1，雪穴形成后保底一次潜雪出生
+	constexpr int kAdaptiveHelmetTutorialLevel = 66;      // 内部 66 即 8-3，首轮白毛风结束后独立教学
+	constexpr int kAdaptiveHelmetMaxPerWave = 4;          // 8-3 起每波最多四只，不设同时或累计上限
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -2604,6 +2606,17 @@ void Board::RestoreSnowBurrowSpawnState(int count, bool tutorialHoleSpawnConsume
 	mSnowBurrowTutorialHoleSpawnConsumed = tutorialHoleSpawnConsumed;
 }
 
+void Board::RestoreAdaptiveHelmetSpawnState(
+	int waveCount, bool tutorialWaveSpawned)
+{
+	const bool tutorialLevel = !mIsSurvival
+		&& mLevel == kAdaptiveHelmetTutorialLevel;
+	mAdaptiveHelmetsSpawnedThisWave = std::clamp(
+		waveCount, 0, kAdaptiveHelmetMaxPerWave);
+	mAdaptiveHelmetTutorialWaveSpawned = tutorialLevel
+		&& tutorialWaveSpawned;
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2855,6 +2868,15 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mSnowBurrowsSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ADAPTIVE_HELMET) {
+		const bool tutorialLevel = !mIsSurvival
+			&& mLevel == kAdaptiveHelmetTutorialLevel;
+		if ((tutorialLevel && !mPolarFirstWhiteoutCompleted)
+			|| mAdaptiveHelmetsSpawnedThisWave >= kAdaptiveHelmetMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mAdaptiveHelmetsSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -4851,6 +4873,8 @@ void Board::UpdatePolarNightEnvironment(float deltaTime)
 	case PolarNightPhase::DORMANT:
 		break;
 	}
+	// 每帧幂等重试可覆盖旧档已完成白毛风但尚未提交教学僵尸的状态。
+	TrySpawnAdaptiveHelmetTutorialWave();
 
 	const bool highHumidity = mPolarHumidityPercent >= kPolarHumidityDanger;
 	if (highHumidity) {
@@ -4883,6 +4907,30 @@ void Board::UpdatePolarNightEnvironment(float deltaTime)
 		mPolarAllDangerTimer = 0.0f;
 	}
 	UpdatePolarNightWindVisual(deltaTime);
+}
+
+void Board::TrySpawnAdaptiveHelmetTutorialWave()
+{
+	if (mIsSurvival || mLevel != kAdaptiveHelmetTutorialLevel
+		|| mAdaptiveHelmetTutorialWaveSpawned
+		|| !mPolarFirstWhiteoutCompleted) {
+		return;
+	}
+
+	const int row = SelectSpawnRow(ZombieType::ZOMBIE_ADAPTIVE_HELMET);
+	if (row < 0) return;
+	const ZombieType actualType = ResolveWaveZombieType(
+		ZombieType::ZOMBIE_ADAPTIVE_HELMET);
+	if (actualType == ZombieType::NUM_ZOMBIE_TYPES) return;
+
+	Zombie* zombie = CreateResolvedWaveZombie(actualType, row,
+		static_cast<float>(SCENE_WIDTH) + 40.0f);
+	if (!zombie) {
+		--mAdaptiveHelmetsSpawnedThisWave;
+		return;
+	}
+	mAdaptiveHelmetTutorialWaveSpawned = true;
+	UpdateZombieMetrics();
 }
 
 void Board::UpdateWeather(float deltaTime)
@@ -8453,6 +8501,7 @@ void Board::SummonNextWave()
 	mWeatherJammersSpawnedThisWave = 0;
 	mIceStatueExecutionersSpawnedThisWave = 0;
 	mSnowBurrowsSpawnedThisWave = 0;
+	mAdaptiveHelmetsSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -8554,6 +8603,16 @@ void Board::CreatePreviewZombies()
 
 		addPreview(preview);
 	}
+}
+
+Bullet* Board::CreatePlantBullet(BulletType bulletType, int row,
+	const Vector& position, PlantType originPlant)
+{
+	Bullet* bullet = CreateBullet(bulletType, row, position);
+	if (bullet) {
+		bullet->SetPlantDamageOrigin(PlantDamageOrigin::FromPlant(originPlant));
+	}
+	return bullet;
 }
 
 void Board::DestroyPreviewZombies()
@@ -9158,6 +9217,8 @@ void Board::OnSurvivalRoundClear()
 	mWeatherJammersSpawnedThisWave = 0;
 	mIceStatueExecutionersSpawnedThisWave = 0;
 	mSnowBurrowsSpawnedThisWave = 0;
+	mAdaptiveHelmetsSpawnedThisWave = 0;
+	mAdaptiveHelmetTutorialWaveSpawned = false;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

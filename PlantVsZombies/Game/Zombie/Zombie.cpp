@@ -508,7 +508,8 @@ void Zombie::TakePlantAshDamage(int damage)
 		Charred();
 		return;
 	}
-	TakeDamage(damage, DamageSource::PLANT_ASH);
+	TakeDamage(damage, DamageSource::PLANT_ASH, false, false, false,
+		PlantDamageOrigin::Ash());
 }
 
 bool Zombie::TakePlantInstantKill()
@@ -1548,7 +1549,7 @@ void Zombie::UpdateControlImmunity(float deltaTime)
 	}
 }
 
-bool Zombie::StartFrozen()
+bool Zombie::StartFrozen(PlantDamageOrigin plantOrigin)
 {
 	if (!CanBeChilled()) return false;
 
@@ -1557,7 +1558,7 @@ bool Zombie::StartFrozen()
 	if (!CanBeFrozen()) return false; // 撑杆跳跃中等：只吃减速不定身
 	if (IsControlImmune(ZombieControlEffect::FROZEN)) {
 		// 免疫只挡冻结定身；寒冰菇的固定伤害和不在 mask 内的减速尾巴仍照常结算。
-		TakeDamage(20, DamageSource::PLANT);
+		TakeDamage(20, DamageSource::PLANT, false, false, false, plantOrigin);
 		return false;
 	}
 
@@ -1570,7 +1571,7 @@ bool Zombie::StartFrozen()
 	// 附带 20 点伤害（原版 HitIceTrap 固定值，在免疫判定之后——魅惑/跳跃中撑杆不掉血）。
 	// 走 TakeDamage 正常链（护盾→头盔→本体）；先停格再结算：报纸狂暴等
 	// 连锁里的 UpdateAnimSpeed 看到冻结态，不会把停格顶掉。
-	TakeDamage(20, DamageSource::PLANT);
+	TakeDamage(20, DamageSource::PLANT, false, false, false, plantOrigin);
 	return true;
 }
 
@@ -1726,12 +1727,16 @@ void Zombie::UpdateToxin(float deltaTime)
 		if (corrosive) {
 			// 百分比毒伤一次结算本逻辑步，避免高生命目标按单点循环；OTHER 仍经过僵尸免伤，
 			// 但不会把已经按最大生命计算的基础量再乘全体植物增伤。
-			TakeProjectileDamage(damage, DamageSource::OTHER, 0.0f);
+			TakeProjectileDamage(damage, DamageSource::OTHER, 0.0f,
+				false, false, false,
+				PlantDamageOrigin::FromPlant(PlantType::PLANT_TOXICPEASHOOTER));
 		}
 		else {
 			// 普通毒液保留逐点链，免伤次数与旧版时序不变。
 			for (int point = 0; point < damage; ++point) {
-				TakeProjectileDamage(1, DamageSource::PLANT, 0.0f);
+				TakeProjectileDamage(1, DamageSource::PLANT, 0.0f,
+					false, false, false,
+					PlantDamageOrigin::FromPlant(PlantType::PLANT_TOXICPEASHOOTER));
 				if (!IsActive()) return;
 			}
 		}
@@ -1792,10 +1797,11 @@ bool Zombie::ShouldProjectileBypassShield(
 
 void Zombie::TakeProjectileDamage(
 	int damage, DamageSource source, float velocityX, bool penetrateShield,
-	bool discardShieldOverflow, bool requestsShieldBypass)
+	bool discardShieldOverflow, bool requestsShieldBypass,
+	PlantDamageOrigin plantOrigin)
 {
 	TakeDamage(damage, source, penetrateShield, discardShieldOverflow,
-		ShouldProjectileBypassShield(velocityX, requestsShieldBypass));
+		ShouldProjectileBypassShield(velocityX, requestsShieldBypass), plantOrigin);
 }
 
 void Zombie::ApplyCharmEffects()
@@ -2003,7 +2009,7 @@ void Zombie::TakeBodyDamage(int damage)
 
 void Zombie::TakeDamage(
 	int damage, DamageSource source, bool penetrateShield, bool discardShieldOverflow,
-	bool bypassShield)
+	bool bypassShield, PlantDamageOrigin plantOrigin)
 {
 	if (damage <= 0 || !mBoard) return;
 
@@ -2024,6 +2030,7 @@ void Zombie::TakeDamage(
 		&& mBoard->ConsumePlantDamageEchoHit()) {
 		damage = damage > INT_MAX / 2 ? INT_MAX : damage * 2;
 	}
+	if (plantOrigin.IsValid() && BlocksPlantDamage(plantOrigin)) return;
 
 	int remainingDamage = TakeExtraProtectionDamage(damage, source);
 	// 原版飞行额外生命与头盔/本体共用 mJustGotShotCounter；只要确实吸收了伤害就闪本体层。
@@ -2047,8 +2054,14 @@ void Zombie::TakeDamage(
 	// 2. 然后扣除头盔（穿透不绕过一类头盔，原版仅穿透二类护盾）
 	if (remainingDamage > 0 && mHelmType != HelmType::HELMTYPE_NONE)
 	{
+		if (plantOrigin.IsValid()
+			&& TryAdaptHelmetToPlantDamage(remainingDamage, plantOrigin)) {
+			remainingDamage = 0;
+		}
 		const int helmHealthBeforeHit = mHelmHealth;
-		remainingDamage = TakeHelmDamageFromSource(remainingDamage, source);
+		if (remainingDamage > 0) {
+			remainingDamage = TakeHelmDamageFromSource(remainingDamage, source);
+		}
 		if (mHelmHealth < helmHealthBeforeHit) {
 			SetGlowingTimer(kHitGlowDuration);
 		}

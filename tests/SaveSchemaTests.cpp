@@ -424,6 +424,47 @@ namespace {
 			"迁移不得覆盖预发布档已经提交的极夜事务");
 	}
 
+	void TestVersionEightLevelUpgradeAddsAdaptiveDamageOriginState() {
+		nlohmann::json document = {
+			{ "schemaVersion", 8 },
+			{ "currentWave", 9 },
+			{ "bullets", nlohmann::json::array({ {
+				{ "type", 0 }, { "damage", 20 }
+			} }) }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v8 关卡档应升级到适应头盔与弹丸来源结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v8 关卡档应写入当前版本");
+		Expect(document["adaptiveHelmetsSpawnedThisWave"] == 0
+			&& document["adaptiveHelmetTutorialWaveSpawned"] == false,
+			"旧关卡档的适应头盔预算应从未消费单位元恢复");
+		Expect(document["bullets"][0]["plantOriginKind"] == 0
+			&& document["bullets"][0]["plantOriginLineage"]
+				== static_cast<int>(PlantType::NUM_PLANT_TYPES),
+			"旧在途弹丸应迁移为无植物来源");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 8 },
+			{ "adaptiveHelmetsSpawnedThisWave", 2 },
+			{ "adaptiveHelmetTutorialWaveSpawned", true },
+			{ "bullets", nlohmann::json::array({ {
+				{ "plantOriginKind", 1 },
+				{ "plantOriginLineage", static_cast<int>(PlantType::PLANT_REPEATER) }
+			} }) }
+		};
+		Expect(SaveSchema::UpgradeLevelDocument(prereleaseDocument, error),
+			"已含适应字段的 v8 预发布档应升级成功");
+		Expect(prereleaseDocument["adaptiveHelmetsSpawnedThisWave"] == 2
+			&& prereleaseDocument["adaptiveHelmetTutorialWaveSpawned"] == true
+			&& prereleaseDocument["bullets"][0]["plantOriginKind"] == 1
+			&& prereleaseDocument["bullets"][0]["plantOriginLineage"]
+				== static_cast<int>(PlantType::PLANT_REPEATER),
+			"迁移不得覆盖预发布档已经提交的预算和弹丸来源");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -482,6 +523,7 @@ int main() {
 	TestVersionFiveLevelUpgradeAddsRedeyeWaveCapState();
 	TestVersionSixLevelUpgradeDefaultsOpeningColdWaveUnconsumed();
 	TestVersionSevenLevelUpgradeAddsPolarNightState();
+	TestVersionEightLevelUpgradeAddsAdaptiveDamageOriginState();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

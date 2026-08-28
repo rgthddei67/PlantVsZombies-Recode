@@ -25,7 +25,8 @@ void ScaredyShroom::SetupPlant()
 		if (!mBoard) return;
 		AudioSystem::PlaySound("SOUND_PUFF", 0.28f);
 		Vector bulletPosition = GetPosition() + Vector(2, -6);
-		Bullet* bullet = mBoard->CreateBullet(BulletType::BULLET_PUFF, mRow, bulletPosition);
+		Bullet* bullet = mBoard->CreatePlantBullet(
+			BulletType::BULLET_PUFF, mRow, bulletPosition, mPlantType);
 		if (!bullet) return;
 		bullet->SetBulletDamage(GetPuffDamage());
 		OnPuffFired();

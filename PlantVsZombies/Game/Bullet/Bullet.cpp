@@ -277,6 +277,7 @@ void Bullet::Reset(Board* board, int row,
 	const Vector& colliderRadius, const Vector& position) {
 	mBoard = board;
 	mBulletType = mPoolType;
+	mPlantDamageOrigin = {};
 	mRow = row;
 	mHasHit = false;
 	mCheckPositionTimer = 0.0f;
@@ -652,7 +653,7 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 		zombie->ModifyProjectileDamage(GetWindAdjustedDamage(), mBulletType),
 		DamageSource::PLANT, mVelocityX,
 		/*penetrateShield=*/false, /*discardShieldOverflow=*/false,
-		requestsShieldBypass);
+		requestsShieldBypass, mPlantDamageOrigin);
 	// 直击死亡、魅惑或对象已回收时不得留下延迟伤害；具体门禁由目标集中维护。
 	if (mBulletType == BulletType::BULLET_TOXICPEA) {
 		zombie->ApplyToxinStack();
@@ -750,7 +751,7 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 	zombie->TakeProjectileDamage(
 		directDamage, DamageSource::PLANT, mVelocityX,
 		/*penetrateShield=*/true, /*discardShieldOverflow=*/false,
-		/*requestsShieldBypass=*/false);
+		/*requestsShieldBypass=*/false, mPlantDamageOrigin);
 	if (isWinterMelon && zombie->IsActive() && !zombie->IsDying()
 		&& zombie->CanBeChilled()) {
 		const bool wasSlowed = zombie->GetCooldownTimer() > 0.0f;
@@ -774,7 +775,7 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 		candidate->TakeProjectileDamage(
 			secondaryDamage, DamageSource::PLANT, mVelocityX,
 			/*penetrateShield=*/true, /*discardShieldOverflow=*/false,
-			/*requestsShieldBypass=*/false);
+			/*requestsShieldBypass=*/false, mPlantDamageOrigin);
 		if (isWinterMelon && candidate->IsActive() && !candidate->IsDying()
 			&& candidate->CanBeChilled()) {
 			const bool wasSlowed = candidate->GetCooldownTimer() > 0.0f;
@@ -1321,7 +1322,8 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		const int finalTargetDamage = std::max(1,
 			static_cast<int>(std::lround(frameDamage)));
 		for (int i = 0; i < finalTargetDamage && zombie->IsActive(); ++i) {
-			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX);
+			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX,
+				false, false, false, mPlantDamageOrigin);
 		}
 		mHasHit = true;
 		Die();
@@ -1339,7 +1341,8 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		// 每个整数额度仍是一次独立的 1 点帧伤；合并为 TakeDamage(N) 会让免伤次数、
 		// 逐击取整和其他“每次受击”语义在 2x 下少触发。
 		for (int i = 0; i < damageToApply && zombie->IsActive(); ++i) {
-			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX);
+			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX,
+				false, false, false, mPlantDamageOrigin);
 		}
 	}
 }
@@ -1477,7 +1480,8 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	const bool toxicFireball = IsToxicFireball();
 	if (zombie->IsFireResistant() && !bypassShield) {
 		PlayStandardImpactSound(zombie, false);
-		zombie->TakeProjectileDamage(directDamage, DamageSource::PLANT, mVelocityX);
+		zombie->TakeProjectileDamage(directDamage, DamageSource::PLANT, mVelocityX,
+			false, false, false, mPlantDamageOrigin);
 		if (toxicFireball) zombie->ApplyToxinStack();
 		return;
 	}
@@ -1522,12 +1526,15 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 
 	// 原版 splash damage flag 会让二类护盾照常受损，同时把全额伤害继续传给本体。
 	zombie->TakeProjectileDamage(
-		directDamage, DamageSource::PLANT, mVelocityX, /*penetrateShield=*/true);
+		directDamage, DamageSource::PLANT, mVelocityX, /*penetrateShield=*/true,
+		/*discardShieldOverflow=*/false, /*requestsShieldBypass=*/false,
+		mPlantDamageOrigin);
 	// 紫焰豆以 30px 小范围限制铺毒规模；直击与实际受溅射的目标各叠一层。
 	if (toxicFireball) zombie->ApplyToxinStack();
 	for (Zombie* target : secondaryTargets) {
 		if (target->IsActive() && !target->IsDying()) {
-			target->TakeDamage(splashDamage, DamageSource::PLANT, true);
+			target->TakeDamage(splashDamage, DamageSource::PLANT, true,
+				false, false, mPlantDamageOrigin);
 			if (toxicFireball) target->ApplyToxinStack();
 		}
 	}

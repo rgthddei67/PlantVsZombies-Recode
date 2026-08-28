@@ -486,6 +486,9 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["snowBurrowsSpawnedThisWave"] = board->mSnowBurrowsSpawnedThisWave;
 	j["snowBurrowTutorialHoleSpawnConsumed"] =
 		board->mSnowBurrowTutorialHoleSpawnConsumed;
+	j["adaptiveHelmetsSpawnedThisWave"] = board->mAdaptiveHelmetsSpawnedThisWave;
+	j["adaptiveHelmetTutorialWaveSpawned"] =
+		board->mAdaptiveHelmetTutorialWaveSpawned;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -620,6 +623,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		nlohmann::json b;
 		b["type"] = static_cast<int>(bullet->mBulletType);
 		b["poolType"] = static_cast<int>(bullet->GetPoolType());
+		b["plantOriginKind"] = static_cast<int>(bullet->mPlantDamageOrigin.kind);
+		b["plantOriginLineage"] = static_cast<int>(bullet->mPlantDamageOrigin.lineage);
 		b["id"] = id;
 		b["row"] = bullet->mRow;
 		b["x"] = bullet->GetPosition().x;
@@ -1348,6 +1353,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->RestoreSnowBurrowSpawnState(
 		j.value("snowBurrowsSpawnedThisWave", 0),
 		j.value("snowBurrowTutorialHoleSpawnConsumed", false));
+	board->RestoreAdaptiveHelmetSpawnState(
+		j.value("adaptiveHelmetsSpawnedThisWave", 0),
+		j.value("adaptiveHelmetTutorialWaveSpawned", false));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1534,6 +1542,16 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		}
 
 		if (bullet) {
+			PlantDamageOrigin savedOrigin;
+			savedOrigin.kind = static_cast<PlantDamageOriginKind>(std::clamp(
+				b.value("plantOriginKind", 0),
+				static_cast<int>(PlantDamageOriginKind::NONE),
+				static_cast<int>(PlantDamageOriginKind::ASH)));
+			savedOrigin.lineage = static_cast<PlantType>(std::clamp(
+				b.value("plantOriginLineage", static_cast<int>(PlantType::NUM_PLANT_TYPES)),
+				static_cast<int>(PlantType::PLANT_PEASHOOTER),
+				static_cast<int>(PlantType::NUM_PLANT_TYPES)));
+			bullet->SetPlantDamageOrigin(savedOrigin.IsValid() ? savedOrigin : PlantDamageOrigin{});
 			bullet->RestoreSavedPresentationState(
 				type, b.value("hitTorchwoodColumn", -1));
 			bullet->SetBulletDamage(b["damage"].get<int>());

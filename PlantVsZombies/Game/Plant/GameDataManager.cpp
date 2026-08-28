@@ -117,6 +117,7 @@
 #include "../Zombie/WeatherJammerZombie.h"
 #include "../Zombie/IceStatueExecutionerZombie.h"
 #include "../Zombie/SnowBurrowZombie.h"
+#include "../Zombie/AdaptiveHelmetZombie.h"
 
 namespace {
 	template<typename T>
@@ -723,6 +724,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_SNOW_BURROW_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_SNOW_BURROW_ZOMBIE,
 		&MakeZombie<SnowBurrowZombie>);
+
+	// 适应头盔复用普通僵尸时间线；头盔和胸章是命名 follower，不新增帧事件。
+	RegisterZombie(ZombieType::ZOMBIE_ADAPTIVE_HELMET, "ZOMBIE_ADAPTIVE_HELMET",
+		AnimationType::ANIM_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
+		&MakeZombie<AdaptiveHelmetZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

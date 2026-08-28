@@ -300,12 +300,14 @@ void Squash::ApplySquashDamage()
 			// 只有本体耐久超过 1800 的重型目标才保留并承受伤害；bit1 同时穿透二类护盾。
 			if (zombie->mZombieType == ZombieType::ZOMBIE_REINFORCED_DOOR)
 			{
-				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH, false);
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH,
+					false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
 				return;
 			}
 			else if (zombie->mZombieType == ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER)
 			{
-				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH, false);
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH,
+					false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
 				return;
 			}
 
@@ -317,7 +319,8 @@ void Squash::ApplySquashDamage()
 			}
 			else 
 			{
-				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT, true);
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT, true,
+					false, false, PlantDamageOrigin::FromPlant(mPlantType));
 			}
 		}
 	});

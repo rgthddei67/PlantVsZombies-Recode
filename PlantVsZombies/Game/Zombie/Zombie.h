@@ -10,6 +10,7 @@
 #include "../../GameRandom.h"
 #include "../EntityRegistry.h"
 #include "../DamageSource.h"
+#include "../PlantDamageOrigin.h"
 #include "../Bullet/BulletType.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
@@ -165,14 +166,15 @@ public:
 	// discardShieldOverflow=true：若命中开始时存在二类护盾，则本击止于护盾，破盾溢出也不进入头盔/本体。
 	// bypassShield=true：本击从背面等未被护盾覆盖的位置命中，护盾完全不承伤，直接进入头盔/本体。
 	virtual void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
-		bool discardShieldOverflow = false, bool bypassShield = false);
+		bool discardShieldOverflow = false, bool bypassShield = false,
+		PlantDamageOrigin plantOrigin = {});
 	/**
 	 * 子弹伤害统一入口：先按命中时的真实水平速度判断正面护盾或背面后层，
 	 * 再处理弹丸主动请求的二类护盾绕过；目标可通过 BlocksProjectileShieldBypass 否决后者。
 	 */
 	void TakeProjectileDamage(int damage, DamageSource source, float velocityX,
 		bool penetrateShield = false, bool discardShieldOverflow = false,
-		bool requestsShieldBypass = false);
+		bool requestsShieldBypass = false, PlantDamageOrigin plantOrigin = {});
 	/** 植物爆炸的统一入口：默认按原版阈值化灰，否则走带 PLANT_ASH 分类的普通扣血链。 */
 	virtual void TakePlantAshDamage(int damage);
 	/** 大嘴花等植物直杀的统一入口；只返回是否确实吞掉目标，拒吞后的伤害由攻击者结算。 */
@@ -226,6 +228,10 @@ public:
 		bool /*bypassShield*/ = false) const {
 		return damage;
 	}
+	/** 返回当前适应状态是否吸收该植物来源的数值伤害；普通僵尸始终返回 false。 */
+	virtual bool BlocksPlantDamage(PlantDamageOrigin) const { return false; }
+	/** 在头盔承伤前尝试消费整击并记录适应来源；普通僵尸始终返回 false。 */
+	virtual bool TryAdaptHelmetToPlantDamage(int, PlantDamageOrigin) { return false; }
 
 	int GetSortingKey() const override { return this->mRow; }
 
@@ -470,7 +476,7 @@ public:
 	// 再完全定身（首冻 4~6s / 已减速或已冻再冻 3~4s）并结算 20 点固定伤害。
 	// 返回 true=进入冻结；豁免（魅惑/濒死/预览/CanBeFrozen 覆写/当前冻结免疫）返回 false；
 	// 当前冻结免疫仍保留固定伤害和未被单独免疫的减速尾巴。
-	bool StartFrozen();
+	bool StartFrozen(PlantDamageOrigin plantOrigin = {});
 	// 行为守卫放虚函数（skill 教训：勿放 lambda）。Chilled=减速+冻结的总闸（魅惑免疫在基类）；
 	// Frozen=仅豁免定身、减速尾巴照上（如撑杆跳跃中，原版 CanBeFrozen 语义）。
 	virtual bool CanBeChilled() const;

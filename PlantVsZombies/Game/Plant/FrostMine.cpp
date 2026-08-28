@@ -157,7 +157,8 @@ void FrostMine::DetonateOn(Zombie& zombie)
 	// 中断必须早于破坏装备：目标仍能准确区分“尚未提交动作”与装备耗尽后的终止状态。
 	zombie.InterruptUncommittedSpecialAction();
 	zombie.ApplyWinterCorrosion(kIceEquipmentCorrosion);
-	zombie.TakeDamage(kBodyDamage, DamageSource::PLANT);
+	zombie.TakeDamage(kBodyDamage, DamageSource::PLANT,
+		false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
 
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_POTATO_MINE, kMineSoundVolume);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FROZEN, kFrostSoundVolume);

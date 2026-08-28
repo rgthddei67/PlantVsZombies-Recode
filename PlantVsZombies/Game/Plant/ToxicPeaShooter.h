@@ -14,6 +14,7 @@ protected:
 	{
 		if (!mBoard) return;
 		const Vector bulletPosition = GetVisualAnchorPosition() + Vector(30.0f, -30.0f);
-		mBoard->CreateBullet(BulletType::BULLET_TOXICPEA, mRow, bulletPosition);
+		mBoard->CreatePlantBullet(
+			BulletType::BULLET_TOXICPEA, mRow, bulletPosition, mPlantType);
 	}
 };

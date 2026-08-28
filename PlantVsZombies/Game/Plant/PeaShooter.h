@@ -14,7 +14,7 @@ protected:
 	{
 		if (!mBoard) return;
 		Vector bulletPosition = GetPosition() + Vector(30, -30);
-		mBoard->CreateBullet(BulletType::BULLET_PEA, mRow, bulletPosition);
+		mBoard->CreatePlantBullet(BulletType::BULLET_PEA, mRow, bulletPosition, mPlantType);
 	}
 };
 

@@ -79,6 +79,7 @@
 #include "../Zombie/WeatherJammerZombie.h"
 #include "../Zombie/IceStatueExecutionerZombie.h"
 #include "../Zombie/SnowBurrowZombie.h"
+#include "../Zombie/AdaptiveHelmetZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -305,6 +306,7 @@ namespace {
 		case HelmType::HELMTYPE_WALLNUT: return "HELMTYPE_WALLNUT";
 		case HelmType::HELMTYPE_TALLNUT: return "HELMTYPE_TALLNUT";
 		case HelmType::HELMTYPE_INSULATOR: return "HELMTYPE_INSULATOR";
+		case HelmType::HELMTYPE_ADAPTIVE: return "HELMTYPE_ADAPTIVE";
 		default: return "UNKNOWN";
 		}
 	}
@@ -400,6 +402,7 @@ namespace {
 		ZT(ZOMBIE_ICE_CRACK_DRILL), ZT(ZOMBIE_WEATHER_JAMMER),
 		ZT(ZOMBIE_ICE_STATUE_EXECUTIONER),
 		ZT(ZOMBIE_SNOW_BURROW),
+		ZT(ZOMBIE_ADAPTIVE_HELMET),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1695,6 +1698,15 @@ bool TestDriver::ExecuteCurrent() {
 			bullet->SetVelocityX(cmd.value("velocityX", 290.0f));
 			bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
 			bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
+			if (cmd.contains("originPlant")) {
+				auto originIt = kPlantNames.find(cmd.value("originPlant", ""));
+				if (originIt == kPlantNames.end()) {
+					Fail("spawn_bullet: originPlant 不是已注册植物名");
+					return false;
+				}
+				bullet->SetPlantDamageOrigin(
+					PlantDamageOrigin::FromPlant(originIt->second));
+			}
 			bullet->SetTargetsFlying(cmd.value("targetsFlying", false));
 			if (cmd.contains("lobTargetX") && cmd.contains("lobTargetY")) {
 				bullet->ConfigureLobbedMotion(
@@ -2583,7 +2595,19 @@ bool TestDriver::ExecuteCurrent() {
 			if (seen++ == index) {
 				// 走正式受伤链（来源词条/护盾/头盔/断肢断头/免伤），用于验证而非直接 Die。
 				if (op == "ash_damage_zombie") z->TakePlantAshDamage(damage);
-				else z->TakeDamage(damage, sourceIt->second, cmd.value("penetrateShield", false));
+				else {
+					PlantDamageOrigin origin;
+					if (cmd.contains("plantType")) {
+						auto plantIt = kPlantNames.find(cmd.value("plantType", ""));
+						if (plantIt == kPlantNames.end()) {
+							Fail("damage_zombie: plantType 不是已注册植物名");
+							return false;
+						}
+						origin = PlantDamageOrigin::FromPlant(plantIt->second);
+					}
+					z->TakeDamage(damage, sourceIt->second,
+						cmd.value("penetrateShield", false), false, false, origin);
+				}
 				return true;
 			}
 		}
@@ -5275,6 +5299,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetSnowBurrowsSpawnedThisWave() },
 			{ "snowBurrowTutorialHoleSpawnConsumed",
 				board->HasConsumedSnowBurrowTutorialHoleSpawn() },
+			{ "adaptiveHelmetsSpawnedThisWave",
+				board->GetAdaptiveHelmetsSpawnedThisWave() },
+			{ "adaptiveHelmetTutorialWaveSpawned",
+				board->HasSpawnedAdaptiveHelmetTutorialWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -5804,6 +5832,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int diggerZombieCount = 0;
 	int eliteDiggerZombieCount = 0;
 	int snowBurrowZombieCount = 0;
+	int adaptiveHelmetZombieCount = 0;
+	int adaptedHelmetZombieCount = 0;
 	int elitePogoZombieCount = 0;
 	int eliteLadderZombieCount = 0;
 	int eliteCatapultZombieCount = 0;
@@ -5861,6 +5891,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_SNOW_BURROW) {
 			++snowBurrowZombieCount;
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_ADAPTIVE_HELMET) {
+			++adaptiveHelmetZombieCount;
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_CATAPULT) {
 			++eliteCatapultZombieCount;
@@ -6385,6 +6418,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 					eliteDigger->HasResolvedBlast();
 			}
 		}
+		if (auto* adaptive = dynamic_cast<AdaptiveHelmetZombie*>(z)) {
+			if (adaptive->HasAdapted()) ++adaptedHelmetZombieCount;
+			const PlantDamageOrigin origin = adaptive->GetAdaptedOrigin();
+			zombieState["adaptiveHasAdapted"] = adaptive->HasAdapted();
+			zombieState["adaptiveOriginKind"] = static_cast<int>(origin.kind);
+			zombieState["adaptiveOriginLineage"] = static_cast<int>(origin.lineage);
+			zombieState["adaptiveHelmetVisible"] =
+				adaptive->IsAdaptiveHelmetVisible();
+			zombieState["adaptiveBadgeVisible"] =
+				adaptive->IsAdaptedBadgeVisible();
+			zombieState["adaptiveHelmetTextureLoaded"] =
+				ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZOMBIE_ADAPTIVE_HELMET, false) != nullptr;
+			zombieState["adaptiveBadgeTextureLoaded"] =
+				ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZOMBIE_ADAPTIVE_BADGE, false) != nullptr;
+		}
 		if (auto* snowBurrow = dynamic_cast<SnowBurrowZombie*>(z)) {
 			const auto* shadow = z->GetShadow();
 			zombieState["snowBurrowPhase"] = snowBurrow->GetPhaseName();
@@ -6871,6 +6921,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["diggerZombieCount"] = diggerZombieCount;
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
 	out["snowBurrowZombieCount"] = snowBurrowZombieCount;
+	out["adaptiveHelmetZombieCount"] = adaptiveHelmetZombieCount;
+	out["adaptedHelmetZombieCount"] = adaptedHelmetZombieCount;
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
 	out["eliteCatapultZombieCount"] = eliteCatapultZombieCount;
@@ -7912,6 +7964,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
 			{ "winterCorrosionDamage", bullet->GetWinterCorrosionDamage() },
+			{ "plantOriginKind", static_cast<int>(bullet->mPlantDamageOrigin.kind) },
+			{ "plantOriginLineage", bullet->mPlantDamageOrigin.kind
+				== PlantDamageOriginKind::PLANT_LINEAGE
+				? PlantTypeName(bullet->mPlantDamageOrigin.lineage) : "NONE" },
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
 			{ "targetsFlying", bullet->TargetsFlying() },
 			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },

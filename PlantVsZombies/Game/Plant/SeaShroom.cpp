@@ -21,6 +21,6 @@ void SeaShroom::SetupPlant()
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PUFF, 0.28f);
 		// 相对小喷菇发射点按原版海蘑菇口部差值校正，并跟随水面浮动。
 		const Vector bulletPosition = GetVisualAnchorPosition() + kSeaShroomBulletOffset;
-		mBoard->CreateBullet(BulletType::BULLET_PUFF, mRow, bulletPosition);
+		mBoard->CreatePlantBullet(BulletType::BULLET_PUFF, mRow, bulletPosition, mPlantType);
 	}, true);
 }

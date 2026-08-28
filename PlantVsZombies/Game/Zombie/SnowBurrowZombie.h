@@ -30,7 +30,8 @@ public:
 
 	void Update() override;
 	void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
-		bool discardShieldOverflow = false, bool bypassShield = false) override;
+		bool discardShieldOverflow = false, bool bypassShield = false,
+		PlantDamageOrigin plantOrigin = {}) override;
 	void StartEat(ColliderComponent* other) override;
 	void HeadDrop() override;
 	void ArmDrop() override;

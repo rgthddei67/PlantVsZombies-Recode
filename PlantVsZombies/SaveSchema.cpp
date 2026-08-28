@@ -202,6 +202,31 @@ namespace {
 				version = 8;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 8:
+				if (kind == DocumentKind::Level) {
+					// 关卡 v9 保存适应头盔出怪预算与在途弹丸来源；旧档均从未提交单位元恢复。
+					if (!upgraded.contains("adaptiveHelmetsSpawnedThisWave")) {
+						upgraded["adaptiveHelmetsSpawnedThisWave"] = 0;
+					}
+					if (!upgraded.contains("adaptiveHelmetTutorialWaveSpawned")) {
+						upgraded["adaptiveHelmetTutorialWaveSpawned"] = false;
+					}
+					if (upgraded.contains("bullets") && upgraded["bullets"].is_array()) {
+						for (auto& bullet : upgraded["bullets"]) {
+							if (!bullet.is_object()) continue;
+							if (!bullet.contains("plantOriginKind")) {
+								bullet["plantOriginKind"] = 0;
+							}
+							if (!bullet.contains("plantOriginLineage")) {
+								bullet["plantOriginLineage"] =
+									static_cast<int>(PlantType::NUM_PLANT_TYPES);
+							}
+						}
+					}
+				}
+				version = 9;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

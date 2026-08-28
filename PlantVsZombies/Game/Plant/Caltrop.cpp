@@ -81,7 +81,8 @@ void Caltrop::DamageTargetsAtAttackFrame()
 			// 车辆自己拥有特殊受扎语义；普通/鎏金冰车与投篮车均由虚入口保持各自契约。
 			return;
 		}
-		zombie->TakeDamage(kCaltropDamage, DamageSource::PLANT);
+		zombie->TakeDamage(kCaltropDamage, DamageSource::PLANT,
+			false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
 		if (zombie->IsActive() && !zombie->IsDying()) {
 			// 地刺只发出地面命中请求；地下状态、冲击取消与出土时序仍由目标自己拥有。
 			zombie->ForceSurfaceFromGroundHazard();

@@ -313,10 +313,12 @@ void SnowBurrowZombie::BeginWalking(float blendTime)
 }
 
 void SnowBurrowZombie::TakeDamage(int damage, DamageSource source,
-	bool penetrateShield, bool discardShieldOverflow, bool bypassShield)
+	bool penetrateShield, bool discardShieldOverflow, bool bypassShield,
+	PlantDamageOrigin plantOrigin)
 {
 	const int previousBodyHealth = mBodyHealth;
-	Zombie::TakeDamage(damage, source, penetrateShield, discardShieldOverflow, bypassShield);
+	Zombie::TakeDamage(damage, source, penetrateShield,
+		discardShieldOverflow, bypassShield, plantOrigin);
 	if (previousBodyHealth > static_cast<int>(kReburrowHealthThreshold)
 		&& mBodyHealth <= static_cast<int>(kReburrowHealthThreshold)
 		&& mBodyHealth > 0 && !mIsDying && !mIsDead

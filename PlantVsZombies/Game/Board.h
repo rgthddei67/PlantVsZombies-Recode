@@ -427,6 +427,8 @@ private:
 	int mIceStatueExecutionersSpawnedThisWave = 0; // 当前波正式生成的冰像处刑者数量；所有正式波次统一至多一只
 	int mSnowBurrowsSpawnedThisWave = 0; // 当前波已接受的潜雪僵尸数量；8-1 上限一只，其后上限两只
 	bool mSnowBurrowTutorialHoleSpawnConsumed = false; // 8-1 是否已有一只潜雪僵尸真正从雪穴提交出生
+	int mAdaptiveHelmetsSpawnedThisWave = 0; // 当前波已接受的适应头盔僵尸数量；8-3 起每波至多四只
+	bool mAdaptiveHelmetTutorialWaveSpawned = false; // 8-3 首轮白毛风结束后的独立教学出场是否已提交
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -468,6 +470,8 @@ private:
 	void RollNextPolarNightPlan();
 	/** 推进三仪表、阈值提交、白毛风与雪穴形成状态。 */
 	void UpdatePolarNightEnvironment(float deltaTime);
+	/** 8-3 首轮白毛风结束后，从右侧独立保底一只适应头盔僵尸。 */
+	void TrySpawnAdaptiveHelmetTutorialWave();
 	/** 锁定下一段不跨危险线的邻近仪表目标；波动本身不改变计划提交状态。 */
 	void BeginPolarGaugeFluctuation();
 	/** 平滑推进当前仪表微波动段，到点后再一次性抽取下一段。 */
@@ -1076,6 +1080,12 @@ public:
 	bool HasConsumedSnowBurrowTutorialHoleSpawn() const {
 		return mSnowBurrowTutorialHoleSpawnConsumed;
 	}
+	int GetAdaptiveHelmetsSpawnedThisWave() const {
+		return mAdaptiveHelmetsSpawnedThisWave;
+	}
+	bool HasSpawnedAdaptiveHelmetTutorialWave() const {
+		return mAdaptiveHelmetTutorialWaveSpawned;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -1132,6 +1142,8 @@ public:
 	ZombieType ResolveWaveZombieType(ZombieType selected, int mutationRoll = 0);
 	/** 从存档恢复潜雪僵尸本波计数与 8-1 雪穴保底提交状态。 */
 	void RestoreSnowBurrowSpawnState(int count, bool tutorialHoleSpawnConsumed);
+	/** 从存档恢复适应头盔的波次预算与白毛风教学提交状态。 */
+	void RestoreAdaptiveHelmetSpawnState(int waveCount, bool tutorialWaveSpawned);
 	/** 创建已解析的正式波次类型；成功后记录依赖实际出生的永久遭遇。 */
 	Zombie* CreateResolvedWaveZombie(ZombieType actualType, int row, float x);
 
@@ -1391,6 +1403,9 @@ public:
 
 	// 创建子弹
 	Bullet* CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);
+	/** 创建并标记原发射植物谱系；火炬树桩只改变弹种表现。 */
+	Bullet* CreatePlantBullet(BulletType bulletType, int row, const Vector& position,
+		PlantType originPlant);
 
 	// 创建樱桃爆炸效果；纵向范围按植物逻辑行覆盖相邻三行，避免泳池美术下沉干扰命中。
 	void CreateBoom(const Vector& position, int plantRow, int damage = 1800);

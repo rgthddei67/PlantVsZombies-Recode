@@ -135,7 +135,7 @@ void SplitPea::ShootBullet()
 	if (!mBoard) return;
 	const Vector bulletPosition =
 		GetPosition() + Vector(kForwardBulletOffsetX, kBulletOffsetY);
-	mBoard->CreateBullet(BulletType::BULLET_PEA, mRow, bulletPosition);
+	mBoard->CreatePlantBullet(BulletType::BULLET_PEA, mRow, bulletPosition, mPlantType);
 }
 
 void SplitPea::ShootRearBullet()
@@ -143,8 +143,8 @@ void SplitPea::ShootRearBullet()
 	if (!mBoard) return;
 	const Vector bulletPosition =
 		GetPosition() + Vector(kRearBulletOffsetX, kBulletOffsetY);
-	Bullet* bullet = mBoard->CreateBullet(
-		BulletType::BULLET_PEA, mRow, bulletPosition);
+	Bullet* bullet = mBoard->CreatePlantBullet(
+		BulletType::BULLET_PEA, mRow, bulletPosition, mPlantType);
 	if (!bullet) return;
 	bullet->SetVelocityX(kRearBulletVelocityX);
 

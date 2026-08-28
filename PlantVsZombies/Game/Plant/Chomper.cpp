@@ -53,7 +53,8 @@ void Chomper::OnBiteKillFrame()
 				// 继续走正式植物伤害链，让目标自身防具、抗性和词条保持有效。
 				const int rejectedDamage =
 					z->AdjustRejectedChomperBiteDamage(REJECTED_BITE_DAMAGE);
-				z->TakeDamage(rejectedDamage, DamageSource::PLANT);
+				z->TakeDamage(rejectedDamage, DamageSource::PLANT,
+					false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
 			}
 		}
 	}

@@ -33,6 +33,8 @@
     <Image>./resources/image/reanim/Zombie_insulator_armor1.png</Image>
     <Image>./resources/image/reanim/Zombie_insulator_armor2.png</Image>
     <Image>./resources/image/reanim/Zombie_insulator_armor3.png</Image>
+    <Image>./resources/image/reanim/Zombie_adaptive_helmet.png</Image>
+    <Image>./resources/image/reanim/Zombie_adaptive_badge.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone1.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone2.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone3.png</Image>

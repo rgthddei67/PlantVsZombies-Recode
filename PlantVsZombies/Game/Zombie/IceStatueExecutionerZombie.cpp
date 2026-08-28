@@ -332,7 +332,8 @@ void IceStatueExecutionerZombie::TakePlantAshDamage(int damage)
 		Charred();
 		return;
 	}
-	TakeDamage(damage, DamageSource::PLANT_ASH);
+	TakeDamage(damage, DamageSource::PLANT_ASH, false, false, false,
+		PlantDamageOrigin::Ash());
 }
 
 bool IceStatueExecutionerZombie::HasMagneticItem() const

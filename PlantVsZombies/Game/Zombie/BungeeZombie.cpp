@@ -314,11 +314,12 @@ void BungeeZombie::UpdateCargoOffset()
 }
 
 void BungeeZombie::TakeDamage(int damage, DamageSource source,
-	bool penetrateShield, bool discardShieldOverflow, bool bypassShield)
+	bool penetrateShield, bool discardShieldOverflow, bool bypassShield,
+	PlantDamageOrigin plantOrigin)
 {
 	if (!IsVulnerable()) return;
 	Zombie::TakeDamage(damage, source, penetrateShield,
-		discardShieldOverflow, bypassShield);
+		discardShieldOverflow, bypassShield, plantOrigin);
 }
 
 void BungeeZombie::TakePlantAshDamage(int damage)

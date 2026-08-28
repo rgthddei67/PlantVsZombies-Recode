@@ -180,10 +180,10 @@ void MeltSnowPult::FireProjectile()
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
 		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, kShootSoundVolume);
-	Bullet* projectile = mBoard->CreateBullet(
+	Bullet* projectile = mBoard->CreatePlantBullet(
 		fireSalt ? BulletType::BULLET_SALT_CRYSTAL
 			: BulletType::BULLET_MELT_SNOW,
-		mRow, launchPosition);
+		mRow, launchPosition, mPlantType);
 	if (projectile) {
 		projectile->SetBulletDamage(kProjectileDamage);
 		projectile->ConfigureLobbedMotion(

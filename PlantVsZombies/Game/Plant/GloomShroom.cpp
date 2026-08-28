@@ -140,7 +140,8 @@ void GloomShroom::ApplyDamagePulse() const
 			const int damage = zombie->ModifyFumeDamage(kPulseDamage);
 			zombie->TakeDamage(damage, DamageSource::PLANT,
 				/*penetrateShield=*/!blocksFume,
-				/*discardShieldOverflow=*/blocksFume);
+				/*discardShieldOverflow=*/blocksFume, /*bypassShield=*/false,
+				PlantDamageOrigin::FromPlant(mPlantType));
 			AudioSystem::PlaySound(
 				ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
 		});

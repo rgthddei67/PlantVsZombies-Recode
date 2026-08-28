@@ -274,7 +274,8 @@ void BalloonZombie::TakePlantAshDamage(int damage)
 		Die();
 		return;
 	}
-	TakeDamage(damage, DamageSource::PLANT_ASH);
+	TakeDamage(damage, DamageSource::PLANT_ASH, false, false, false,
+		PlantDamageOrigin::Ash());
 }
 
 void BalloonZombie::ArmDrop()

@@ -13,7 +13,8 @@ enum class HelmType {
 	HELMTYPE_BOBSLED,		//雪橇
 	HELMTYPE_WALLNUT,		//坚果
 	HELMTYPE_TALLNUT,		//高坚果
-	HELMTYPE_INSULATOR		//绝缘僵尸的陶瓷胸甲；一个完整的一类防具生命池
+	HELMTYPE_INSULATOR,		//绝缘僵尸的陶瓷胸甲；一个完整的一类防具生命池
+	HELMTYPE_ADAPTIVE		//适应头盔僵尸的一次性来源记录头盔
 };
 
 enum class ShieldType {
@@ -79,6 +80,7 @@ enum class ZombieType {
 	ZOMBIE_WEATHER_JAMMER, // 气象干扰僵尸：铁桶本体停步干扰当前全部公开天气预报
 	ZOMBIE_ICE_STATUE_EXECUTIONER, // 冰像处刑者：封存冻土高价值植物并以三锤推进处决
 	ZOMBIE_SNOW_BURROW, // 潜雪僵尸：出生潜雪，并在半血前摇后提交第二次短潜雪
+	ZOMBIE_ADAPTIVE_HELMET, // 适应头盔僵尸：头盔被击穿时免疫原植物谱系或全部灰烬
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

@@ -161,9 +161,9 @@ void Cactus::ShootSpike(bool targetsFlying)
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
 		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
-	Bullet* spike = mBoard->CreateBullet(BulletType::BULLET_SPIKE, mRow,
+	Bullet* spike = mBoard->CreatePlantBullet(BulletType::BULLET_SPIKE, mRow,
 		GetVisualAnchorPosition()
-			+ (targetsFlying ? kFlyingSpikeOffset : kGroundSpikeOffset));
+			+ (targetsFlying ? kFlyingSpikeOffset : kGroundSpikeOffset), mPlantType);
 	if (spike) {
 		spike->SetTargetsFlying(targetsFlying);
 	}

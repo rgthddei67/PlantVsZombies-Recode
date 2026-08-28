@@ -4,7 +4,7 @@
 
 2026-08-28 已建立第八大关公共底座；完整规格见
 `docs/superpowers/specs/2026-08-28-polar-night-snowfield-design.md`。同日后续已把 8-1/8-2、潜雪僵尸、
-8-1 听雪草奖励和初版 `spawnlists.json` 接入；8-3～8-9 最终僵尸池仍待后续。新增内容必须继续复用这里的
+8-1 听雪草奖励、8-3/8-4 适应头盔僵尸和初版 `spawnlists.json` 接入；8-5～8-9 最终僵尸池仍待后续。新增内容必须继续复用这里的
 背景、环境资格和正式波次创建边界，不能复制第二套雪原状态。
 
 ## 地图与资源
@@ -51,8 +51,8 @@ smoothstep 从 12% 缓慢放大到 100%，末段轻微回弹；逻辑格仍从�
 
 ## 存档与验证
 
-关卡 schema 为 v8；v7→v8 只补 `polarNightInitialized=false`、`snowHoles=[]` 和
-`pendingSnowHoleSpawns=[]`，不覆盖预发布字段。`GameInfoSaver` 保存并校验全部未来行为状态；非极夜
+关卡 schema 已随适应头盔来源链升级为 v9；v7→v8 只补 `polarNightInitialized=false`、`snowHoles=[]` 和
+`pendingSnowHoleSpawns=[]`，v8→v9 补适应头盔预算和旧弹丸无来源单位元，不覆盖预发布字段。`GameInfoSaver` 保存并校验全部未来行为状态；非极夜
 背景加载时规范化为空。
 
 `clang-release` 完整构建和 Win7 378 项导入审计通过，`SaveSchemaTests.exe` 通过。桌面可见默认

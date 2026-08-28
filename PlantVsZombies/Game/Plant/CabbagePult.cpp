@@ -129,8 +129,8 @@ void CabbagePult::FireCabbage()
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
 		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
-	Bullet* cabbage = mBoard->CreateBullet(
-		BulletType::BULLET_CABBAGE, mRow, launchPosition);
+	Bullet* cabbage = mBoard->CreatePlantBullet(
+		BulletType::BULLET_CABBAGE, mRow, launchPosition, mPlantType);
 	if (!cabbage) return;
 	cabbage->SetBulletDamage(kCabbageDamage);
 	cabbage->ConfigureLobbedMotion(

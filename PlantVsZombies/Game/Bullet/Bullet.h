@@ -18,6 +18,7 @@
 #include "../AudioSystem.h"
 #include "../Zombie/Zombie.h"
 #include "../../Reanimation/Animator.h"
+#include "../PlantDamageOrigin.h"
 
 class Board;
 class BulletPool;
@@ -53,6 +54,7 @@ private:
 
 public:
 	BulletType mBulletType = BulletType::NUM_BULLETS;
+	PlantDamageOrigin mPlantDamageOrigin{}; // 原发射植物谱系；火炬转弹不得改写
 	float mScale = 0.9f;
 	int mRow = -1;
 	int mBulletID = NULL_BULLET_ID;
@@ -155,6 +157,7 @@ public:
 
 	int GetBulletDamage() const { return mDamage; }
 	void SetBulletDamage(int damage) { this->mDamage = damage; }
+	void SetPlantDamageOrigin(PlantDamageOrigin origin) { mPlantDamageOrigin = origin; }
 	float GetVelocityX() { return mVelocityX; }
 	void SetVelocityX(float x);
 	float GetVelocityY() { return mVelocityY; }
