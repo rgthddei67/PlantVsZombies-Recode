@@ -121,6 +121,7 @@ enum class AnimationType
 	ANIM_ALARMBELLFLOWER, // 警铃草复用 Blover 弯折时间轴并替换分件；追加在末尾避免旧动画枚举值错位
 	ANIM_FURNACECOREFLOWER, // 炉芯花复用 SunFlower 时间轴并替换炉芯分件；追加在末尾避免旧动画枚举值错位
 	ANIM_SNOW_BURROW_ZOMBIE, // 潜雪僵尸独立雪地材质；复用经典矿工时间线
+	ANIM_LISTENINGGRASS, // 听雪草独立覆霜材质；复用经典叶子保护伞时间线
 };
 
 #endif

@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>ListeningGrassHoleSeal</Name>
+  <SpawnMinActive>[12 16]</SpawnMinActive>
+  <SpawnMaxLaunched>16</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[8 34]</EmitterRadius>
+  <ParticleDuration>[.46 .82]</ParticleDuration>
+  <ParticleAlpha>.9,70 0</ParticleAlpha>
+  <ParticleScale>[.48 .86] .25</ParticleScale>
+  <LaunchSpeed>[18 52]</LaunchSpeed>
+  <ParticleGravity>55</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-150 150]</ParticleSpinSpeed>
+  <SystemDuration>.88</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>

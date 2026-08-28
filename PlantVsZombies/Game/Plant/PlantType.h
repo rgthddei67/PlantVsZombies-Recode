@@ -69,6 +69,7 @@ enum class PlantType
 	PLANT_FROSTMINE,	// 伏霜雷；7-4 奖励，预报校准并在实际冻土中埋伏地面目标
 	PLANT_ALARMBELLFLOWER,	// 警铃草；7-6 奖励，中断本行最接近提交的一项特殊动作
 	PLANT_FURNACECOREFLOWER,	// 炉芯花；7-7 奖励，温暖充能并阻止 3x3 内其他植物被建立冰像封存
+	PLANT_LISTENINGGRASS,	// 听雪草；8-1 奖励，迫出本行地下敌人并封闭雪穴
 	NUM_PLANT_TYPES,
 };
 

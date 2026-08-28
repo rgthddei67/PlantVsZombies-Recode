@@ -106,8 +106,8 @@ namespace AdventureProgression
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 
-		// 8-1 ... 8-9（极夜雪原；植物奖励随植物实现单独落表）
-		NO_PLANT_REWARD,
+		// 8-1 ... 8-9（极夜雪原；8-1 通关后解锁首株极夜植物）
+		PlantType::PLANT_LISTENINGGRASS,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
@@ -233,7 +233,7 @@ namespace AdventureProgression
 	static_assert(IsAdventureLevel(64) && IsAdventureLevel(72));
 	static_assert(GetAreaNumber(64) == 8 && GetLevelNumberInArea(64) == 1);
 	static_assert(GetAreaNumber(65) == 8 && GetLevelNumberInArea(65) == 2);
-	static_assert(GetPlantReward(64) == NO_PLANT_REWARD);
+	static_assert(GetPlantReward(64) == PlantType::PLANT_LISTENINGGRASS);
 	static_assert(GetPlantReward(72) == NO_PLANT_REWARD);
 	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL - 1));
 	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL));

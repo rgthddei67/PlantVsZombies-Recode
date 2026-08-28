@@ -58,6 +58,7 @@
 #include "../Plant/FrostMine.h"
 #include "../Plant/AlarmBellFlower.h"
 #include "../Plant/FurnaceCoreFlower.h"
+#include "../Plant/ListeningGrass.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -368,6 +369,7 @@ namespace {
 		PT(PLANT_FROSTMINE),
 		PT(PLANT_ALARMBELLFLOWER),
 		PT(PLANT_FURNACECOREFLOWER),
+		PT(PLANT_LISTENINGGRASS),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -3689,6 +3691,29 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "offsetXInt", static_cast<int>(std::lround(weatherJammerOffset.x)) },
 		{ "offsetYInt", static_cast<int>(std::lround(weatherJammerOffset.y)) },
 	};
+	out["listeningGrassResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_LISTENINGGRASS) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_LISTENINGGRASS, false) != nullptr },
+		{ "partsLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_BODY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF4, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF5, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF6, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_LISTENINGGRASS_LEAF7, false) != nullptr },
+	};
 	out["iceStatueExecutionerResources"] = {
 		{ "maulTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_ICE_EXECUTIONER_MAUL, false) != nullptr },
@@ -6920,6 +6945,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["frostMinesByCell"] = nlohmann::json::object();
 	out["alarmBellFlowersByCell"] = nlohmann::json::object();
 	out["furnaceCoreFlowersByCell"] = nlohmann::json::object();
+	out["listeningGrassesByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 		Plant* p = board->mEntityRegistry.GetPlant(id);
@@ -7236,6 +7262,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["furnaceCoreFlowersByCell"][cellKey] = plantState;
 		}
+		if (auto* listeningGrass = dynamic_cast<ListeningGrass*>(p)) {
+			plantState["listenCooldownRemainingMs"] = static_cast<int>(std::lround(
+				listeningGrass->GetListenCooldownRemaining() * 1000.0f));
+			plantState["listenReady"] = listeningGrass->GetListenCooldownRemaining() <= 0.0f;
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["listeningGrassesByCell"][cellKey] = plantState;
+		}
 		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
 			plantState["imitaterTarget"] = PlantTypeName(
 				imitater->GetImitaterTarget());
@@ -7387,6 +7421,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["SnowBurrowRise"] = 0;
 	out["particleEffectNameCounts"]["SnowBurrowImpact"] = 0;
 	out["particleEffectNameCounts"]["SnowBurrowWindup"] = 0;
+	out["particleEffectNameCounts"]["ListeningGrassPulse"] = 0;
+	out["particleEffectNameCounts"]["ListeningGrassHoleSeal"] = 0;
 	out["particleEffectNameCounts"]["ZombieSnowBurrowArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieSnowBurrowHeadOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDiggerArmOff"] = 0;

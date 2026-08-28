@@ -233,6 +233,7 @@
 	<Image>./resources/image/reanim/REANIM_FROSTMINE_ARMED.png</Image>
 	<Image>./resources/image/PlantImage/AlarmBellFlower.png</Image>
 	<Image>./resources/image/PlantImage/FurnaceCoreFlower.png</Image>
+	<Image>./resources/image/PlantImage/ListeningGrass.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_CHARM.png</Image>
 	<Image>./resources/image/reanim/REANIM_FURNACECOREFLOWER_CORE.png</Image>
 	<Image>./resources/image/reanim/Torchwood_fire1a.png</Image>
@@ -574,6 +575,7 @@
     <Reanimation name="Coffeebean">./resources/reanim/Coffeebean.reanim</Reanimation>
     <Reanimation name="Garlic">./resources/reanim/Garlic.reanim</Reanimation>
     <Reanimation name="Umbrellaleaf">./resources/reanim/Umbrellaleaf.reanim</Reanimation>
+	<Reanimation name="ListeningGrass">./resources/reanim/ListeningGrass.reanim</Reanimation>
     <Reanimation name="Marigold">./resources/reanim/Marigold.reanim</Reanimation>
     <Reanimation name="Melonpult">./resources/reanim/Melonpult.reanim</Reanimation>
     <Reanimation name="WinterMelon">./resources/reanim/WinterMelon.reanim</Reanimation>

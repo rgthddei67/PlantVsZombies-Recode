@@ -58,6 +58,7 @@
 #include "FrostMine.h"
 #include "AlarmBellFlower.h"
 #include "FurnaceCoreFlower.h"
+#include "ListeningGrass.h"
 #include "KernelPult.h"
 #include "CobCannon.h"
 #include "CoffeeBean.h"
@@ -406,6 +407,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_FURNACECOREFLOWER,
 		ResourceKeys::Reanimations::REANIM_FURNACECOREFLOWER,
 		&MakePlant<FurnaceCoreFlower>);
+
+	RegisterPlant(PlantType::PLANT_LISTENINGGRASS, "PLANT_LISTENINGGRASS",
+		ResourceKeys::Textures::IMAGE_LISTENINGGRASS,
+		AnimationType::ANIM_LISTENINGGRASS,
+		ResourceKeys::Reanimations::REANIM_LISTENINGGRASS,
+		&MakePlant<ListeningGrass>);
 
 	RegisterPlant(PlantType::PLANT_KERNELPULT, "PLANT_KERNELPULT",
 		ResourceKeys::Textures::IMAGE_CORNPULT,

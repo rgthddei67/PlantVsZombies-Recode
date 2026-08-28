@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>ListeningGrassPulse</Name>
+  <SpawnMinActive>[7 10]</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[3 14]</EmitterRadius>
+  <ParticleDuration>[.38 .66]</ParticleDuration>
+  <ParticleAlpha>.82,72 0</ParticleAlpha>
+  <ParticleScale>[.42 .72] .2</ParticleScale>
+  <LaunchSpeed>[24 58]</LaunchSpeed>
+  <ParticleGravity>28</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-120 120]</ParticleSpinSpeed>
+  <SystemDuration>.72</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>
