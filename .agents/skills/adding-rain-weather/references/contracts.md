@@ -34,7 +34,7 @@
 
 暂停时天气过渡和阶段计时冻结；倍速时按游戏时间等比推进。天气 UI 的滑入、5 秒当前天气牌和失败提示另用未缩放时间。
 
-无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival`、通用雨势资格和无尽台风禁用资格都消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。全部无尽地形保留通用晴雨循环，但 `SupportsTyphoon()` 必须对它们统一返回 false，使自然预抽、警报、启动、更新、旧档恢复、概率投影和测试强制入口都不能留下活动或待生效台风；新增无尽地形自动继承此契约，不能再在多处追加平行 `level == ...` 或解锁判断。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
+无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival` 与通用雨势资格消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。无尽模式不再因模式本身禁用台风：前六种背景在玩家总开关开启时允许，雪原仍因 `WINTER_GARDEN` 背景拒绝。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
 
 提前 5 游戏秒的大雨分级文字警报只由玩家可见的公开预报驱动：公开预报为 `HEAVY` 就显示，
 否则即使真实下一天气为大雨也隐藏，弹窗有无不得成为判断预报真假的旁路。公开误报大雨时也须
@@ -81,9 +81,11 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 
 不要用 overlay alpha 推断是否下雨：它是视觉插值，雨转晴的两秒内仍大于 0。
 
-主菜单控制台的 `openingTyphoonProtectionEnabled` 是玩家全局偏好，旧 `PlayerInfo` 缺字段时默认
-开启。它只作用于本来允许台风的普通冒险关：第 1～5 波仍允许自然雨势，但新大雨附加台风的实际概率为 0；
-进入第 6 波恢复原天气导演概率。所有集中登记的无尽模式由 `SupportsTyphoon()` 恒定拒绝台风，因此不受该开关或生存轮次影响。关闭开关则只使普通冒险从开局起完整使用原规则。
+主菜单控制台的 `typhoonWeatherEnabled` 与 `openingTyphoonProtectionEnabled` 是玩家全局偏好，旧
+`PlayerInfo` 缺字段时都默认开启。总开关关闭时，`SupportsTyphoon()` 对所有地图返回 false，并统一让
+自然预抽、警报、启动、更新、旧档恢复、概率投影和测试强制入口清空或拒绝台风；控制台同时隐藏开局
+保护项，但保留其已保存值。总开关重新开启后，普通冒险第 1～5 波与无尽第一轮第 1～5 波仍允许自然
+雨势，但新大雨附加台风的实际概率为 0；进入第 6 波恢复原天气导演概率，无尽第二轮起不再应用开局保护。
 天气预警可能在阶段揭晓前锁定台风结果，因此“本次因开局保护锁定为无台风”由 Board pending
 标志进入关卡档；兑现时不增加 `heavyPhasesWithoutTyphoon`，避免第 6 波因保护期被伪计为连续落空。
 
@@ -380,6 +382,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `set_cold_wave`：对支持温度的地图固定 `CALM/COOLING/COLD/THAWING`、当前温度、阶段余时及可选 `WEAK/NORMAL/STRONG`、目标温度、降温/维持/回暖总时长和稳定霜线变体；状态投影应同时导出完整锁定计划、温度整数、冻土列数/首列、千分整数视觉冻土列数、准确预报/活动标志及面板实文、是否下雪、实际降水特效名和台风资格。斜率专项用正式阶段余时推进，并断言温度与剩余时间范围；另用不同实际温度断言冻土范围，不能只按强度枚举断言。
 - `set_opening_typhoon_protection`：在进程内开关默认启用的前 5 波台风保护，不触碰真实 `PlayerInfo`。
+- `set_typhoon_weather_enabled`：在进程内开关默认启用的台风天气总资格，不触碰真实 `PlayerInfo`；关闭后由正式 `SupportsTyphoon()` 路径清理活动与待生效台风。
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
 - `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
 - `set_night_roof_charge`：只对黑夜屋顶可用；`phase=CHARGING/WARNING/DISCHARGING`，活动阶段用 `row` 固定路线，可选 `charge/remaining`。

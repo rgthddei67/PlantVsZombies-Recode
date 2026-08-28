@@ -42,6 +42,13 @@ void MainMenuScene::OnExit()
 void MainMenuScene::Update()
 {
 	Scene::Update();
+	if (mReadyToRefreshConsole) {
+		// 复选框回调结束后重建面板，使依赖总开关的选项立即出现或消失。
+		mReadyToRefreshConsole = false;
+		if (auto menu = mConsoleMenu.lock()) menu->Close();
+		mOpenConsole = false;
+		OpenConsole();
+	}
 	if (mReadyToSwitchAdventureLevel) {
 		mReadyToSwitchAdventureLevel = false;
 		auto& gameApp = GameAPP::GetInstance();
@@ -305,27 +312,38 @@ void MainMenuScene::OpenConsole()
 	const Vector panelCenter(SCENE_WIDTH / 2.0f, SCENE_HEIGHT / 2.0f);
 	const glm::vec4 titleColor{ 53, 191, 61, 255 };
 	const glm::vec4 labelColor{ 245, 214, 127, 255 };
-	mConsoleMenu = GameMessageBox::Builder(panelCenter)
+	GameMessageBox::Builder builder(panelCenter);
+	builder
 		.Panel(static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT))
 		.Text(panelCenter + Vector(-76.0f, -190.0f), 38, u8"控制台", titleColor)
-		.Checkbox(panelCenter + Vector(-205.0f, -25.0f), Vector(50.0f, 46.0f), []() {
+		.Checkbox(panelCenter + Vector(-205.0f, -75.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mEnableMonteCarloAI = !app.mEnableMonteCarloAI;
 		}, gameApp.mEnableMonteCarloAI)
-		.Text(panelCenter + Vector(-140.0f, -10.0f), 22,
+		.Text(panelCenter + Vector(-140.0f, -60.0f), 22,
 			u8"蒙特卡洛模拟未来AI", labelColor)
-		.Checkbox(panelCenter + Vector(-205.0f, 50.0f), Vector(50.0f, 46.0f), []() {
+		.Checkbox(panelCenter + Vector(-205.0f, -15.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mAdvancedPauseEnabled = !app.mAdvancedPauseEnabled;
 		}, gameApp.mAdvancedPauseEnabled)
-		.Text(panelCenter + Vector(-140.0f, 65.0f), 22,
+		.Text(panelCenter + Vector(-140.0f, 0.0f), 22,
 			u8"高级暂停（暂停时可选卡和种植）", labelColor)
-		.Checkbox(panelCenter + Vector(-205.0f, 125.0f), Vector(50.0f, 46.0f), []() {
+		.Checkbox(panelCenter + Vector(-205.0f, 45.0f), Vector(50.0f, 46.0f), [this]() {
+			auto& app = GameAPP::GetInstance();
+			app.mTyphoonWeatherEnabled = !app.mTyphoonWeatherEnabled;
+			mReadyToRefreshConsole = true;
+		}, gameApp.mTyphoonWeatherEnabled)
+		.Text(panelCenter + Vector(-140.0f, 60.0f), 22,
+			u8"会出现台风天气", labelColor);
+	if (gameApp.mTyphoonWeatherEnabled) {
+		builder.Checkbox(panelCenter + Vector(-205.0f, 105.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mOpeningTyphoonProtectionEnabled = !app.mOpeningTyphoonProtectionEnabled;
 		}, gameApp.mOpeningTyphoonProtectionEnabled)
-		.Text(panelCenter + Vector(-140.0f, 140.0f), 22,
-			u8"开局台风保护（第1～5波）", labelColor)
+		.Text(panelCenter + Vector(-140.0f, 120.0f), 22,
+			u8"开局台风保护（第1～5波）", labelColor);
+	}
+	mConsoleMenu = builder
 		.Button(u8"关闭", panelCenter + Vector(-90.0f, 180.0f), Vector(180.0f, 52.0f),
 			24, [this]() { CloseConsole(); })
 		.Show();

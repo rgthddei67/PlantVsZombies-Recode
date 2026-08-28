@@ -51,10 +51,10 @@
     { "op": "assert_state", "path": "weather.weakWeatherPhasesSinceHeavy", "equals": 0 },
 
     { "op": "set_weather", "intensity": "HEAVY", "duration": 60 },
-    { "op": "assert_state", "path": "weather.typhoonSupported", "equals": false },
-    { "op": "assert_state", "path": "weather.typhoonChancePct", "equals": 0 },
-    { "op": "set_typhoon", "strength": "SUPER", "direction": "HOUSE", "expectedSuccess": false },
-    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "NONE" },
+    { "op": "assert_state", "path": "weather.typhoonSupported", "equals": true },
+    { "op": "assert_state", "path": "weather.typhoonChancePct", "atLeast": 75 },
+    { "op": "set_typhoon", "strength": "SUPER", "direction": "HOUSE" },
+    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "SUPER" },
 
     { "op": "goto_level", "level": 10 },
     { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },

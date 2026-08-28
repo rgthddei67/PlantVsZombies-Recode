@@ -206,6 +206,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["enableMonteCarloAI"] = gameApp.mEnableMonteCarloAI;
 	j["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
 	j["openingTyphoonProtectionEnabled"] = gameApp.mOpeningTyphoonProtectionEnabled;
+	j["typhoonWeatherEnabled"] = gameApp.mTyphoonWeatherEnabled;
 	j["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	j["soundVolume"] = AudioSystem::GetSoundVolume();
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
@@ -260,6 +261,7 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.mAdvancedPauseEnabled = j.value("advancedPauseEnabled", false);
 	gameApp.mOpeningTyphoonProtectionEnabled =
 		j.value("openingTyphoonProtectionEnabled", true);
+	gameApp.mTyphoonWeatherEnabled = j.value("typhoonWeatherEnabled", true);
 	gameApp.mLastSelectedCards.clear();
 	if (auto it = j.find("lastSelectedCards"); it != j.end() && it->is_array()) {
 		// 只接收字符串并限制数量；未知或已移除的枚举名留到选卡界面按当前注册表过滤。

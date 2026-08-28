@@ -71,3 +71,13 @@ true→false、重开仍为 false，保存状态 JSON 并截图启用/禁用两�
 Win7 378 项导入审计通过；桌面可见运行该专项、`smoke_mainmenu_buttons`、
 `smoke_mainmenu_console`、`pause_menu_shot`、`smoke_particle_layers` 均退出 0 且
 `status=passed`，截图确认背景入口保留、模态层最高及世界粒子仍在暂停框下方。
+
+## 2026-08-28：台风天气总开关与条件选项
+
+控制台新增默认开启的“会出现台风天气”，直接绑定持久化的
+`GameAPP::mTyphoonWeatherEnabled`。关闭后 `Board::SupportsTyphoon()` 统一拒绝所有台风入口；
+“开局台风保护（第1～5波）”只有在总开关开启时才创建。切换总开关会在当前输入回调完成后重建
+控制台，使保护项立即出现或消失；隐藏只代表当前无玩法意义，不改写已保存的保护偏好。
+桌面可见 `clang-release` 的 `smoke_mainmenu_console` 42 条命令 exit 0、`status=passed`、
+`script finished OK`；真实点击证明关闭总开关后原保护项位置不再响应，重新开启后恢复并保留偏好。
+三张关键截图目验四项布局无重叠、关闭时只剩三项、重开后保护项按原勾选态恢复。

@@ -994,7 +994,7 @@ float Board::GetZombieRainSpeedMultiplier() const
 	return previous + (ZombieSpeedForRain(mRainIntensity, pressure) - previous) * progress;
 }
 
-/** 返回默认开局台风保护是否正在约束当前 Board；生存模式只保护第一轮。 */
+/** 返回开局台风保护是否正在约束当前 Board；生存模式只保护第一轮。 */
 bool Board::IsOpeningTyphoonProtectionActive() const
 {
 	if (!GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled || !SupportsTyphoon()) {
@@ -4734,11 +4734,11 @@ bool Board::SupportsStageFog() const
 		|| AdventureProgression::HasLevelSpecificFogMechanics(mLevel);
 }
 
-/** 仅普通天气关允许台风；全部集中登记的无尽模式只保留晴雨循环，雪原仍维持原禁用语义。 */
+/** 统一判定玩家是否允许当前地图生成或保留台风。 */
 bool Board::SupportsTyphoon() const
 {
 	return SupportsWeather()
-		&& !IsSurvivalEndlessLevel(mLevel)
+		&& GameAPP::GetInstance().mTyphoonWeatherEnabled
 		&& mBackGround != Background::WINTER_GARDEN;
 }
 

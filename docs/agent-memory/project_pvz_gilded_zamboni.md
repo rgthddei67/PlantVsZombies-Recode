@@ -16,7 +16,7 @@ AutoTest 的显式直造不消耗额度。2026-08-27 起，该类型明确不进
 普通冰车与其他既有类型资格不因此收窄，冒险出怪、直造、已存在僵尸实体的读档和显式召唤也不受影响；旧无尽档冻结的 `spawnList` 会按当前候选资格过滤掉鎏金冰车。冒险 3-6（level 24）为 20 波
 `{normal, cone, bucket, zamboni, gilded zamboni}`。
 
-2026-08-27 的 `clang-release` 当前桌面可见回归中，`smoke_endless_no_typhoon` 在第 100 轮断言鎏金冰车候选资格为 false、普通冰车为 true、实际池不含鎏金冰车；`smoke_survival_spawn_round` 的既有轮次建池回归同时通过。
+2026-08-28 起由 `smoke_typhoon_weather_toggle` 在第 100 轮继续断言鎏金冰车候选资格为 false、普通冰车为 true、实际池不含鎏金冰车；原 `smoke_endless_no_typhoon` 已随无尽台风规则删除。`smoke_survival_spawn_round` 仍承担既有轮次建池回归。
 
 车辆只碾压本行植物；黄色冰道仍尝试铺在本行与相邻两行，并在非水路保持 35 秒。
 Board 分行保存黄色左缘/寿命，旧档缺字段为空；黄色与普通冰道重叠时先截短普通段再绘制

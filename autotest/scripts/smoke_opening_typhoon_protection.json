@@ -57,13 +57,13 @@
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
     { "op": "assert_state", "path": "survivalRound", "equals": 1 },
-    { "op": "assert_state", "path": "weather.openingTyphoonProtectionActive", "equals": false },
-    { "op": "assert_state", "path": "weather.typhoonSupported", "equals": false },
+    { "op": "assert_state", "path": "weather.openingTyphoonProtectionActive", "equals": true },
+    { "op": "assert_state", "path": "weather.typhoonSupported", "equals": true },
     { "op": "force_survival_round", "round": 2 },
     { "op": "assert_state", "path": "weather.openingTyphoonProtectionActive", "equals": false },
     { "op": "set_weather", "intensity": "HEAVY", "duration": 60 },
-    { "op": "set_typhoon", "strength": "TYPHOON", "direction": "HOUSE", "expectedSuccess": false },
-    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "NONE" },
+    { "op": "set_typhoon", "strength": "TYPHOON", "direction": "HOUSE" },
+    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "TYPHOON" },
     { "op": "dump_state", "name": "opening_typhoon_protection_final_state" },
     { "op": "quit" }
   ]

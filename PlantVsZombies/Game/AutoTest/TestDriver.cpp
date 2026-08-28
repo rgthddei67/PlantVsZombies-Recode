@@ -722,6 +722,7 @@ void TestDriver::ResetTestState() {
 	GameAPP::GetInstance().mEnableMonteCarloAI = true;
 	GameAPP::GetInstance().mAdvancedPauseEnabled = false;
 	GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled = true;
+	GameAPP::GetInstance().mTyphoonWeatherEnabled = true;
 	GameAPP::GetInstance().mCrazyDaveTutorialsSeen.clear();
 }
 
@@ -846,6 +847,10 @@ bool TestDriver::ExecuteCurrent() {
 	if (op == "set_opening_typhoon_protection") {
 		GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled =
 			cmd.value("value", true);
+		return true;
+	}
+	if (op == "set_typhoon_weather_enabled") {
+		GameAPP::GetInstance().mTyphoonWeatherEnabled = cmd.value("value", true);
 		return true;
 	}
 
@@ -3167,6 +3172,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["cursorHoverCount"] = CursorManager::GetInstance().GetHoverCount();
 	out["openingTyphoonProtectionEnabled"] =
 		gameApp.mOpeningTyphoonProtectionEnabled;
+	out["typhoonWeatherEnabled"] = gameApp.mTyphoonWeatherEnabled;
 	out["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	out["lastSelectedCardCount"] = static_cast<int>(gameApp.mLastSelectedCards.size());
 	out["crazyDaveTutorialsSeen"] = gameApp.mCrazyDaveTutorialsSeen;

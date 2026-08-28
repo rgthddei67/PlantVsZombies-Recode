@@ -35,6 +35,7 @@ private:
 
 	bool mOpenMenu = false;
 	bool mOpenConsole = false;
+	bool mReadyToRefreshConsole = false;
 
 	/** 补齐第一大关进度与植物奖励，然后从 2-1 开始游戏。 */
 	void SkipToSecondArea();

@@ -83,7 +83,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-08-27当前契约：BatchVertex保留逐顶点framebuffer裁剪，活动Clip的实例精灵/Animator/字形按原调用位置回退batch；Push/Pop仍不flush、不录worker状态命令或改动态scissor，无裁剪InstanceRecord因而收回48B
-- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-27 七种无尽地形保留晴雨循环但统一禁用台风，`SupportsTyphoon()` 同时约束预抽、警报、启动、更新、旧档恢复、概率与测试入口；普通冒险台风、独立迷雾、4-9 暴风雨夜与昼夜屋顶雨景见主题
+- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-28 `PlayerInfo` 默认开启“会出现台风天气”，`SupportsTyphoon()` 统一约束总开关与冬日花园地图门禁；无尽不再按模式禁台风，雪原仍按背景禁用；开局保护只在总开关开启时显示并保护普通冒险/无尽首轮第 1～5 波
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-08-22 唯一路灯花以25/100雾火维持四挡逐格照明/索敌与产光；本体交互改由CardSlotManager和Cell唯一解析，空手悬停显示手型并可开菜单，拿植物/铲子/炮击准星时不显示手型、不展开菜单且不截断同格南瓜头或under层避雷花盆放置；燃料曲线、6-9动态雾和存档合同保持
 - [雾夜第四大关4-1至4-9出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-08-03 4-8当前为普通/精英海豚、气球、跳跳三高度池；4-9为12类型暴风雨终局综合池并以普通/精英跳跳收尾；权威资源未改，4-7～4-9有序池与预览专项已同步并可见通过
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-08-02 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧直接清除爆区全部植物层），明确不受南瓜范围拦截影响；专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归
@@ -113,7 +113,7 @@
 - [粉色橄榄球僵尸 ✅](project_pvz_pink_football_zombie.md) — 2026-08-02 黑夜专属轻装变体：220本体/900头盔、速度1.85/1.95、减速动画系数0.7，首口400后续40；掉盔对半径120圆内无壳植物造成50，南瓜格只让外壳承受300，水路内层与睡莲安全；2-9 出怪、圆内/圆外及水路三层均有可见专项
 - [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-08-05 四态害怕状态机；南瓜免疫须在节流前清空旧 `mScaredCached` 并保持检查到期，否则旧 true 会驱动反复缩头；既有 foot-gun 仍包括帧事件帧号必问主人、站位/影子两套 offset 分居 gamedata 与代码、读档首帧必须真算
 - [金盏花最小观赏版本](project_pvz_marigold_minimal.md) — 2026-08-09 `Marigold : Plant` 只播 `anim_idle`，不吐钱；费用 `-100`、冷却 25 秒，正式卡槽实测阳光 `0→100`；blink1/2 只用通用 `IMAGE_*` 键，默认与 `-NoInstance` 可见专项及整数 worldBounds 一致
-- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-22 主菜单模态只禁用背景入口命中并清除 hover/pressed，入口继续在 MessageBox 下方绘制；右下控制台承载蒙特卡洛 AI、高级暂停与开局台风保护；左下未到2-1时仍显示跳关；石碑重叠由ButtonManager中心最近仲裁
+- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-28 主菜单模态只禁用背景入口命中；右下控制台承载蒙特卡洛 AI、高级暂停、台风总开关与条件显示的开局保护；左下未到2-1时仍显示跳关；石碑重叠由ButtonManager中心最近仲裁
 - [血量字形worker侧instance化与满血整行快路](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07字形worker直写InstanceRecord消除串行replay N×ε；2026-08-27满血本体改裁透明边的单共享整行实例，2万档590071→410071 instances、约134→137-138FPS（只曾单窗140.1，未稳定140+）；动态/防具保留字形路径，未裁整行与双纹理分段候选均因GPU退化否决；真实档AutoTest须`-AutoTestLoadSave`且只比较小推车事件前稳定窗口
 - [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-08-14 JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；植物轻量防线推演 `simulation` 增加 `supportOnly`，普通花盆/睡莲由数据声明压缩、特殊支撑保持完整画像；只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN

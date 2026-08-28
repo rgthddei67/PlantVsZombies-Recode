@@ -1,6 +1,12 @@
 # 黑夜随机雨势天气
 
-> 2026-08-27 范围更新：通用雨势由 `Board::SupportsWeather()` 统一判定；冒险模式从 2-1（level 10）起均启用，一大关关闭；`SURVIVAL_ENDLESS_DEFINITIONS` 集中登记的七种生存无尽地形（level 1000～1006）均保留晴雨循环，但统一由 `Board::SupportsTyphoon()` 禁用台风，避免长局成败过度依赖台风随机。该门禁同时覆盖预抽警报、正式启动、逐帧更新、旧档恢复、概率投影和 AutoTest 强制入口。独立迷雾默认仍由 `Background::NIGHT_WATER_POOL` 提供，因此 1003 黑夜泳池无尽自然复用完整雾场；明确复用完整迷雾的固定冒险关集中登记在 `AdventureProgression::HasLevelSpecificFogMechanics()`，当前仅 6-9 的 `NIGHT_ROOF`。下文大量“黑夜/四大关”描述是历史建设语境，当前以此段和源码为准。
+> 2026-08-28 范围更新：通用雨势由 `Board::SupportsWeather()` 统一判定；冒险模式从 2-1（level 10）起均启用，一大关关闭；`SURVIVAL_ENDLESS_DEFINITIONS` 集中登记的七种生存无尽地形（level 1000～1006）均保留晴雨循环。`PlayerInfo` 的 `typhoonWeatherEnabled` 是默认开启的台风总开关，`Board::SupportsTyphoon()` 用它统一约束预抽警报、正式启动、逐帧更新、旧档恢复、概率投影和 AutoTest 强制入口；无尽不再因模式本身禁用台风，前六种地形允许台风，雪原仍因 `WINTER_GARDEN` 背景禁用。独立迷雾默认仍由 `Background::NIGHT_WATER_POOL` 提供，因此 1003 黑夜泳池无尽自然复用完整雾场；明确复用完整迷雾的固定冒险关集中登记在 `AdventureProgression::HasLevelSpecificFogMechanics()`，当前仅 6-9 的 `NIGHT_ROOF`。下文大量“黑夜/四大关”描述是历史建设语境，当前以此段和源码为准。
+
+2026-08-28 `clang-release` 构建与 Win7 378 项导入审计通过；桌面可见的
+`smoke_typhoon_weather_toggle` 60 条、`smoke_opening_typhoon_protection` 61 条、
+`smoke_weather_director` 57 条均 exit 0、`status=passed`、`script finished OK`。
+总开关专项覆盖活动台风即时清理、概率/强制入口/pending 归零、六种非冬日无尽允许台风与雪原背景拒绝；
+开局保护专项覆盖普通冒险和无尽第一轮第 1～5 波、无尽第二轮放行。
 
 2026-08-27 当前源码的新雨势前期权重为 15/45/40/40，预报准确率上限为 95%；后续带日期的历史验证记录仍可能引用当时旧值。`clang-release` 当前桌面可见的 `smoke_endless_no_typhoon` 92 条、`smoke_opening_typhoon_protection` 61 条、`smoke_weather_director` 57 条与 `smoke_typhoon` 124 条均 exit 0、`status=passed`、`script finished OK`。
 
