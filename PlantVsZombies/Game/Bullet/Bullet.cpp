@@ -925,13 +925,20 @@ void Bullet::ConfigureLobbedMotion(
 	bool targetsIceWall)
 {
 	if (!GetTransform()) return;
+	Vector adjustedTarget = target;
+	const int sourceRow = mRow;
+	int landingRow = sourceRow;
+	const bool landsOnBoard = !mBoard
+		|| mBoard->ApplyPolarLobbedWind(sourceRow, landingRow, adjustedTarget);
 	mTrajectory.kind = TrajectoryKind::LOBBED;
-	mTrajectory.targetsIceWall = targetsIceWall;
+	mTrajectory.polarWindMiss = !landsOnBoard;
+	mTrajectory.targetsIceWall = targetsIceWall && landingRow == sourceRow;
 	mTrajectory.start = GetTransform()->GetPosition();
-	mTrajectory.target = target;
+	mTrajectory.target = adjustedTarget;
 	mTrajectory.elapsed = 0.0f;
 	mTrajectory.duration = std::max(0.01f, durationSeconds);
 	mTrajectory.apexHeight = std::max(0.0f, apexHeight);
+	if (landsOnBoard) mRow = landingRow;
 	mVelocityX = (mTrajectory.target.x - mTrajectory.start.x) / mTrajectory.duration;
 	mVelocityY = (mTrajectory.target.y - mTrajectory.start.y) / mTrajectory.duration
 		- 4.0f * mTrajectory.apexHeight / mTrajectory.duration;
@@ -943,13 +950,18 @@ void Bullet::ConfigureCobCannonMotion(
 	const Vector& target, int targetRow, float durationSeconds)
 {
 	if (!GetTransform()) return;
+	Vector adjustedTarget = target;
+	int adjustedRow = targetRow;
+	const bool landsOnBoard = !mBoard
+		|| mBoard->ApplyPolarLobbedWind(targetRow, adjustedRow, adjustedTarget);
 	mTrajectory.kind = TrajectoryKind::COB_CANNON;
 	mTrajectory.start = GetTransform()->GetPosition();
-	mTrajectory.target = target;
+	mTrajectory.target = adjustedTarget;
 	mTrajectory.elapsed = 0.0f;
 	mTrajectory.duration = std::max(0.1f, durationSeconds);
-	mTrajectory.targetRow = targetRow;
+	mTrajectory.targetRow = adjustedRow;
 	mTrajectory.targetsIceWall = false;
+	mTrajectory.polarWindMiss = !landsOnBoard;
 	mRotationDegrees = -90.0f;
 	if (mCollider) mCollider->mEnabled = false;
 	if (auto* shadow = GetShadow()) shadow->SetEnabled(true);
@@ -957,10 +969,20 @@ void Bullet::ConfigureCobCannonMotion(
 }
 
 void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
-	int targetRow, float elapsedSeconds, float durationSeconds)
+	int targetRow, float elapsedSeconds, float durationSeconds,
+	bool polarWindMiss)
 {
-	ConfigureCobCannonMotion(target, targetRow, durationSeconds);
+	if (!GetTransform()) return;
+	mTrajectory.kind = TrajectoryKind::COB_CANNON;
 	mTrajectory.start = start;
+	mTrajectory.target = target;
+	mTrajectory.targetRow = targetRow;
+	mTrajectory.targetsIceWall = false;
+	mTrajectory.polarWindMiss = polarWindMiss;
+	mTrajectory.duration = std::max(0.1f, durationSeconds);
+	mRotationDegrees = -90.0f;
+	if (mCollider) mCollider->mEnabled = false;
+	if (auto* shadow = GetShadow()) shadow->SetEnabled(true);
 	mTrajectory.elapsed = std::clamp(
 		elapsedSeconds, 0.0f, mTrajectory.duration);
 	// 以零增量重建当前位置，不会跨过爆炸边沿。
@@ -998,7 +1020,7 @@ bool Bullet::UpdateCobCannonMotion(float deltaTime)
 	if (mTrajectory.elapsed < mTrajectory.duration) return true;
 	if (!mHasHit) {
 		mHasHit = true;
-		if (mBoard) mBoard->CreateCobCannonExplosion(
+		if (mBoard && !mTrajectory.polarWindMiss) mBoard->CreateCobCannonExplosion(
 			mTrajectory.target, mTrajectory.targetRow, mDamage);
 	}
 	Die();
@@ -1024,10 +1046,11 @@ float Bullet::GetCobCannonShadowScale() const
 
 void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
 	float elapsedSeconds, float durationSeconds, float apexHeight,
-	bool targetsIceWall)
+	bool targetsIceWall, bool polarWindMiss)
 {
 	mTrajectory.kind = TrajectoryKind::LOBBED;
 	mTrajectory.targetsIceWall = targetsIceWall;
+	mTrajectory.polarWindMiss = polarWindMiss;
 	mTrajectory.start = start;
 	mTrajectory.target = target;
 	mTrajectory.duration = std::max(0.01f, durationSeconds);
@@ -1047,7 +1070,7 @@ void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
 		- (4.0f * mTrajectory.apexHeight / mTrajectory.duration)
 		* (1.0f - 2.0f * progress);
 	if (mCollider) {
-		mCollider->mEnabled = progress >= 0.5f
+		mCollider->mEnabled = !mTrajectory.polarWindMiss && progress >= 0.5f
 			&& GetLobArcHeight() <= kLobCollisionArcHeight;
 	}
 	UpdateShadowLayout(position);
@@ -1084,7 +1107,7 @@ bool Bullet::UpdateLobbedMotion(float deltaTime)
 		* (1.0f - 2.0f * progress);
 	if (mCollider) {
 		// 只在下降末段打开碰撞，飞越前排目标时不会在高空误触。
-		mCollider->mEnabled = progress >= 0.5f
+		mCollider->mEnabled = !mTrajectory.polarWindMiss && progress >= 0.5f
 			&& arcHeight <= kLobCollisionArcHeight;
 	}
 	if (mTrajectory.elapsed >= mTrajectory.duration + kLobLandingGrace) {

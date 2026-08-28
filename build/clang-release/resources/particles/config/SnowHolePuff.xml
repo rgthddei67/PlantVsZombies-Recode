@@ -1,0 +1,42 @@
+<Emitter>
+  <Name>SnowHolePuff</Name>
+  <SpawnMinActive>12</SpawnMinActive>
+  <SpawnMaxLaunched>12</SpawnMaxLaunched>
+  <ParticleDuration>[.45 .75]</ParticleDuration>
+  <ParticleAlpha>.7,55 0</ParticleAlpha>
+  <ParticleScale>[.45 .8] 1.25</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-24 24]</EmitterBoxX>
+  <EmitterBoxY>[-5 5]</EmitterBoxY>
+  <LaunchSpeed>[18 48]</LaunchSpeed>
+  <ParticleGravity>35</ParticleGravity>
+  <ParticleRed>.76</ParticleRed>
+  <ParticleGreen>.9</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <SystemDuration>.9</SystemDuration>
+  <Image>PARTICLE_DUST_PUFFS</Image>
+  <ImageFrames>3</ImageFrames>
+  <AnimationRate>12</AnimationRate>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-100 100]</ParticleSpinSpeed>
+</Emitter>
+
+<Emitter>
+  <Name>SnowHolePuff</Name>
+  <SpawnMinActive>9</SpawnMinActive>
+  <SpawnMaxLaunched>9</SpawnMaxLaunched>
+  <ParticleDuration>[.4 .7]</ParticleDuration>
+  <ParticleAlpha>.85,68 0</ParticleAlpha>
+  <ParticleScale>[.4 .75]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[3 20]</EmitterRadius>
+  <LaunchSpeed>[35 85]</LaunchSpeed>
+  <ParticleGravity>80</ParticleGravity>
+  <ParticleRed>.74</ParticleRed>
+  <ParticleGreen>.9</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <SystemDuration>.85</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-220 220]</ParticleSpinSpeed>
+</Emitter>

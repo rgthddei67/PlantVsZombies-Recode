@@ -166,6 +166,7 @@ namespace {
 		if (overrideName == "ROOF") return Background::ROOF;
 		if (overrideName == "NIGHT_ROOF") return Background::NIGHT_ROOF;
 		if (overrideName == "WINTER_GARDEN") return Background::WINTER_GARDEN;
+		if (overrideName == "POLAR_NIGHT_SNOWFIELD") return Background::POLAR_NIGHT_SNOWFIELD;
 		return configured;
 	}
 
@@ -1232,6 +1233,124 @@ void GameScene::DrawWinterThermometer(Graphics* g) const
 		kCurrentPlateY + 4.0f);
 }
 
+/** 三只仪表始终读取 Board 当前实数；红色只表示阈值，不泄露隐藏计划。 */
+void GameScene::DrawPolarNightInstruments(Graphics* g) const
+{
+	if (!g || !mBoard || mBoard->mBoardState != BoardState::GAME
+		|| !mBoard->SupportsPolarNightEnvironment()) return;
+	constexpr float panelX = 7.0f;       // 帐篷侧观测站左缘，逻辑像素
+	constexpr float panelY = 405.0f;     // 与底部文字留出余量，保持三只仪表完整可读
+	constexpr float panelWidth = 170.0f; // 中号底板兼顾帐篷侧构图与实数可读性
+	constexpr float rowHeight = 44.0f;   // 恢复足够的文字、读数和进度条间距
+	constexpr float panelHeight = rowHeight * 3.0f + 15.0f; // 完整包住末行进度条并留出底边距
+	const glm::vec4 plate(16.0f, 30.0f, 48.0f, 222.0f);
+	const glm::vec4 border(142.0f, 183.0f, 211.0f, 235.0f);
+	const glm::vec4 safe(167.0f, 219.0f, 237.0f, 245.0f);
+	const glm::vec4 danger(255.0f, 82.0f, 72.0f, 255.0f);
+	const glm::vec4 shadow(3.0f, 9.0f, 16.0f, 235.0f);
+	g->FillRect(panelX + 2.0f, panelY + 2.0f,
+		panelWidth, panelHeight,
+		glm::vec4(0.0f, 0.0f, 0.0f, 105.0f));
+	g->FillRect(panelX, panelY, panelWidth, panelHeight, plate);
+	g->DrawRect(panelX, panelY, panelWidth, panelHeight, border);
+	g->DrawText(u8"极地观测站", ResourceKeys::Fonts::FONT_FZCQ, 16,
+		safe, panelX + 8.0f, panelY + 3.0f);
+
+	auto trendText = [](float current, float target) -> const char* {
+		if (target < current - 0.25f) return u8"↓";
+		if (target > current + 0.25f) return u8"↑";
+		return u8"→";
+	};
+	auto drawGauge = [&](int index, const std::string& label,
+		const std::string& value, float ratio, bool isDanger,
+		const char* trend) {
+		const float y = panelY + 24.0f + index * rowHeight;
+		const glm::vec4 color = isDanger ? danger : safe;
+		g->DrawText(label, ResourceKeys::Fonts::FONT_FZCQ, 14,
+			shadow, panelX + 9.0f, y + 1.0f);
+		g->DrawText(label, ResourceKeys::Fonts::FONT_FZCQ, 14,
+			color, panelX + 8.0f, y);
+		g->DrawText(value + " " + trend, ResourceKeys::Fonts::FONT_FZCQ, 14,
+			color, panelX + 88.0f, y);
+		g->FillRect(panelX + 8.0f, y + 20.0f, panelWidth - 16.0f, 8.0f,
+			glm::vec4(4.0f, 12.0f, 22.0f, 230.0f));
+		g->FillRect(panelX + 8.0f, y + 20.0f,
+			(panelWidth - 16.0f) * std::clamp(ratio, 0.0f, 1.0f), 8.0f, color);
+	};
+
+	const float temperature = mBoard->GetPolarTemperatureC();
+	const float humidity = mBoard->GetPolarHumidityPercent();
+	const float wind = mBoard->GetPolarWindSpeedMps();
+	drawGauge(0, u8"温度", std::to_string(static_cast<int>(std::lround(temperature))) + u8"°C",
+		(-2.0f - temperature) / 23.0f, mBoard->IsPolarTemperatureDangerous(),
+		trendText(temperature, mBoard->GetPolarTargetTemperatureC()));
+	drawGauge(1, u8"湿度", std::to_string(static_cast<int>(std::lround(humidity))) + "%",
+		humidity / 100.0f, mBoard->IsPolarHumidityDangerous(),
+		trendText(humidity, mBoard->GetPolarTargetHumidityPercent()));
+	const VerticalWindDirection direction = mBoard->GetPolarVerticalWindDirection();
+	const std::string windDirection = direction == VerticalWindDirection::UP
+		? u8"↑" : (direction == VerticalWindDirection::DOWN ? u8"↓" : u8"·");
+	drawGauge(2, std::string(u8"风速 ") + windDirection,
+		std::to_string(static_cast<int>(std::lround(wind))) + "m/s",
+		wind / 30.0f, mBoard->IsPolarWindDangerous(),
+		trendText(wind, mBoard->GetPolarTargetWindSpeedMps()));
+}
+
+/** 按湿度与强风绘制常态雪层；白毛风再压低世界对比度，但不覆盖顶栏和观测站。 */
+void GameScene::DrawPolarNightWhiteout(Graphics* g) const
+{
+	if (!g || !mBoard || !mBoard->SupportsPolarNightEnvironment()) return;
+	const float strength = mBoard->GetPolarWhiteoutVisualStrength();
+	const float humidity = std::clamp(
+		mBoard->GetPolarHumidityPercent() / 100.0f, 0.0f, 1.0f);
+	const float frame = static_cast<float>(mBoard->mBoardFrame);
+
+	// 极夜雪原即使在假信号阶段也保持贴地流雪；这层不承担玩法信息。
+	for (int i = 0; i < 11; ++i) {
+		const float phase = std::fmod(static_cast<float>(i * 131) + frame * 1.15f,
+			1040.0f);
+		const float x = 210.0f + phase;
+		const float y = 505.0f + static_cast<float>((i * 23) % 82);
+		const float length = 24.0f + static_cast<float>((i * 17) % 38);
+		g->DrawLine(x, y, x + length, y - 1.5f,
+			glm::vec4(225.0f, 241.0f, 251.0f, 24.0f + humidity * 28.0f));
+	}
+
+	// 湿度越高，竖直落雪越密；85% 危险线以上保持稳定密度。
+	const int fallingSnowCount = 5 + static_cast<int>(humidity * 23.0f);
+	for (int i = 0; i < fallingSnowCount; ++i) {
+		const float x = 230.0f + static_cast<float>((i * 149 + 37) % 850);
+		const float phase = std::fmod(static_cast<float>((i * 71) % 510)
+			+ frame * (0.65f + static_cast<float>(i % 3) * 0.12f), 520.0f);
+		const float y = 78.0f + phase;
+		const float radius = 0.8f + static_cast<float>(i % 3) * 0.45f;
+		g->FillCircle(x, y, radius,
+			glm::vec4(237.0f, 248.0f, 255.0f, 42.0f + humidity * 88.0f), 8);
+	}
+
+	if (strength > 0.0f) {
+		g->FillRect(225.0f, 76.0f, 875.0f, 524.0f,
+			glm::vec4(199.0f, 220.0f, 236.0f, 42.0f * strength));
+	}
+	const float direction = mBoard->GetPolarVerticalWindDirection()
+		== VerticalWindDirection::UP ? -1.0f : 1.0f;
+	// 粒子承担主要风雪质感；这里只保留少量清晰斜线传达上下风切方向。
+	const int windLineCount = mBoard->IsPolarWindDangerous()
+		? 1 + static_cast<int>(2.0f * strength) : 0;
+	for (int i = 0; i < windLineCount; ++i) {
+		const float phase = std::fmod(static_cast<float>(i * 97)
+			+ frame * (2.25f + 1.25f * strength), 1040.0f);
+		const float x = 185.0f + phase;
+		const float y = 90.0f + static_cast<float>((i * 43) % 490);
+		const float length = 46.0f + static_cast<float>((i * 19) % 58);
+		const glm::vec4 snow(235.0f, 247.0f, 255.0f,
+			(38.0f + static_cast<float>((i * 11) % 42))
+			+ (54.0f + static_cast<float>((i * 7) % 38)) * strength);
+		g->DrawLine(x, y, x + length, y + direction * 4.0f, snow);
+		g->DrawLine(x, y + 1.0f, x + length, y + direction * 4.0f + 1.0f, snow);
+	}
+}
+
 /** 在左上角绘制当前天气与已锁定的下一天气预警。 */
 void GameScene::DrawWeatherPanel(Graphics* g) const
 {
@@ -1677,6 +1796,10 @@ void GameScene::BuildDrawCommands()
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
+	else if (background == Background::POLAR_NIGHT_SNOWFIELD) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_POLAR_NIGHT,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
 
 	if ((background == Background::ROOF || background == Background::NIGHT_ROOF) && mBoard) {
 		RegisterDrawCommand("RoofRainBackground",
@@ -1711,6 +1834,11 @@ void GameScene::BuildDrawCommands()
 				[this](Graphics* g) { mBoard->DrawWinterFrost(g); },
 				LAYER_BACKGROUND + 1);
 		}
+		if (background == Background::POLAR_NIGHT_SNOWFIELD) {
+			RegisterDrawCommand("PolarNightGround",
+				[this](Graphics* g) { mBoard->DrawPolarNightGround(g); },
+				LAYER_BACKGROUND + 1);
+		}
 		RegisterDrawCommand("IceTrails",
 			[this](Graphics* g) { mBoard->DrawIceTrails(g); },
 			LAYER_BACKGROUND + 2);
@@ -1732,6 +1860,9 @@ void GameScene::BuildDrawCommands()
 	}
 
 	if (mBoard) {
+		RegisterDrawCommand("PolarNightWhiteout",
+			[this](Graphics* g) { DrawPolarNightWhiteout(g); },
+			LAYER_UI + 400);
 		RegisterDrawCommand("WinterThermometer",
 			[this](Graphics* g) { DrawWinterThermometer(g); },
 			LAYER_UI + 450);
@@ -1741,6 +1872,9 @@ void GameScene::BuildDrawCommands()
 		RegisterDrawCommand("WeatherForecastFailure",
 			[this](Graphics* g) { DrawWeatherForecastFailure(g); },
 			LAYER_UI + 600);
+		RegisterDrawCommand("PolarNightInstruments",
+			[this](Graphics* g) { DrawPolarNightInstruments(g); },
+			LAYER_UI + 700);
 		RegisterDrawCommand("PlanternGearMenu",
 			[this](Graphics* g) {
 				if (mCardSlotManager) mCardSlotManager->DrawPlanternGearMenu(g);

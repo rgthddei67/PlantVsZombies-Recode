@@ -383,6 +383,47 @@ namespace {
 			"迁移不得覆盖预发布档已经消费的开幕寒潮");
 	}
 
+	void TestVersionSevenLevelUpgradeAddsPolarNightState() {
+		nlohmann::json document = {
+			{ "schemaVersion", 7 },
+			{ "currentWave", 9 },
+			{ "zombies", nlohmann::json::array() }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v7 关卡档应升级到极夜环境持久化结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v7 关卡档应写入当前版本");
+		Expect(document["polarNightInitialized"] == false,
+			"旧关卡档的极夜导演应由目标背景首次初始化");
+		Expect(document["snowHoles"].is_array() && document["snowHoles"].empty(),
+			"旧关卡档没有雪穴时应补空数组");
+		Expect(document["pendingSnowHoleSpawns"].is_array()
+			&& document["pendingSnowHoleSpawns"].empty(),
+			"旧关卡档没有雪穴出生事务时应补空数组");
+		Expect(document["currentWave"] == 9 && document["zombies"].empty(),
+			"极夜迁移不得改写既有波次和僵尸状态");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 7 },
+			{ "polarNightInitialized", true },
+			{ "snowHoles", nlohmann::json::array({ {
+				{ "column", 5 }, { "phase", 2 }, { "timer", 0.0f }
+			} }) },
+			{ "pendingSnowHoleSpawns", nlohmann::json::array({ {
+				{ "type", 0 }, { "row", 0 }, { "holeColumn", 5 },
+				{ "spawnWave", 9 }, { "timer", 0.5f }
+			} }) }
+		};
+		Expect(SaveSchema::UpgradeLevelDocument(prereleaseDocument, error),
+			"已含极夜字段的 v7 预发布档应升级成功");
+		Expect(prereleaseDocument["polarNightInitialized"] == true
+			&& prereleaseDocument["snowHoles"].size() == 1
+			&& prereleaseDocument["pendingSnowHoleSpawns"].size() == 1,
+			"迁移不得覆盖预发布档已经提交的极夜事务");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -440,6 +481,7 @@ int main() {
 	TestVersionFourLevelUpgradeAddsWeatherJammerState();
 	TestVersionFiveLevelUpgradeAddsRedeyeWaveCapState();
 	TestVersionSixLevelUpgradeDefaultsOpeningColdWaveUnconsumed();
+	TestVersionSevenLevelUpgradeAddsPolarNightState();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

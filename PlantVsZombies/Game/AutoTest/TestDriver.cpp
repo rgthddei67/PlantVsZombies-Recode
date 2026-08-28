@@ -460,6 +460,21 @@ namespace {
 		{ "WARNING", NightRoofChargePhase::WARNING },
 		{ "DISCHARGING", NightRoofChargePhase::DISCHARGING },
 	};
+	const std::unordered_map<std::string, PolarNightPhase> kPolarNightPhaseNames = {
+		{ "DORMANT", PolarNightPhase::DORMANT },
+		{ "BUILDUP", PolarNightPhase::BUILDUP },
+		{ "DANGER_HOLD", PolarNightPhase::DANGER_HOLD },
+		{ "RECOVERY", PolarNightPhase::RECOVERY },
+		{ "WHITEOUT_RAMP", PolarNightPhase::WHITEOUT_RAMP },
+		{ "SNOW_BLIND", PolarNightPhase::SNOW_BLIND },
+		{ "FADE", PolarNightPhase::FADE },
+	};
+	const std::unordered_map<std::string, VerticalWindDirection>
+		kVerticalWindDirectionNames = {
+			{ "NONE", VerticalWindDirection::NONE },
+			{ "UP", VerticalWindDirection::UP },
+			{ "DOWN", VerticalWindDirection::DOWN },
+		};
 
 	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
 		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
@@ -551,6 +566,24 @@ namespace {
 		for (const auto& [k, v] : kNightRoofChargePhaseNames) if (v == phase) return k;
 		return "UNKNOWN";
 	}
+	std::string PolarNightPhaseName(PolarNightPhase phase) {
+		for (const auto& [k, v] : kPolarNightPhaseNames) if (v == phase) return k;
+		return "UNKNOWN";
+	}
+	std::string VerticalWindDirectionName(VerticalWindDirection direction) {
+		for (const auto& [k, v] : kVerticalWindDirectionNames) {
+			if (v == direction) return k;
+		}
+		return "UNKNOWN";
+	}
+	std::string SnowHolePhaseName(SnowHolePhase phase) {
+		switch (phase) {
+		case SnowHolePhase::NONE: return "NONE";
+		case SnowHolePhase::FORMING: return "FORMING";
+		case SnowHolePhase::ACTIVE: return "ACTIVE";
+		}
+		return "UNKNOWN";
+	}
 	std::string PlayStateName(PlayState s) {
 		switch (s) {
 		case PlayState::PLAY_NONE:    return "PLAY_NONE";
@@ -569,6 +602,7 @@ namespace {
 		case Background::ROOF:             return "ROOF";
 		case Background::NIGHT_ROOF:       return "NIGHT_ROOF";
 		case Background::WINTER_GARDEN:    return "WINTER_GARDEN";
+		case Background::POLAR_NIGHT_SNOWFIELD: return "POLAR_NIGHT_SNOWFIELD";
 		}
 		return "UNKNOWN";
 	}
@@ -579,7 +613,8 @@ namespace {
 			|| name == "NIGHT_WATER_POOL"
 			|| name == "ROOF"
 			|| name == "NIGHT_ROOF"
-			|| name == "WINTER_GARDEN";
+			|| name == "WINTER_GARDEN"
+			|| name == "POLAR_NIGHT_SNOWFIELD";
 	}
 	const char* BossSlotName(AdventureProgression::BossSlot slot) {
 		switch (slot) {
@@ -1125,6 +1160,55 @@ bool TestDriver::ExecuteCurrent() {
 				cmd.value("row", -1), cmd.value("remaining", 0.0f),
 				cmd.value("overcharge", 0.0f))) {
 			Fail("set_night_roof_charge: 仅黑夜屋顶可用；phase 必须为 CHARGING/WARNING/DISCHARGING，活动阶段须提供合法 row");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_polar_environment") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_polar_environment: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto phaseIt = kPolarNightPhaseNames.find(
+			cmd.value("phase", "DANGER_HOLD"));
+		auto directionIt = kVerticalWindDirectionNames.find(
+			cmd.value("direction", "NONE"));
+		if (phaseIt == kPolarNightPhaseNames.end()
+			|| directionIt == kVerticalWindDirectionNames.end()
+			|| !gs->GetBoard()->SetPolarNightEnvironmentForTesting(
+				cmd.value("temperature", -14.0f),
+				cmd.value("humidity", 58.0f),
+				cmd.value("wind", 8.0f), directionIt->second, phaseIt->second)) {
+			Fail("set_polar_environment: 仅极夜雪原可用；phase 或 direction 无效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "seal_snow_hole") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->SealSnowHole(cmd.value("row", -1))) {
+			Fail("seal_snow_hole: 指定行没有形成中或活动雪穴");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_snow_hole") {
+		GameScene* gs = CurrentGameScene();
+		const std::string phaseName = cmd.value("phase", "ACTIVE");
+		SnowHolePhase phase = SnowHolePhase::NONE;
+		if (phaseName == "FORMING") phase = SnowHolePhase::FORMING;
+		else if (phaseName == "ACTIVE") phase = SnowHolePhase::ACTIVE;
+		else if (phaseName != "NONE") {
+			Fail("set_snow_hole: phase 必须是 NONE/FORMING/ACTIVE");
+			return false;
+		}
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->SetSnowHoleForTesting(
+				cmd.value("row", -1), cmd.value("col", -1), phase,
+				cmd.value("remaining", 0.0f))) {
+			Fail("set_snow_hole: 仅极夜雪原可用，row/col 必须落在合法雪穴范围");
 			return false;
 		}
 		return true;
@@ -4291,6 +4375,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["background"] = BackgroundName(board->mBackGround);
 	out["winterGardenBackgroundLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, false) != nullptr;
+	out["polarNightBackgroundLoaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_BACKGROUND_POLAR_NIGHT, false) != nullptr;
+	out["snowHoleTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_SNOW_HOLE, false) != nullptr;
 	out["winterFrostOverlayLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_WINTER_FROST_OVERLAY_V2, false) != nullptr;
 	out["winterFrostFrontierVariant1Loaded"] = ResourceManager::GetInstance().GetTexture(
@@ -5231,6 +5319,51 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "snowing", board->IsWinterPrecipitationSnow() },
 			{ "typhoonSupported", board->SupportsTyphoon() },
 			{ "precipitationEffect", board->GetRainVisualEffectName() },
+		};
+		nlohmann::json snowHoles = nlohmann::json::array();
+		for (int row = 0; row < board->mRows; ++row) {
+			snowHoles.push_back({
+				{ "row", row },
+				{ "column", board->GetSnowHoleColumn(row) },
+				{ "phase", SnowHolePhaseName(board->GetSnowHolePhase(row)) },
+				{ "remainingMs", static_cast<int>(std::lround(
+					board->GetSnowHoleTimer(row) * 1000.0f)) },
+			});
+		}
+		out["weather"]["polarNight"] = {
+			{ "supported", board->SupportsPolarNightEnvironment() },
+			{ "initialized", board->IsPolarNightInitialized() },
+			{ "phase", PolarNightPhaseName(board->GetPolarNightPhase()) },
+			{ "temperatureTenths", static_cast<int>(std::lround(
+				board->GetPolarTemperatureC() * 10.0f)) },
+			{ "humidityTenths", static_cast<int>(std::lround(
+				board->GetPolarHumidityPercent() * 10.0f)) },
+			{ "windTenths", static_cast<int>(std::lround(
+				board->GetPolarWindSpeedMps() * 10.0f)) },
+			{ "targetTemperatureTenths", static_cast<int>(std::lround(
+				board->GetPolarTargetTemperatureC() * 10.0f)) },
+			{ "targetHumidityTenths", static_cast<int>(std::lround(
+				board->GetPolarTargetHumidityPercent() * 10.0f)) },
+			{ "targetWindTenths", static_cast<int>(std::lround(
+				board->GetPolarTargetWindSpeedMps() * 10.0f)) },
+			{ "temperatureDanger", board->IsPolarTemperatureDangerous() },
+			{ "humidityDanger", board->IsPolarHumidityDangerous() },
+			{ "windDanger", board->IsPolarWindDangerous() },
+			{ "verticalWind", VerticalWindDirectionName(
+				board->GetPolarVerticalWindDirection()) },
+			{ "allDangerRemainingMs", static_cast<int>(std::lround(
+				std::max(0.0f, 5.0f - board->GetPolarAllDangerTimer()) * 1000.0f)) },
+			{ "whiteoutCommitted", board->IsPolarWhiteoutCommitted() },
+			{ "snowBlind", board->IsPolarSnowBlindActive() },
+			{ "whiteoutVisualPct", static_cast<int>(std::lround(
+				board->GetPolarWhiteoutVisualStrength() * 100.0f)) },
+			{ "whiteoutRemainingMs", static_cast<int>(std::lround(
+				board->GetPolarWhiteoutTimer() * 1000.0f)) },
+			{ "activeHoleCount", board->GetActiveSnowHoleCount() },
+			{ "lastHoleBatchCreated", board->GetLastSnowHoleBatchCreated() },
+			{ "pendingSpawnCount", board->GetPendingSnowHoleSpawnCount() },
+			{ "finalWaveUpgradeApplied", board->IsPolarFinalWaveUpgradeApplied() },
+			{ "holes", std::move(snowHoles) },
 		};
 		nlohmann::json runoffRows = nlohmann::json::array();
 		int firstRunoffRow = -1;
@@ -7215,6 +7348,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["FrostMineBurst"] = 0;
 	out["particleEffectNameCounts"]["PotatoMine"] = 0;
 	out["particleEffectNameCounts"]["AlarmBellRowPulse"] = 0;
+	out["particleEffectNameCounts"]["SnowHolePuff"] = 0;
+	out["particleEffectNameCounts"]["PolarWindUp"] = 0;
+	out["particleEffectNameCounts"]["PolarWindDown"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;
@@ -7685,6 +7821,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "shadowOffsetYOn1000", bulletShadow ? static_cast<int>(std::lround(
 				bulletShadow->GetOffset().y * 1000.0f)) : 0 },
 			{ "lobbedMotion", bullet->IsLobbedMotion() },
+			{ "polarWindMiss", bullet->IsPolarWindMiss() },
 			{ "targetsIceWall", bullet->TargetsIceWall() },
 			{ "lobElapsedMs", static_cast<int>(std::lround(
 				bullet->GetLobElapsed() * 1000.0f)) },

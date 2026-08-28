@@ -358,6 +358,49 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["coldWaveThawDuration"] = board->mColdWaveThawDuration;
 	j["coldWaveForecastDisrupted"] = board->mColdWaveForecastDisrupted;
 	j["winterFrostVariant"] = board->mWinterFrostVariant;
+	j["polarNightInitialized"] = board->mPolarNightInitialized;
+	j["polarNightPhase"] = static_cast<int>(board->mPolarNightPhase);
+	j["polarPlanIsWhiteout"] = board->mPolarPlanIsWhiteout;
+	j["polarLastPlanWasFalse"] = board->mPolarLastPlanWasFalse;
+	j["polarFirstWhiteoutCompleted"] = board->mPolarFirstWhiteoutCompleted;
+	j["polarDangerMask"] = board->mPolarDangerMask;
+	j["polarTemperatureC"] = board->mPolarTemperatureC;
+	j["polarHumidityPercent"] = board->mPolarHumidityPercent;
+	j["polarWindSpeedMps"] = board->mPolarWindSpeedMps;
+	j["polarStartTemperatureC"] = board->mPolarStartTemperatureC;
+	j["polarStartHumidityPercent"] = board->mPolarStartHumidityPercent;
+	j["polarStartWindSpeedMps"] = board->mPolarStartWindSpeedMps;
+	j["polarTargetTemperatureC"] = board->mPolarTargetTemperatureC;
+	j["polarTargetHumidityPercent"] = board->mPolarTargetHumidityPercent;
+	j["polarTargetWindSpeedMps"] = board->mPolarTargetWindSpeedMps;
+	j["polarPhaseTimer"] = board->mPolarPhaseTimer;
+	j["polarPhaseDuration"] = board->mPolarPhaseDuration;
+	j["polarAllDangerTimer"] = board->mPolarAllDangerTimer;
+	j["polarHighHumidityTimer"] = board->mPolarHighHumidityTimer;
+	j["polarHumidityEpisodeConsumed"] = board->mPolarHumidityEpisodeConsumed;
+	j["polarTutorialHoleBatchConsumed"] = board->mPolarTutorialHoleBatchConsumed;
+	j["polarVerticalWindDirection"] = static_cast<int>(
+		board->mPolarVerticalWindDirection);
+	j["polarWhiteoutTimer"] = board->mPolarWhiteoutTimer;
+	j["polarFinalWaveUpgradeApplied"] = board->mPolarFinalWaveUpgradeApplied;
+	j["snowHoles"] = nlohmann::json::array();
+	for (const SnowHoleState& hole : board->mSnowHoles) {
+		j["snowHoles"].push_back({
+			{ "column", hole.column },
+			{ "phase", static_cast<int>(hole.phase) },
+			{ "timer", hole.timer },
+		});
+	}
+	j["pendingSnowHoleSpawns"] = nlohmann::json::array();
+	for (const Board::PendingSnowHoleSpawn& pending : board->mPendingSnowHoleSpawns) {
+		j["pendingSnowHoleSpawns"].push_back({
+			{ "type", static_cast<int>(pending.type) },
+			{ "row", pending.row },
+			{ "holeColumn", pending.holeColumn },
+			{ "spawnWave", pending.spawnWave },
+			{ "timer", pending.timer },
+		});
+	}
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
 	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
 	j["stormyNightFlashTimer"] = board->mStormyNightFlashTimer;
@@ -595,6 +638,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			b["lobDuration"] = bullet->GetLobDuration();
 			b["lobApexHeight"] = bullet->GetLobApexHeight();
 			b["lobTargetsIceWall"] = bullet->TargetsIceWall();
+			b["polarWindMiss"] = bullet->IsPolarWindMiss();
 		}
 		b["cobCannonMotion"] = bullet->IsCobCannonMotion();
 		if (bullet->IsCobCannonMotion()) {
@@ -605,6 +649,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			b["cobTargetRow"] = bullet->GetCobTargetRow();
 			b["cobElapsed"] = bullet->GetCobElapsed();
 			b["cobDuration"] = bullet->GetCobDuration();
+			b["polarWindMiss"] = bullet->IsPolarWindMiss();
 		}
 		bulletsArr.push_back(b);
 	}
@@ -940,6 +985,105 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		&& j.value("coldWaveForecastDisrupted", false);
 	board->mWinterFrostVariant = board->mWinterTemperatureInitialized
 		? std::clamp(j.value("winterFrostVariant", 0), 0, 2) : 0;
+	const int polarPhaseValue = j.value("polarNightPhase",
+		static_cast<int>(PolarNightPhase::DORMANT));
+	const bool validPolarPhase = polarPhaseValue
+		>= static_cast<int>(PolarNightPhase::DORMANT)
+		&& polarPhaseValue <= static_cast<int>(PolarNightPhase::FADE);
+	const int verticalWindValue = j.value("polarVerticalWindDirection",
+		static_cast<int>(VerticalWindDirection::NONE));
+	const bool validVerticalWind = verticalWindValue
+		>= static_cast<int>(VerticalWindDirection::NONE)
+		&& verticalWindValue <= static_cast<int>(VerticalWindDirection::DOWN);
+	board->mPolarNightInitialized = board->SupportsPolarNightEnvironment()
+		&& validPolarPhase && validVerticalWind
+		&& j.value("polarNightInitialized", false);
+	board->mSnowHoles.fill({});
+	board->mPendingSnowHoleSpawns.clear();
+	board->mPolarWindParticleTimer = 0.0f;
+	if (board->mPolarNightInitialized) {
+		board->mPolarNightPhase = static_cast<PolarNightPhase>(polarPhaseValue);
+		board->mPolarPlanIsWhiteout = j.value("polarPlanIsWhiteout", false);
+		board->mPolarLastPlanWasFalse = j.value("polarLastPlanWasFalse", false);
+		board->mPolarFirstWhiteoutCompleted = j.value(
+			"polarFirstWhiteoutCompleted", false);
+		board->mPolarDangerMask = std::clamp(j.value("polarDangerMask", 0), 0, 7);
+		board->mPolarTemperatureC = std::clamp(
+			j.value("polarTemperatureC", -14.0f), -25.0f, -2.0f);
+		board->mPolarHumidityPercent = std::clamp(
+			j.value("polarHumidityPercent", 58.0f), 0.0f, 100.0f);
+		board->mPolarWindSpeedMps = std::clamp(
+			j.value("polarWindSpeedMps", 8.0f), 0.0f, 30.0f);
+		board->mPolarStartTemperatureC = std::clamp(
+			j.value("polarStartTemperatureC", -14.0f), -25.0f, -2.0f);
+		board->mPolarStartHumidityPercent = std::clamp(
+			j.value("polarStartHumidityPercent", 58.0f), 0.0f, 100.0f);
+		board->mPolarStartWindSpeedMps = std::clamp(
+			j.value("polarStartWindSpeedMps", 8.0f), 0.0f, 30.0f);
+		board->mPolarTargetTemperatureC = std::clamp(
+			j.value("polarTargetTemperatureC", -14.0f), -25.0f, -2.0f);
+		board->mPolarTargetHumidityPercent = std::clamp(
+			j.value("polarTargetHumidityPercent", 58.0f), 0.0f, 100.0f);
+		board->mPolarTargetWindSpeedMps = std::clamp(
+			j.value("polarTargetWindSpeedMps", 8.0f), 0.0f, 30.0f);
+		board->mPolarPhaseTimer = std::clamp(
+			j.value("polarPhaseTimer", 0.0f), 0.0f, 3600.0f);
+		board->mPolarPhaseDuration = std::clamp(
+			j.value("polarPhaseDuration", 0.0f), 0.0f, 3600.0f);
+		board->mPolarAllDangerTimer = std::clamp(
+			j.value("polarAllDangerTimer", 0.0f), 0.0f, 5.0f);
+		board->mPolarHighHumidityTimer = std::clamp(
+			j.value("polarHighHumidityTimer", 0.0f), 0.0f, 3.0f);
+		board->mPolarHumidityEpisodeConsumed = j.value(
+			"polarHumidityEpisodeConsumed", false);
+		board->mPolarTutorialHoleBatchConsumed = j.value(
+			"polarTutorialHoleBatchConsumed", false);
+		board->mPolarVerticalWindDirection = static_cast<VerticalWindDirection>(
+			verticalWindValue);
+		board->mPolarWhiteoutTimer = std::clamp(
+			j.value("polarWhiteoutTimer", 0.0f), 0.0f, 60.0f);
+		board->mPolarFinalWaveUpgradeApplied = j.value(
+			"polarFinalWaveUpgradeApplied", false);
+		const auto& holes = j.value("snowHoles", nlohmann::json::array());
+		for (int row = 0; row < static_cast<int>(board->mSnowHoles.size())
+			&& row < static_cast<int>(holes.size()); ++row) {
+			if (!holes[row].is_object()) continue;
+			const int column = holes[row].value("column", -1);
+			const int phase = holes[row].value("phase",
+				static_cast<int>(SnowHolePhase::NONE));
+			if (column < 4 || column > 6
+				|| phase < static_cast<int>(SnowHolePhase::FORMING)
+				|| phase > static_cast<int>(SnowHolePhase::ACTIVE)) continue;
+			board->mSnowHoles[row] = {
+				column, static_cast<SnowHolePhase>(phase),
+				phase == static_cast<int>(SnowHolePhase::FORMING)
+					? std::clamp(holes[row].value("timer", 0.0f), 0.0f, 2.0f)
+					: 0.0f
+			};
+		}
+		const auto& pendingSpawns = j.value(
+			"pendingSnowHoleSpawns", nlohmann::json::array());
+		for (const auto& pending : pendingSpawns) {
+			if (!pending.is_object()) continue;
+			const int type = pending.value("type",
+				static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES));
+			const int row = pending.value("row", -1);
+			const int column = pending.value("holeColumn", -1);
+			if (type < 0 || type >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)
+				|| row < 0 || row >= board->mRows || column < 4 || column > 6) {
+				continue;
+			}
+			board->mPendingSnowHoleSpawns.push_back({
+				static_cast<ZombieType>(type), row, column,
+				std::clamp(pending.value("spawnWave", 0), 0, 10000),
+				std::clamp(pending.value("timer", 0.0f), 0.0f, 1.0f),
+			});
+		}
+	}
+	else {
+		board->mPolarNightPhase = PolarNightPhase::DORMANT;
+		board->mPolarVerticalWindDirection = VerticalWindDirection::NONE;
+	}
 	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
 		const int failedForecastRainValue = j.value("failedForecastRainIntensity",
@@ -1386,7 +1530,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 					b.value("lobElapsed", 0.0f),
 					b.value("lobDuration", 1.2f),
 					b.value("lobApexHeight", 0.0f),
-					b.value("lobTargetsIceWall", false));
+					b.value("lobTargetsIceWall", false),
+					b.value("polarWindMiss", false));
 			}
 			if (b.value("cobCannonMotion", false)) {
 				bullet->RestoreCobCannonMotion(
@@ -1394,7 +1539,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 					Vector(b.value("cobTargetX", x), b.value("cobTargetY", y)),
 					b.value("cobTargetRow", row),
 					b.value("cobElapsed", 0.0f),
-					b.value("cobDuration", 1.4f));
+					b.value("cobDuration", 1.4f),
+					b.value("polarWindMiss", false));
 			}
 		}
 	}

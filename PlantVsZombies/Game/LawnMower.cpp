@@ -147,6 +147,14 @@ void Mower::Update()
 
 	float deltaTime = DeltaTime::GetDeltaTime();
 	pos.x += mSpeed * deltaTime;
+	if (mBoard) {
+		const int holeColumn = mBoard->GetSnowHoleColumn(mRow);
+		if (holeColumn >= 0) {
+			const float holeCenterX = mBoard->GetCellCenterPosition(
+				mRow, holeColumn).x;
+			if (pos.x + 60.0f >= holeCenterX) mBoard->SealSnowHole(mRow);
+		}
+	}
 	if (mMowerType == MowerType::ROOF && mBoard) {
 		// 车辆前缘是与 C# 一致的地面探针，穿过斜坡/平台折角时不会瞬移。
 		pos.y = mBoard->GetMowerTerrainY(mRow, pos.x + 40.0f);

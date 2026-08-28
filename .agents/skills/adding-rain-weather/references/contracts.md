@@ -68,6 +68,8 @@ Board 将当前同时余时饱和在 300 游戏秒，达到上限的来源等待
 
 温度一类持续玩法维度不能只塞进短暂出现的天气预报栏。若玩家必须持续判断上限、下限和触发线，`GameScene` 另画常驻仪表，但温区、冰点和归一化液柱比例均由 `Board` getter 提供；风格化贴图只做框体和透明开口，精确刻度与 AutoTest 投影不得复制常量。若地图美术实体遮挡前几行小推车等防线，实际创建资格同样属于 `Board`：初始化、显式创建和旧档 `Create*WithID` 恢复共用同一门禁，不能只在绘制端隐藏。
 
+极夜雪原这类“多实数共同提交一次灾害”的导演也属于独立环境维度：`Board` 在计划开始时一次锁定真假结果、各项目标、曲线时长与强风方向，运行中只插值，常驻仪表只显示当前实数与趋势。达到组合阈值后的提交累计、不可撤销阶段、玩法余时和淡出阶段必须分别保存；读档不得根据当前三项数值重判计划或重抽结果。假信号可以让单项效果照常生效，但不能偶然越过完整组合提交条件。若地图明确排斥旧天气，`SupportsWeather`、台风、寒潮、雾势和地图积累器的资格都应由背景门禁归零，不能只隐藏旧 UI。
+
 格子冻结等玩法资格可继续使用整数列，而冻融前沿应从连续温度派生浮点视觉宽度，在每个整数交点与玩法格线对齐。冻结资格只看当前实际温度，不直接读取寒潮强度；强度只通过目标温区与降温速度间接改变冻结范围。连续视觉值不入档，也不得反向决定能否种植；若同一覆盖纹理需要轮廓随机，只在事件锁定时选择稳定变体并保存，禁止逐帧抖动。AutoTest 同时导出整数冻结列与千分整数视觉列数，覆盖相邻温度下逻辑列不变但视觉边界连续变化。
 
 雪天的雨声、地面水花、局部闪电/雷声等不能靠换粒子名隐式处理，应在各自唯一触发点读取同一派生查询并显式 no-op。地图若禁用台风，集中 `SupportsTyphoon()` 一类资格接口，并让预报/pending 消费、启动、逐帧更新、恢复旧档、AutoTest 强制入口和概率投影全部服从；进入不支持地图时还应清理已保存的活动/待生效台风，不能仅把新抽取概率设为 0。
@@ -254,6 +256,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
+| 极夜雪原环境导演 | `InitializePolarNightEnvironment` / `RollNextPolarNightPlan` / `UpdatePolarNightEnvironment` | Board 保存三实数、锁定曲线、真假约束、提交累计和白毛风阶段；GameScene 只画常驻仪表与瞬态雪层 |
+| 雪穴环境事件 | `CommitSnowHoleBatch` / `CreateOrQueueWaveZombie` / `UpdatePendingSnowHoleSpawns` | 高湿只提交一次选点；正式波次预算和行已锁，1 秒预警后仅决定雪穴或右侧出生落点 |
 | 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
 | 黑夜屋顶雷荷 | `Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |

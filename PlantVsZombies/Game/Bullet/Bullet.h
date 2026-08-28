@@ -44,6 +44,7 @@ private:
 		};
 		TrajectoryKind kind = TrajectoryKind::LINEAR;
 		bool targetsIceWall = false; // 抛射起手时是否已锁定冰墙；在途存档后继续忽略墙后僵尸
+		bool polarWindMiss = false; // 发射时已被垂直风切变吹出边界；在途读档不得重判
 
 		TrajectoryState() : apexHeight(0.0f) {}
 	};
@@ -207,7 +208,7 @@ public:
 	/** 按存档恢复在途解析抛物线，并重建速度、位置与末段碰撞门禁。 */
 	void RestoreLobbedMotion(const Vector& start, const Vector& target,
 		float elapsedSeconds, float durationSeconds, float apexHeight,
-		bool targetsIceWall = false);
+		bool targetsIceWall = false, bool polarWindMiss = false);
 	bool IsLobbedMotion() const { return mTrajectory.kind == TrajectoryKind::LOBBED; }
 	bool TargetsIceWall() const {
 		return IsLobbedMotion() && mTrajectory.targetsIceWall;
@@ -221,6 +222,7 @@ public:
 	float GetLobElapsed() const { return IsLobbedMotion() ? mTrajectory.elapsed : 0.0f; }
 	float GetLobDuration() const { return IsLobbedMotion() ? mTrajectory.duration : 0.0f; }
 	float GetLobApexHeight() const { return IsLobbedMotion() ? mTrajectory.apexHeight : 0.0f; }
+	bool IsPolarWindMiss() const { return mTrajectory.polarWindMiss; }
 	float GetLobProgress() const;
 	float GetLobArcHeight() const;
 	/** 配置玉米加农炮专属轨迹；目标由玩家点击冻结，不再追踪实体。 */
@@ -228,7 +230,8 @@ public:
 		float durationSeconds = 1.4f);
 	/** 按存档恢复在途玉米棒；不会重放已经过去的发射音效。 */
 	void RestoreCobCannonMotion(const Vector& start, const Vector& target,
-		int targetRow, float elapsedSeconds, float durationSeconds);
+		int targetRow, float elapsedSeconds, float durationSeconds,
+		bool polarWindMiss = false);
 	bool IsCobCannonMotion() const {
 		return mTrajectory.kind == TrajectoryKind::COB_CANNON;
 	}

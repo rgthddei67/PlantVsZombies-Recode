@@ -62,6 +62,8 @@ PreviewSource GetPreviewSource(int level)
 		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF, true };
 	case Background::WINTER_GARDEN:
 		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, true };
+	case Background::POLAR_NIGHT_SNOWFIELD:
+		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_POLAR_NIGHT, true };
 	}
 	return { &ResourceKeys::Textures::IMAGE_BACKGROUND_DAY, true };
 }

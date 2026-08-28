@@ -71,6 +71,8 @@ namespace {
 			return ResourceKeys::Music::MUSIC_NIGHT;
 		case Background::WINTER_GARDEN:
 			return ResourceKeys::Music::MUSIC_DAY;
+		case Background::POLAR_NIGHT_SNOWFIELD:
+			return ResourceKeys::Music::MUSIC_NIGHT;
 		}
 		return ResourceKeys::Music::MUSIC_DAY;
 	}
@@ -118,6 +120,27 @@ namespace {
 	constexpr float kWinterWarmTemperatureC = 6.0f;      // 寒潮外冬日花园的稳定环境温度（摄氏度）
 	constexpr float kWinterFreezeTemperatureC = 0.0f;    // 降水转雪并开始冻结最右列的冰点（摄氏度）
 	constexpr float kWinterColdTemperatureC = -12.0f;    // 寒潮最冷阶段的稳定环境温度（摄氏度）
+	constexpr float kPolarBaselineTemperatureC = -14.0f; // 极夜每轮无危险起点温度，单位摄氏度
+	constexpr float kPolarBaselineHumidity = 58.0f;      // 极夜每轮无危险起点相对湿度，百分比
+	constexpr float kPolarBaselineWindMps = 8.0f;        // 极夜每轮无危险起点风速，米/秒
+	constexpr float kPolarTemperatureDangerC = -18.0f;   // 温度仪危险阈值，摄氏度
+	constexpr float kPolarHumidityDanger = 85.0f;        // 湿度仪危险阈值，百分比
+	constexpr float kPolarWindDangerMps = 18.0f;         // 风速仪危险阈值，米/秒
+	constexpr float kPolarWhiteoutCommitSeconds = 5.0f;  // 三项连续危险到不可逆提交的游戏秒
+	constexpr float kPolarHoleCommitSeconds = 3.0f;      // 高湿连续到雪穴选点的游戏秒
+	constexpr float kPolarHoleFormationSeconds = 2.0f;   // 雪堆占位到雪穴活动态的游戏秒
+	constexpr float kPolarHoleSpawnWarningSeconds = 1.0f; // 正式波次经雪穴出生前的雪雾预警，游戏秒
+	constexpr float kPolarWhiteoutRampSeconds = 1.5f;    // 提交后音画爬升时长，游戏秒
+	constexpr float kPolarSnowBlindSeconds = 45.0f;      // 普通极夜关雪盲持续时间，游戏秒
+	constexpr float kPolarFinalSnowBlindSeconds = 60.0f; // 8-9 白毛风雪盲持续时间，游戏秒
+	constexpr float kPolarWhiteoutFadeSeconds = 2.0f;    // 玩法解除后的无害音画淡出，游戏秒
+	constexpr float kPolarWindParticleInterval = 0.72f;  // 普通强风分层粒子的重发间隔，游戏秒
+	constexpr float kPolarWhiteoutParticleInterval = 0.42f; // 白毛风峰值分层粒子的重发间隔，游戏秒
+	constexpr float kPolarRecoverySeconds = 3.0f;        // 假信号退出危险区的连续回落时长，游戏秒
+	constexpr float kPolarFinalPreludeBuildSeconds = 0.75f; // 8-9 最终波警告内补齐三项危险的平滑爬升时长，游戏秒
+	constexpr int kPolarHoleFirstColumn = 4;             // 雪穴候选第 5 列的零基索引
+	constexpr int kPolarHoleLastColumn = 6;              // 雪穴候选第 7 列的零基索引
+	constexpr float kPolarSnowBlindRange = 3.0f * CELL_COLLIDER_SIZE_X; // 雪盲自动索敌真实半径，像素
 	constexpr float kColdWaveCalmDurationMin = 35.0f;    // 两次寒潮之间温暖间隔的最短游戏秒数
 	constexpr float kColdWaveCalmDurationMax = 60.0f;    // 两次寒潮之间温暖间隔的最长游戏秒数
 	constexpr float kColdWaveForecastLeadTime = 20.0f;   // 寒潮降温前开始显示准确预报的游戏秒数
@@ -4337,9 +4360,370 @@ void Board::FinalizeIceStatueExecutionerLoad()
 	}
 }
 
+/** 建立极夜雪原的第一轮确定性计划；非极夜地图把全部状态规范化为空。 */
+void Board::InitializePolarNightEnvironment()
+{
+	if (!SupportsPolarNightEnvironment()) {
+		mPolarNightInitialized = false;
+		mPolarNightPhase = PolarNightPhase::DORMANT;
+		mPolarVerticalWindDirection = VerticalWindDirection::NONE;
+		mPolarWindParticleTimer = 0.0f;
+		mSnowHoles.fill({});
+		mPendingSnowHoleSpawns.clear();
+		return;
+	}
+	if (mPolarNightInitialized) return;
+	mPolarNightInitialized = true;
+	mPolarTemperatureC = kPolarBaselineTemperatureC;
+	mPolarHumidityPercent = kPolarBaselineHumidity;
+	mPolarWindSpeedMps = kPolarBaselineWindMps;
+	mPolarLastPlanWasFalse = false;
+	mPolarFirstWhiteoutCompleted = false;
+	mPolarHumidityEpisodeConsumed = false;
+	mPolarTutorialHoleBatchConsumed = false;
+	mPolarFinalWaveUpgradeApplied = false;
+	mPolarWindParticleTimer = 0.0f;
+	mSnowHoles.fill({});
+	mPendingSnowHoleSpawns.clear();
+	RollNextPolarNightPlan();
+}
+
+/** 抽取假信号危险组合；双项比单项常见，纯低温只占小比例。 */
+static int RollPolarFalseDangerMask()
+{
+	const int roll = GameRandom::Range(1, 100);
+	if (roll <= 15) return 1;
+	if (roll <= 75) {
+		switch (GameRandom::Range(1, 3)) {
+		case 1: return 3;
+		case 2: return 5;
+		default: return 6;
+		}
+	}
+	return GameRandom::Range(1, 2) == 1 ? 2 : 4;
+}
+
+/** 一次性锁定连续曲线的全部随机量，运行阶段只做插值。 */
+void Board::RollNextPolarNightPlan()
+{
+	if (!SupportsPolarNightEnvironment()) return;
+	const int levelInArea = AdventureProgression::GetLevelNumberInArea(mLevel);
+	const bool humidityTutorial = levelInArea == 1;
+	const bool windTutorial = levelInArea == 2;
+	const bool forcedFirstWhiteout = levelInArea == 3 && !mPolarFirstWhiteoutCompleted;
+
+	if (humidityTutorial || windTutorial) {
+		mPolarPlanIsWhiteout = false;
+		mPolarDangerMask = humidityTutorial ? 2 : 4;
+	}
+	else {
+		mPolarPlanIsWhiteout = forcedFirstWhiteout || mPolarLastPlanWasFalse
+			|| GameRandom::Range(1, 2) == 1;
+		mPolarDangerMask = mPolarPlanIsWhiteout ? 7 : RollPolarFalseDangerMask();
+	}
+	mPolarLastPlanWasFalse = !mPolarPlanIsWhiteout;
+	mPolarStartTemperatureC = mPolarTemperatureC;
+	mPolarStartHumidityPercent = mPolarHumidityPercent;
+	mPolarStartWindSpeedMps = mPolarWindSpeedMps;
+	mPolarTargetTemperatureC = (mPolarDangerMask & 1) != 0
+		? GameRandom::Range(-23.0f, -20.5f)
+		: (GameRandom::Range(1, 100) <= 12
+			? GameRandom::Range(-11.0f, -8.0f)
+			: GameRandom::Range(-17.0f, -13.0f));
+	mPolarTargetHumidityPercent = (mPolarDangerMask & 2) != 0
+		? GameRandom::Range(90.0f, 96.0f) : GameRandom::Range(52.0f, 78.0f);
+	mPolarTargetWindSpeedMps = (mPolarDangerMask & 4) != 0
+		? GameRandom::Range(20.0f, 24.0f) : GameRandom::Range(5.0f, 14.0f);
+	mPolarVerticalWindDirection = (mPolarDangerMask & 4) != 0
+		? (GameRandom::Range(1, 2) == 1
+			? VerticalWindDirection::UP : VerticalWindDirection::DOWN)
+		: VerticalWindDirection::NONE;
+	mPolarPhaseTimer = 0.0f;
+	// 8-3 首轮按三项最晚越线约 16～19 秒设计，随后 5 秒提交落在约 20～25 秒。
+	mPolarPhaseDuration = forcedFirstWhiteout
+		? GameRandom::Range(20.0f, 24.0f) : GameRandom::Range(10.0f, 19.0f);
+	mPolarNightPhase = PolarNightPhase::BUILDUP;
+	mPolarAllDangerTimer = 0.0f;
+}
+
+/** 只在空格中均匀选择不同行；选点一旦写入行槽就不再补抽。 */
+void Board::CommitSnowHoleBatch()
+{
+	mLastSnowHoleBatchCreated = 0;
+	if (!SupportsPolarNightEnvironment()) return;
+	const int levelInArea = AdventureProgression::GetLevelNumberInArea(mLevel);
+	if (levelInArea == 1 && mPolarTutorialHoleBatchConsumed) return;
+
+	std::vector<int> eligibleRows;
+	std::array<std::vector<int>, 5> eligibleColumns;
+	for (int row = 0; row < std::min(mRows, 5); ++row) {
+		if (mSnowHoles[row].phase != SnowHolePhase::NONE) continue;
+		for (int col = kPolarHoleFirstColumn;
+			col <= std::min(kPolarHoleLastColumn, mColumns - 1); ++col) {
+			Cell* cell = GetCell(row, col);
+			if (cell && cell->IsEmpty() && !HasCraterAt(row, col) && !IsIceAt(row, col)) {
+				eligibleColumns[row].push_back(col);
+			}
+		}
+		if (!eligibleColumns[row].empty()) eligibleRows.push_back(row);
+	}
+
+	for (int count = 0; count < 2 && !eligibleRows.empty(); ++count) {
+		const int rowIndex = GameRandom::Range(0,
+			static_cast<int>(eligibleRows.size()) - 1);
+		const int row = eligibleRows[rowIndex];
+		const auto& columns = eligibleColumns[row];
+		const int col = columns[GameRandom::Range(0,
+			static_cast<int>(columns.size()) - 1)];
+		mSnowHoles[row] = { col, SnowHolePhase::FORMING,
+			kPolarHoleFormationSeconds };
+		eligibleRows.erase(eligibleRows.begin() + rowIndex);
+		++mLastSnowHoleBatchCreated;
+	}
+	if (levelInArea == 1) mPolarTutorialHoleBatchConsumed = true;
+}
+
+void Board::UpdateSnowHoles(float deltaTime)
+{
+	for (SnowHoleState& hole : mSnowHoles) {
+		if (hole.phase != SnowHolePhase::FORMING) continue;
+		hole.timer = std::max(0.0f, hole.timer - deltaTime);
+		if (hole.timer <= 0.0f) hole.phase = SnowHolePhase::ACTIVE;
+	}
+}
+
+/**
+ * 正式波次只在活动雪穴处建立延迟事务；预算与行选择已经由调用方提交，
+ * 因而预警期间封穴只能把这一只改回右侧入口，不能取消或重抽僵尸。
+ */
+bool Board::CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightEdgeX)
+{
+	if (SupportsPolarNightEnvironment() && row >= 0
+		&& row < static_cast<int>(mSnowHoles.size())
+		&& mSnowHoles[row].phase == SnowHolePhase::ACTIVE) {
+		const int holeColumn = mSnowHoles[row].column;
+		const bool warningAlreadyVisible = std::any_of(
+			mPendingSnowHoleSpawns.begin(), mPendingSnowHoleSpawns.end(),
+			[row, holeColumn](const PendingSnowHoleSpawn& pending) {
+				return pending.row == row && pending.holeColumn == holeColumn;
+			});
+		mPendingSnowHoleSpawns.push_back({ actualType, row, holeColumn,
+			mCurrentWave, kPolarHoleSpawnWarningSeconds });
+		if (!warningAlreadyVisible && g_particleSystem) {
+			g_particleSystem->EmitEffect("SnowHolePuff",
+				GetCellCenterPosition(row, holeColumn));
+		}
+		if (!warningAlreadyVisible) {
+			AudioSystem::PlaySound(
+				ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES, 0.35f);
+		}
+		return true;
+	}
+
+	Zombie* zombie = CreateResolvedWaveZombie(actualType, row, rightEdgeX);
+	if (!zombie) return false;
+	AssignMistFuelReward(zombie);
+	return true;
+}
+
+/** 到提交边沿才读取雪穴是否仍活动；读档恢复的事务也严格走同一边沿。 */
+void Board::UpdatePendingSnowHoleSpawns(float deltaTime)
+{
+	if (deltaTime <= 0.0f || mPendingSnowHoleSpawns.empty()) return;
+	for (auto it = mPendingSnowHoleSpawns.begin();
+		it != mPendingSnowHoleSpawns.end();) {
+		it->timer = std::max(0.0f, it->timer - deltaTime);
+		if (it->timer > 0.0f) {
+			++it;
+			continue;
+		}
+
+		const bool useHole = it->row >= 0
+			&& it->row < static_cast<int>(mSnowHoles.size())
+			&& mSnowHoles[it->row].phase == SnowHolePhase::ACTIVE
+			&& mSnowHoles[it->row].column == it->holeColumn;
+		const float spawnX = useHole
+			? GetCellCenterPosition(it->row, it->holeColumn).x
+			: static_cast<float>(SCENE_WIDTH) + 40.0f;
+		if (Zombie* zombie = CreateResolvedWaveZombie(it->type, it->row, spawnX)) {
+			zombie->mSpawnWave = it->spawnWave;
+			AssignMistFuelReward(zombie);
+		}
+		it = mPendingSnowHoleSpawns.erase(it);
+	}
+}
+
+/** 风雪粒子只消费当前实数与方向，读档或切段后可由权威状态立即重建。 */
+void Board::UpdatePolarNightWindVisual(float deltaTime)
+{
+	if (!g_particleSystem || !IsPolarWindDangerous()
+		|| mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
+		mPolarWindParticleTimer = 0.0f;
+		return;
+	}
+	mPolarWindParticleTimer -= deltaTime;
+	if (mPolarWindParticleTimer > 0.0f) return;
+
+	const char* effectName = mPolarVerticalWindDirection == VerticalWindDirection::UP
+		? "PolarWindUp" : "PolarWindDown";
+	g_particleSystem->EmitEffect(effectName,
+		Vector(165.0f, static_cast<float>(SCENE_HEIGHT) * 0.5f),
+		LAYER_EFFECTS_WORLD);
+	mPolarWindParticleTimer = IsPolarWhiteoutCommitted()
+		? kPolarWhiteoutParticleInterval : kPolarWindParticleInterval;
+}
+
+/**
+ * 8-9 大波警告开始时从当前实数补齐三红。已有雪盲只延长，不重启阶段；
+ * 其余计划保留连续起点，并利用完整 7.5 秒警告完成三红、提交与音画爬升。
+ */
+void Board::BeginPolarFinalWavePrelude()
+{
+	if (!SupportsPolarNightEnvironment() || mPolarFinalWaveUpgradeApplied
+		|| AdventureProgression::GetLevelNumberInArea(mLevel) != 9) return;
+	mPolarFinalWaveUpgradeApplied = true;
+	if (mPolarNightPhase == PolarNightPhase::SNOW_BLIND) {
+		mPolarWhiteoutTimer = std::max(
+			mPolarWhiteoutTimer, kPolarFinalSnowBlindSeconds);
+		return;
+	}
+	if (mPolarNightPhase == PolarNightPhase::WHITEOUT_RAMP) return;
+
+	mPolarPlanIsWhiteout = true;
+	mPolarDangerMask = 7;
+	mPolarLastPlanWasFalse = false;
+	mPolarStartTemperatureC = mPolarTemperatureC;
+	mPolarStartHumidityPercent = mPolarHumidityPercent;
+	mPolarStartWindSpeedMps = mPolarWindSpeedMps;
+	mPolarTargetTemperatureC = -22.0f;
+	mPolarTargetHumidityPercent = 93.0f;
+	mPolarTargetWindSpeedMps = 22.0f;
+	if (mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
+		mPolarVerticalWindDirection = GameRandom::Range(1, 2) == 1
+			? VerticalWindDirection::UP : VerticalWindDirection::DOWN;
+	}
+	mPolarPhaseTimer = 0.0f;
+	mPolarPhaseDuration = kPolarFinalPreludeBuildSeconds;
+	mPolarNightPhase = PolarNightPhase::BUILDUP;
+	mPolarAllDangerTimer = 0.0f;
+}
+
+/** 推进当前已锁计划，并在阈值边沿提交雪穴和不可逆白毛风。 */
+void Board::UpdatePolarNightEnvironment(float deltaTime)
+{
+	if (!mPolarNightInitialized || deltaTime <= 0.0f) return;
+	UpdateSnowHoles(deltaTime);
+	UpdatePendingSnowHoleSpawns(deltaTime);
+
+	auto setCurveValues = [this](float progress) {
+		const float t = std::clamp(progress, 0.0f, 1.0f);
+		const float eased = t * t * (3.0f - 2.0f * t);
+		mPolarTemperatureC = LerpWeatherValue(
+			mPolarStartTemperatureC, mPolarTargetTemperatureC, eased);
+		mPolarHumidityPercent = LerpWeatherValue(
+			mPolarStartHumidityPercent, mPolarTargetHumidityPercent, eased);
+		mPolarWindSpeedMps = LerpWeatherValue(
+			mPolarStartWindSpeedMps, mPolarTargetWindSpeedMps, eased);
+	};
+
+	switch (mPolarNightPhase) {
+	case PolarNightPhase::BUILDUP:
+	case PolarNightPhase::RECOVERY:
+		mPolarPhaseTimer = std::min(mPolarPhaseDuration,
+			mPolarPhaseTimer + deltaTime);
+		setCurveValues(mPolarPhaseDuration > 0.0f
+			? mPolarPhaseTimer / mPolarPhaseDuration : 1.0f);
+		if (mPolarPhaseTimer >= mPolarPhaseDuration) {
+			if (mPolarNightPhase == PolarNightPhase::RECOVERY) {
+				RollNextPolarNightPlan();
+			}
+			else {
+				mPolarNightPhase = PolarNightPhase::DANGER_HOLD;
+				mPolarPhaseTimer = 0.0f;
+				mPolarPhaseDuration = mPolarPlanIsWhiteout
+					? 10.0f : GameRandom::Range(12.0f, 24.0f);
+			}
+		}
+		break;
+	case PolarNightPhase::DANGER_HOLD:
+		mPolarPhaseTimer += deltaTime;
+		if (!mPolarPlanIsWhiteout && mPolarPhaseTimer >= mPolarPhaseDuration) {
+			mPolarStartTemperatureC = mPolarTemperatureC;
+			mPolarStartHumidityPercent = mPolarHumidityPercent;
+			mPolarStartWindSpeedMps = mPolarWindSpeedMps;
+			mPolarTargetTemperatureC = kPolarBaselineTemperatureC;
+			mPolarTargetHumidityPercent = kPolarBaselineHumidity;
+			mPolarTargetWindSpeedMps = kPolarBaselineWindMps;
+			mPolarPhaseTimer = 0.0f;
+			mPolarPhaseDuration = kPolarRecoverySeconds;
+			mPolarNightPhase = PolarNightPhase::RECOVERY;
+		}
+		break;
+	case PolarNightPhase::WHITEOUT_RAMP:
+		mPolarPhaseTimer += deltaTime;
+		if (mPolarPhaseTimer >= kPolarWhiteoutRampSeconds) {
+			mPolarNightPhase = PolarNightPhase::SNOW_BLIND;
+			mPolarWhiteoutTimer = AdventureProgression::GetLevelNumberInArea(mLevel) == 9
+				? kPolarFinalSnowBlindSeconds : kPolarSnowBlindSeconds;
+		}
+		break;
+	case PolarNightPhase::SNOW_BLIND:
+		mPolarWhiteoutTimer = std::max(0.0f, mPolarWhiteoutTimer - deltaTime);
+		if (mPolarWhiteoutTimer <= 0.0f) {
+			mPolarNightPhase = PolarNightPhase::FADE;
+			mPolarWhiteoutTimer = kPolarWhiteoutFadeSeconds;
+			mPolarTemperatureC = kPolarBaselineTemperatureC;
+			mPolarHumidityPercent = kPolarBaselineHumidity;
+			mPolarWindSpeedMps = kPolarBaselineWindMps;
+			mPolarVerticalWindDirection = VerticalWindDirection::NONE;
+			mPolarFirstWhiteoutCompleted = true;
+		}
+		break;
+	case PolarNightPhase::FADE:
+		mPolarWhiteoutTimer = std::max(0.0f, mPolarWhiteoutTimer - deltaTime);
+		if (mPolarWhiteoutTimer <= 0.0f) RollNextPolarNightPlan();
+		break;
+	case PolarNightPhase::DORMANT:
+		break;
+	}
+
+	const bool highHumidity = mPolarHumidityPercent >= kPolarHumidityDanger;
+	if (highHumidity) {
+		mPolarHighHumidityTimer += deltaTime;
+		if (!mPolarHumidityEpisodeConsumed
+			&& mPolarHighHumidityTimer >= kPolarHoleCommitSeconds) {
+			mPolarHumidityEpisodeConsumed = true;
+			CommitSnowHoleBatch();
+		}
+	}
+	else {
+		mPolarHighHumidityTimer = 0.0f;
+		mPolarHumidityEpisodeConsumed = false;
+	}
+
+	const bool allDanger = mPolarTemperatureC <= kPolarTemperatureDangerC
+		&& highHumidity && mPolarWindSpeedMps >= kPolarWindDangerMps;
+	if (allDanger && (mPolarNightPhase == PolarNightPhase::BUILDUP
+		|| mPolarNightPhase == PolarNightPhase::DANGER_HOLD)) {
+		mPolarAllDangerTimer += deltaTime;
+		if (mPolarPlanIsWhiteout
+			&& mPolarAllDangerTimer >= kPolarWhiteoutCommitSeconds) {
+			mPolarNightPhase = PolarNightPhase::WHITEOUT_RAMP;
+			mPolarPhaseTimer = 0.0f;
+			mPolarWhiteoutTimer = kPolarWhiteoutRampSeconds;
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BLOVER, 0.28f);
+		}
+	}
+	else if (!IsPolarWhiteoutCommitted()) {
+		mPolarAllDangerTimer = 0.0f;
+	}
+	UpdatePolarNightWindVisual(deltaTime);
+}
+
 void Board::UpdateWeather(float deltaTime)
 {
 	if (!mWeatherInitialized || deltaTime <= 0.0f) return;
+	UpdatePolarNightEnvironment(deltaTime);
 	UpdateWinterTemperature(deltaTime);
 	// 场景积累器只由背景资格决定；通用天气的冒险进度门槛不能反向关闭屋顶固有机制。
 	UpdateRoofRunoff(deltaTime);
@@ -4681,6 +5065,7 @@ float Board::GetMowerTerrainY(int row, float worldX) const
 bool Board::SupportsWeather() const
 {
 	// 基础天气保留唯一的进度门槛：正式一大关不启用；所有无尽地形均独立启用。
+	if (SupportsPolarNightEnvironment()) return false;
 	if (mIsSurvival) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)
 		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
@@ -5186,6 +5571,20 @@ float Board::GetPlanternIllumination(int row, int col) const
 bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const
 {
 	if (!plant || !zombie || !plant->CanAcquireZombie(zombie)) return false;
+	if (IsPolarSnowBlindActive()) {
+		auto centerOf = [](const GameObject* object,
+			const ColliderComponent* collider) {
+			if (!object) return Vector::zero();
+			if (!collider) return object->GetTransform()
+				? object->GetTransform()->GetPosition() : Vector::zero();
+			const SDL_FRect bounds = collider->GetBoundingBox();
+			return Vector(bounds.x + bounds.w * 0.5f, bounds.y + bounds.h * 0.5f);
+		};
+		const Vector plantCenter = centerOf(plant, plant->GetColliderComponent());
+		const Vector zombieCenter = centerOf(zombie, zombie->GetColliderComponent());
+		if ((zombieCenter - plantCenter).sqrMagnitude()
+			> kPolarSnowBlindRange * kPolarSnowBlindRange) return false;
+	}
 	if (!SupportsPlanternMechanics()) return true;
 	const Vector plantPosition = plant->GetPosition();
 	const Vector zombiePosition = zombie->GetPosition();
@@ -5683,6 +6082,38 @@ void Board::DrawWinterFrost(Graphics* g) const
 		}
 	}
 	g->SetBlendMode(previousBlend);
+}
+
+/** 雪穴只画在已锁定 Cell 中心；形成态与活动态均从首帧占用同一逻辑格。 */
+void Board::DrawPolarNightGround(Graphics* g) const
+{
+	if (!g || !SupportsPolarNightEnvironment()) return;
+	const Texture* snowHole = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_SNOW_HOLE, false);
+	if (!snowHole) return;
+	for (int row = 0; row < std::min(mRows, 5); ++row) {
+		const SnowHoleState& hole = mSnowHoles[row];
+		if (hole.phase == SnowHolePhase::NONE || hole.column < 0) continue;
+		const Vector center = GetCellCenterPosition(row, hole.column)
+			+ Vector(0.0f, 17.0f);
+		if (hole.phase == SnowHolePhase::FORMING) {
+			const float progress = std::clamp(
+				1.0f - hole.timer / kPolarHoleFormationSeconds, 0.0f, 1.0f);
+			const float eased = progress * progress * (3.0f - 2.0f * progress);
+			const float settle = std::sin(progress * 3.14159265f)
+				* progress * 0.12f;
+			const float scale = 0.12f + eased * 0.88f + settle;
+			const float size = 80.0f * scale;
+			g->DrawTexture(snowHole, center.x - size * 0.5f,
+				center.y - size * 0.5f, size, size, 0.0f,
+				glm::vec4(255.0f, 255.0f, 255.0f,
+					90.0f + progress * 165.0f));
+		}
+		else {
+			g->DrawTexture(snowHole, center.x - 40.0f, center.y - 40.0f,
+				80.0f, 80.0f);
+		}
+	}
 }
 
 bool Board::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const
@@ -6844,6 +7275,11 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	int anchorRow = row;
 	int anchorColumn = col;
 	if (!ResolvePlantPlacementAnchor(type, row, col, anchorRow, anchorColumn)) return false;
+	const PlantFootprint polarFootprint = GetPlantFootprint(type);
+	for (std::size_t i = 0; i < polarFootprint.count; ++i) {
+		if (HasSnowHoleAt(anchorRow + polarFootprint.cells[i].rowOffset,
+			anchorColumn + polarFootprint.cells[i].columnOffset)) return false;
+	}
 	if (IsPlantFootprintFrozen(type, anchorRow, anchorColumn)) return false;
 	if (IsIceAt(anchorRow, anchorColumn)) return false;
 	if (type == PlantType::PLANT_COBCANNON) {
@@ -6933,6 +7369,111 @@ bool Board::HasPlantingQuota(PlantType type) const
 	}
 	return type != PlantType::PLANT_ELITE_SCAREDYSHROOM
 		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
+}
+
+int Board::GetActiveSnowHoleCount() const
+{
+	return static_cast<int>(std::count_if(mSnowHoles.begin(), mSnowHoles.end(),
+		[](const SnowHoleState& hole) { return hole.phase != SnowHolePhase::NONE; }));
+}
+
+float Board::GetPolarWhiteoutVisualStrength() const
+{
+	switch (mPolarNightPhase) {
+	case PolarNightPhase::WHITEOUT_RAMP:
+		return std::clamp(mPolarPhaseTimer / kPolarWhiteoutRampSeconds,
+			0.0f, 1.0f);
+	case PolarNightPhase::SNOW_BLIND:
+		return 1.0f;
+	case PolarNightPhase::FADE:
+		return std::clamp(mPolarWhiteoutTimer / kPolarWhiteoutFadeSeconds,
+			0.0f, 1.0f);
+	default:
+		return 0.0f;
+	}
+}
+
+bool Board::HasSnowHoleInRow(int row) const
+{
+	return row >= 0 && row < static_cast<int>(mSnowHoles.size())
+		&& mSnowHoles[row].phase != SnowHolePhase::NONE;
+}
+
+bool Board::HasSnowHoleAt(int row, int col) const
+{
+	return HasSnowHoleInRow(row) && mSnowHoles[row].column == col;
+}
+
+int Board::GetSnowHoleColumn(int row) const
+{
+	return HasSnowHoleInRow(row) ? mSnowHoles[row].column : -1;
+}
+
+bool Board::SealSnowHole(int row)
+{
+	if (!HasSnowHoleInRow(row)) return false;
+	mSnowHoles[row] = {};
+	return true;
+}
+
+/** 锁定当前强风带来的恰好一行偏移；越界仍移动视觉落点但禁止命中。 */
+bool Board::ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target) const
+{
+	if (!SupportsPolarNightEnvironment() || !IsPolarWindDangerous()
+		|| mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
+		landingRow = sourceRow;
+		return true;
+	}
+	const int rowDelta = mPolarVerticalWindDirection == VerticalWindDirection::UP
+		? -1 : 1;
+	landingRow = sourceRow + rowDelta;
+	target.y += static_cast<float>(rowDelta) * mCellHeight;
+	return landingRow >= 0 && landingRow < mRows;
+}
+
+bool Board::SetPolarNightEnvironmentForTesting(float temperatureC,
+	float humidityPercent, float windSpeedMps, VerticalWindDirection direction,
+	PolarNightPhase phase)
+{
+	if (!SupportsPolarNightEnvironment()) return false;
+	mPolarNightInitialized = true;
+	mPolarTemperatureC = std::clamp(temperatureC, -25.0f, -2.0f);
+	mPolarHumidityPercent = std::clamp(humidityPercent, 0.0f, 100.0f);
+	mPolarWindSpeedMps = std::clamp(windSpeedMps, 0.0f, 30.0f);
+	mPolarVerticalWindDirection = direction;
+	mPolarWindParticleTimer = 0.0f;
+	mPolarNightPhase = phase;
+	mPolarPlanIsWhiteout = mPolarTemperatureC <= kPolarTemperatureDangerC
+		&& mPolarHumidityPercent >= kPolarHumidityDanger
+		&& mPolarWindSpeedMps >= kPolarWindDangerMps;
+	mPolarPhaseTimer = 0.0f;
+	mPolarAllDangerTimer = 0.0f;
+	mPolarHighHumidityTimer = 0.0f;
+	mPolarWhiteoutTimer = phase == PolarNightPhase::SNOW_BLIND
+		? (AdventureProgression::GetLevelNumberInArea(mLevel) == 9
+			? kPolarFinalSnowBlindSeconds : kPolarSnowBlindSeconds)
+		: (phase == PolarNightPhase::WHITEOUT_RAMP
+			? kPolarWhiteoutRampSeconds
+			: (phase == PolarNightPhase::FADE ? kPolarWhiteoutFadeSeconds : 0.0f));
+	return true;
+}
+
+bool Board::SetSnowHoleForTesting(int row, int column, SnowHolePhase phase,
+	float timer)
+{
+	if (!SupportsPolarNightEnvironment() || row < 0
+		|| row >= std::min(mRows, static_cast<int>(mSnowHoles.size()))) {
+		return false;
+	}
+	if (phase == SnowHolePhase::NONE) {
+		mSnowHoles[row] = {};
+		return true;
+	}
+	if (column < kPolarHoleFirstColumn
+		|| column > std::min(kPolarHoleLastColumn, mColumns - 1)) return false;
+	mSnowHoles[row] = { column, phase, phase == SnowHolePhase::FORMING
+		? std::clamp(timer, 0.0f, kPolarHoleFormationSeconds) : 0.0f };
+	return true;
 }
 
 bool Board::BeginCobCannonTargeting(int row, int col)
@@ -7317,6 +7858,13 @@ Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 		&& IsPlantFootprintFrozen(placementType, row, column)) {
 		return nullptr;
 	}
+	if (consumesPlantingQuota) {
+		const PlantFootprint footprint = GetPlantFootprint(placementType);
+		for (std::size_t i = 0; i < footprint.count; ++i) {
+			if (HasSnowHoleAt(row + footprint.cells[i].rowOffset,
+				column + footprint.cells[i].columnOffset)) return nullptr;
+		}
+	}
 	const bool isOverlayPlant = placementType == PlantType::PLANT_INSTANT_COFFEE;
 	const bool isUpgradePlant = IsUpgradePlantType(placementType);
 	if (isOverlayPlant && consumesPlantingQuota
@@ -7606,7 +8154,8 @@ void Board::UpdateLevel()
 
 	mZombieCountDown -= deltaTime;
 
-	if (mCurrentWave > 0 && mCurrectWaveZombieHP <= mNextWaveSpawnZombieHP)
+	if (mCurrentWave > 0 && mPendingSnowHoleSpawns.empty()
+		&& mCurrectWaveZombieHP <= mNextWaveSpawnZombieHP)
 	{
 		mZombieCountDown = 0.0f;
 	}
@@ -7616,6 +8165,7 @@ void Board::UpdateLevel()
 		// 一大波僵尸处理
 		if ((mCurrentWave + 1) % 10 == 0)
 		{
+			if (mCurrentWave + 1 == mMaxWave) BeginPolarFinalWavePrelude();
 			mHugeWaveCountDown += deltaTime;
 			if (!mHasHugeWaveSound)
 			{
@@ -7656,6 +8206,23 @@ void Board::UpdateLevel()
 void Board::SummonNextWave()
 {
 	mCurrentWave++;
+	if (mCurrentWave == mMaxWave
+		&& SupportsPolarNightEnvironment()
+		&& AdventureProgression::GetLevelNumberInArea(mLevel) == 9
+		&& !mPolarFinalWaveUpgradeApplied) {
+		// 开发者直调跳过大波警告时仍保证最终波处于白毛风；正常流程走平滑预热分支。
+		mPolarFinalWaveUpgradeApplied = true;
+		mPolarPlanIsWhiteout = true;
+		mPolarDangerMask = 7;
+		mPolarTemperatureC = -22.0f;
+		mPolarHumidityPercent = 93.0f;
+		mPolarWindSpeedMps = 22.0f;
+		if (mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
+			mPolarVerticalWindDirection = VerticalWindDirection::DOWN;
+		}
+		mPolarNightPhase = PolarNightPhase::SNOW_BLIND;
+		mPolarWhiteoutTimer = kPolarFinalSnowBlindSeconds;
+	}
 	// 在本波任何候选解析前承接冷却，保证整个波次（含稍后的显式正式候选）都保持封锁。
 	AdvanceHijackerSpawnCooldownForNewWave();
 	mZombieCountDown = IsStormyNightActive()
@@ -8005,9 +8572,7 @@ inline void Board::TrySummonZombie()
 		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
 			const int row = SelectSpawnRow(actualType);
 			if (row >= 0) {
-				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
-					AssignMistFuelReward(zombie);
-				}
+				CreateOrQueueWaveZombie(actualType, row, x);
 			}
 		}
 		return;
@@ -8019,9 +8584,7 @@ inline void Board::TrySummonZombie()
 		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
 			const int row = SelectSpawnRow(actualType);
 			if (row >= 0) {
-				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
-					AssignMistFuelReward(zombie);
-				}
+				CreateOrQueueWaveZombie(actualType, row, x);
 			}
 		}
 	}
@@ -8033,9 +8596,7 @@ inline void Board::TrySummonZombie()
 		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
 			const int row = SelectSpawnRow(actualType);
 			if (row >= 0) {
-				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
-					AssignMistFuelReward(zombie);
-				}
+				CreateOrQueueWaveZombie(actualType, row, x);
 			}
 		}
 	}
@@ -8047,9 +8608,7 @@ inline void Board::TrySummonZombie()
 		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
 			const int row = SelectSpawnRow(actualType);
 			if (row >= 0) {
-				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
-					AssignMistFuelReward(zombie);
-				}
+				CreateOrQueueWaveZombie(actualType, row, x);
 			}
 		}
 	}
@@ -8086,10 +8645,8 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		auto zombie = CreateResolvedWaveZombie(actualType, row, x);
-		if (zombie)
+		if (CreateOrQueueWaveZombie(actualType, row, x))
 		{
-			AssignMistFuelReward(zombie);
 			zombiesSpawned++;
 			remainingPoints -= cost;
 		}
@@ -8272,6 +8829,7 @@ void Board::StartGame()
 	mBoardState = BoardState::GAME;
 	InitializeWeather();
 	InitializeWinterTemperature();
+	InitializePolarNightEnvironment();
 	InitializeFogWeather();
 	EnforceStormyNightWeather();
 	// 读档恢复到一场雨中时，玩法状态已经由存档还原；粒子是瞬态资源，需按剩余时间重建一次。

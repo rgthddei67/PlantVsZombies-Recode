@@ -42,7 +42,7 @@ namespace {
 	};
 
 	// 信息刻意藏在戴夫的闲聊里：说明大关规则，不提前点名具体僵尸或解法。
-	const std::array<Conversation, 10> kConversations = {{
+	const std::array<Conversation, 13> kConversations = {{
 		{ 10, {
 			{ u8"欢迎来到夜班！夜班没有加班费，只有天气预报。", "anim_smalltalk" },
 			{ u8"从这儿开始，天说变就变——下雨时，院子两边都会跟着换个节奏。", "anim_mediumtalk" },
@@ -93,6 +93,21 @@ namespace {
 			{ u8"今天的冷风比昨天更有礼貌——它先敲门，再把门冻上。", "anim_smalltalk" },
 			{ u8"一开局不久还是会来一阵强寒潮；最后一关可别把准备拖到结冰后。", "anim_mediumtalk" },
 			{ u8"等它缓过气，天气又会继续随机胡闹。我的最爱。哇卜！", "anim_crazy" },
+		} },
+		{ 64, {
+			{ u8"天气预报在这里冻坏了。好消息是，我带了三只不会说话的仪表！", "anim_smalltalk" },
+			{ u8"湿度表变红以后，积雪会在雪地下面挖近路。那不是鼹鼠，千万别喂它。", "anim_mediumtalk" },
+			{ u8"先记住：洞不会跟着雪一起消失。哇卜！", "anim_crazy" },
+		} },
+		{ 65, {
+			{ u8"风速表变红时，天上飞的东西会横——不对，会竖着跑偏！", "anim_smalltalk" },
+			{ u8"每一发东西起飞时就选好了往上还是往下，边界外面可没有备用草坪。", "anim_mediumtalk" },
+			{ u8"直着飞和贴地打的倒不在乎。它们比较固执。", "anim_blahblah" },
+		} },
+		{ 66, {
+			{ u8"如果温度、湿度、风速三只表一起变红……别等我的天气预报。", "anim_smalltalk" },
+			{ u8"白毛风会让植物只看得见附近三格；你还是看得见，别拿雪盲当借口！", "anim_mediumtalk" },
+			{ u8"它什么时候真正扑过来？自己盯着趋势猜。探险就该有点不讲理。哇卜！", "anim_crazy" },
 		} },
 	}};
 

@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 57, "background": "POLAR_NIGHT_SNOWFIELD", "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_polar_environment", "temperature": -22, "humidity": 93, "wind": 22, "direction": "DOWN", "phase": "SNOW_BLIND" },
+    { "op": "set_snow_hole", "row": 2, "col": 5, "phase": "ACTIVE" },
+    { "op": "wait_seconds", "value": 2.1 },
+    { "op": "assert_state", "path": "weather.polarNight.snowBlind", "equals": true },
+    { "op": "assert_state", "path": "particleEffectNameCounts.PolarWindDown", "atLeast": 1 },
+    { "op": "screenshot", "name": "polar_night_layered_wind_down.png" },
+    { "op": "set_polar_environment", "temperature": -22, "humidity": 93, "wind": 22, "direction": "UP", "phase": "SNOW_BLIND" },
+    { "op": "wait_seconds", "value": 2.1 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.PolarWindUp", "atLeast": 1 },
+    { "op": "screenshot", "name": "polar_night_layered_wind_up.png" },
+    { "op": "set_polar_environment", "temperature": -14, "humidity": 58, "wind": 8, "direction": "NONE", "phase": "DANGER_HOLD" },
+    { "op": "wait_seconds", "value": 2.0 },
+    { "op": "set_snow_hole", "row": 2, "col": 5, "phase": "FORMING", "remaining": 2.0 },
+    { "op": "wait_seconds", "value": 0.2 },
+    { "op": "screenshot", "name": "polar_snow_hole_grow_small.png" },
+    { "op": "wait_seconds", "value": 0.8 },
+    { "op": "screenshot", "name": "polar_snow_hole_grow_mid.png" },
+    { "op": "wait_seconds", "value": 1.1 },
+    { "op": "assert_state", "path": "weather.polarNight.holes.2.phase", "equals": "ACTIVE" },
+    { "op": "screenshot", "name": "polar_snow_hole_grow_complete.png" }
+  ]
+}

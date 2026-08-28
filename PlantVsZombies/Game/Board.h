@@ -88,7 +88,8 @@ enum class Background {
 	NIGHT_WATER_POOL,
 	ROOF,
 	NIGHT_ROOF,
-	WINTER_GARDEN
+	WINTER_GARDEN,
+	POLAR_NIGHT_SNOWFIELD
 };
 
 inline constexpr int SURVIVAL_ENDLESS_LEVEL = 1000; // 白天无尽专用 level 号
@@ -244,6 +245,15 @@ public:
 	std::array<float, 8> mGoldenIceTimer{}; // 每行黄色冰道剩余寿命，单位秒
 
 private:
+	/** 雪穴预警期间尚未创建的正式波次僵尸；提交前清穴只改回右侧入口。 */
+	struct PendingSnowHoleSpawn {
+		ZombieType type = ZombieType::NUM_ZOMBIE_TYPES;
+		int row = -1;
+		int holeColumn = -1;
+		int spawnWave = 0;
+		float timer = 0.0f;
+	};
+
 	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
 	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 的场景控制器绑定
 	/** 采集推演共用的植物、僵尸、卡槽和格子纯数值快照。 */
@@ -296,6 +306,36 @@ private:
 	float mColdWaveThawDuration = 32.0f; // 已锁定回暖总时长，单位游戏秒
 	bool mColdWaveForecastDisrupted = false; // 本轮准确预报是否已被干扰；下一轮重新开放
 	int mWinterFrostVariant = 0;       // 本轮寒潮稳定使用的冻融线轮廓变体（0～2）
+
+	// 极夜雪原环境导演独立于雨势和寒潮；所有随机量在计划开始时一次性锁定。
+	bool mPolarNightInitialized = false; // 新局初始化或读档恢复后保持，不允许 StartGame 重抽
+	PolarNightPhase mPolarNightPhase = PolarNightPhase::DORMANT; // 当前连续曲线或白毛风阶段
+	bool mPolarPlanIsWhiteout = false; // 当前计划是否保证三红并提交白毛风
+	bool mPolarLastPlanWasFalse = false; // 假信号最多连续一次的持久约束
+	bool mPolarFirstWhiteoutCompleted = false; // 8-3 固定首轮是否已经完整消费
+	int mPolarDangerMask = 0;          // bit0 低温、bit1 高湿、bit2 强风
+	float mPolarTemperatureC = -14.0f; // 仪表权威温度，单位摄氏度
+	float mPolarHumidityPercent = 58.0f; // 仪表权威相对湿度，百分比
+	float mPolarWindSpeedMps = 8.0f;  // 仪表权威风速，单位米/秒
+	float mPolarStartTemperatureC = -14.0f; // 当前曲线起点温度
+	float mPolarStartHumidityPercent = 58.0f; // 当前曲线起点湿度
+	float mPolarStartWindSpeedMps = 8.0f; // 当前曲线起点风速
+	float mPolarTargetTemperatureC = -14.0f; // 当前计划锁定目标温度
+	float mPolarTargetHumidityPercent = 58.0f; // 当前计划锁定目标湿度
+	float mPolarTargetWindSpeedMps = 8.0f; // 当前计划锁定目标风速
+	float mPolarPhaseTimer = 0.0f;     // 当前阶段已经推进的游戏秒
+	float mPolarPhaseDuration = 0.0f;  // 当前阶段锁定总时长，单位游戏秒
+	float mPolarAllDangerTimer = 0.0f; // 三项连续危险累计；归零代表尚未提交
+	float mPolarHighHumidityTimer = 0.0f; // 当前高湿段连续累计，3 秒提交雪穴
+	bool mPolarHumidityEpisodeConsumed = false; // 同一连续高湿段只提交一批
+	bool mPolarTutorialHoleBatchConsumed = false; // 8-1 全关只允许首批雪穴
+	VerticalWindDirection mPolarVerticalWindDirection = VerticalWindDirection::NONE; // 强风段锁定吹向
+	float mPolarWhiteoutTimer = 0.0f;  // 雪盲或淡出阶段剩余游戏秒
+	float mPolarWindParticleTimer = 0.0f; // 纯视觉风雪粒子重发计时，不进入存档
+	bool mPolarFinalWaveUpgradeApplied = false; // 8-9 最终波平滑升级只提交一次
+	std::array<SnowHoleState, 5> mSnowHoles{}; // 五行雪穴槽；每行最多一个
+	int mLastSnowHoleBatchCreated = 0; // 最近一批实际形成数量，仅供观测与测试
+	std::vector<PendingSnowHoleSpawn> mPendingSnowHoleSpawns; // 已扣波次预算、等待雪雾预警结束的出生事务
 	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
 	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
 	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
@@ -416,6 +456,24 @@ private:
 	inline ZombieType GetCheapestZombie();
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
+	/** 建立极夜雪原独立初态；新局锁定首轮计划，读档不得覆盖。 */
+	void InitializePolarNightEnvironment();
+	/** 一次性锁定下一轮真假信号、危险组合、目标实数与阶段时长。 */
+	void RollNextPolarNightPlan();
+	/** 推进三仪表、阈值提交、白毛风与雪穴形成状态。 */
+	void UpdatePolarNightEnvironment(float deltaTime);
+	/** 高湿提交时均匀锁定最多两个不同行的合法空格。 */
+	void CommitSnowHoleBatch();
+	/** 只推进已经锁定的雪穴形成计时，不重新抽取格位。 */
+	void UpdateSnowHoles(float deltaTime);
+	/** 推进正式波次雪穴预警；到提交边沿时按雪穴是否仍在决定近路或右侧出生。 */
+	void UpdatePendingSnowHoleSpawns(float deltaTime);
+	/** 周期发射与锁定垂直方向一致的分层风雪粒子。 */
+	void UpdatePolarNightWindVisual(float deltaTime);
+	/** 创建正式波次僵尸，或在同行活动雪穴处锁定一次延迟出生事务。 */
+	bool CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightEdgeX);
+	/** 最终波警告开始时从当前实数平滑补齐三项危险，不重新触发已有白毛风。 */
+	void BeginPolarFinalWavePrelude();
 	void UpdateWeatherPanelInterference(float deltaTime);
 	/** 初始化并推进冬日花园独立寒潮；雨势和台风不得改写温度。 */
 	void InitializeWinterTemperature();
@@ -690,6 +748,63 @@ public:
 	float GetLightningTimer() const { return mLightningTimer; }
 	/** 冬日花园独立温度与冻融线查询；非冬日地图始终返回温暖、中性结果。 */
 	bool SupportsWinterTemperature() const { return mBackGround == Background::WINTER_GARDEN; }
+	/** 极夜环境与旧天气完全正交，只由专用背景启用。 */
+	bool SupportsPolarNightEnvironment() const {
+		return mBackGround == Background::POLAR_NIGHT_SNOWFIELD;
+	}
+	bool IsPolarNightInitialized() const { return mPolarNightInitialized; }
+	PolarNightPhase GetPolarNightPhase() const { return mPolarNightPhase; }
+	float GetPolarTemperatureC() const { return mPolarTemperatureC; }
+	float GetPolarHumidityPercent() const { return mPolarHumidityPercent; }
+	float GetPolarWindSpeedMps() const { return mPolarWindSpeedMps; }
+	float GetPolarTargetTemperatureC() const { return mPolarTargetTemperatureC; }
+	float GetPolarTargetHumidityPercent() const { return mPolarTargetHumidityPercent; }
+	float GetPolarTargetWindSpeedMps() const { return mPolarTargetWindSpeedMps; }
+	/** 白毛风音画强度；爬升 0～1、雪盲 1、淡出 1～0。 */
+	float GetPolarWhiteoutVisualStrength() const;
+	bool IsPolarTemperatureDangerous() const { return mPolarTemperatureC <= -18.0f; }
+	bool IsPolarHumidityDangerous() const { return mPolarHumidityPercent >= 85.0f; }
+	bool IsPolarWindDangerous() const { return mPolarWindSpeedMps >= 18.0f; }
+	bool IsPolarSnowBlindActive() const { return mPolarNightPhase == PolarNightPhase::SNOW_BLIND; }
+	bool IsPolarWhiteoutCommitted() const {
+		return mPolarNightPhase == PolarNightPhase::WHITEOUT_RAMP
+			|| mPolarNightPhase == PolarNightPhase::SNOW_BLIND
+			|| mPolarNightPhase == PolarNightPhase::FADE;
+	}
+	VerticalWindDirection GetPolarVerticalWindDirection() const {
+		return IsPolarWindDangerous() ? mPolarVerticalWindDirection
+			: VerticalWindDirection::NONE;
+	}
+	float GetPolarWhiteoutTimer() const { return mPolarWhiteoutTimer; }
+	float GetPolarAllDangerTimer() const { return mPolarAllDangerTimer; }
+	int GetActiveSnowHoleCount() const;
+	int GetLastSnowHoleBatchCreated() const { return mLastSnowHoleBatchCreated; }
+	int GetPendingSnowHoleSpawnCount() const {
+		return static_cast<int>(mPendingSnowHoleSpawns.size());
+	}
+	bool IsPolarFinalWaveUpgradeApplied() const { return mPolarFinalWaveUpgradeApplied; }
+	bool HasSnowHoleInRow(int row) const;
+	bool HasSnowHoleAt(int row, int col) const;
+	int GetSnowHoleColumn(int row) const;
+	SnowHolePhase GetSnowHolePhase(int row) const {
+		return row >= 0 && row < static_cast<int>(mSnowHoles.size())
+			? mSnowHoles[row].phase : SnowHolePhase::NONE;
+	}
+	float GetSnowHoleTimer(int row) const {
+		return row >= 0 && row < static_cast<int>(mSnowHoles.size())
+			? mSnowHoles[row].timer : 0.0f;
+	}
+	/** 专用封穴语义与小推车共用；普通伤害和铲子不得调用。 */
+	bool SealSnowHole(int row);
+	/** 发射时锁定垂直风切变；返回 false 表示越界落空。 */
+	bool ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target) const;
+	/** AutoTest 固定三仪表和风向；生产逻辑只走已锁环境计划。 */
+	bool SetPolarNightEnvironmentForTesting(float temperatureC, float humidityPercent,
+		float windSpeedMps, VerticalWindDirection direction,
+		PolarNightPhase phase = PolarNightPhase::DANGER_HOLD);
+	/** AutoTest 固定单行雪穴状态；生产选点仍只走高湿提交。 */
+	bool SetSnowHoleForTesting(int row, int column, SnowHolePhase phase,
+		float timer = 0.0f);
 	bool IsWinterTemperatureInitialized() const { return mWinterTemperatureInitialized; }
 	bool IsOpeningColdWavePlanInitialized() const { return mOpeningColdWavePlanInitialized; }
 	ColdWavePhase GetColdWavePhase() const { return mColdWavePhase; }
@@ -1119,6 +1234,8 @@ public:
 	void DrawIceTrails(Graphics* g) const;
 	/** 在冬日花园草坪实体下方绘制当前冻土覆盖，以及本轮锁定的不规则冻融边界。 */
 	void DrawWinterFrost(Graphics* g) const;
+	/** 在手绘雪格上绘制与逻辑 Cell 同源的雪穴形成和活动状态。 */
+	void DrawPolarNightGround(Graphics* g) const;
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
 	bool CanPlantAt(PlantType type, int row, int col);

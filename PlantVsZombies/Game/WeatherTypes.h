@@ -62,3 +62,35 @@ enum class NightRoofChargePhase {
 	WARNING,
 	DISCHARGING
 };
+
+/** 极夜雪原的隐藏环境计划阶段；旧雨势与寒潮不得读写这些状态。 */
+enum class PolarNightPhase {
+	DORMANT,
+	BUILDUP,
+	DANGER_HOLD,
+	RECOVERY,
+	WHITEOUT_RAMP,
+	SNOW_BLIND,
+	FADE
+};
+
+/** 垂直风切变的实际吹向；NONE 只用于非强风和状态规范化。 */
+enum class VerticalWindDirection {
+	NONE,
+	UP,
+	DOWN
+};
+
+/** 雪穴从两秒预留雪堆过渡到持续活动态。 */
+enum class SnowHolePhase {
+	NONE,
+	FORMING,
+	ACTIVE
+};
+
+/** 每行至多一个雪穴；列为零基索引，timer 只在形成阶段使用。 */
+struct SnowHoleState {
+	int column = -1;
+	SnowHolePhase phase = SnowHolePhase::NONE;
+	float timer = 0.0f;
+};

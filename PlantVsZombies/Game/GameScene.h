@@ -273,6 +273,10 @@ private:
 	void DrawFog(Graphics* g) const;
 	/** 在天气面板之外绘制冬日花园常驻温度计与玩法阈值。 */
 	void DrawWinterThermometer(Graphics* g) const;
+	/** 绘制极夜雪原三只与 Board 实数同源的常驻观测仪。 */
+	void DrawPolarNightInstruments(Graphics* g) const;
+	/** 绘制不遮挡 UI 的白毛风低对比雪幕。 */
+	void DrawPolarNightWhiteout(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
 	void DrawLightningStrike(Graphics* g) const;

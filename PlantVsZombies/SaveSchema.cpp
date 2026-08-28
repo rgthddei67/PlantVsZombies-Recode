@@ -186,6 +186,22 @@ namespace {
 				version = 7;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 7:
+				if (kind == DocumentKind::Level) {
+					// 关卡 v8 新增极夜环境计划；旧档只标记未初始化，由目标背景确定性建立首轮。
+					if (!upgraded.contains("polarNightInitialized")) {
+						upgraded["polarNightInitialized"] = false;
+					}
+					if (!upgraded.contains("snowHoles")) {
+						upgraded["snowHoles"] = nlohmann::json::array();
+					}
+					if (!upgraded.contains("pendingSnowHoleSpawns")) {
+						upgraded["pendingSnowHoleSpawns"] = nlohmann::json::array();
+					}
+				}
+				version = 8;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;
