@@ -1332,11 +1332,15 @@ void GameScene::DrawPolarNightWhiteout(Graphics* g) const
 		g->FillRect(225.0f, 76.0f, 875.0f, 524.0f,
 			glm::vec4(199.0f, 220.0f, 236.0f, 42.0f * strength));
 	}
-	const float direction = mBoard->GetPolarVerticalWindDirection()
+	const float windVisualStrength = mBoard->GetPolarWindVisualStrength();
+	const VerticalWindDirection visualWindDirection =
+		mBoard->GetPolarWindVisualDirection();
+	const float direction = visualWindDirection
 		== VerticalWindDirection::UP ? -1.0f : 1.0f;
 	// 粒子承担主要风雪质感；这里只保留少量清晰斜线传达上下风切方向。
-	const int windLineCount = mBoard->IsPolarWindDangerous()
-		? 1 + static_cast<int>(2.0f * strength) : 0;
+	const int windLineCount = visualWindDirection != VerticalWindDirection::NONE
+		&& windVisualStrength > 0.0f
+		? 1 + static_cast<int>(2.0f * windVisualStrength) : 0;
 	for (int i = 0; i < windLineCount; ++i) {
 		const float phase = std::fmod(static_cast<float>(i * 97)
 			+ frame * (2.25f + 1.25f * strength), 1040.0f);
@@ -1344,8 +1348,9 @@ void GameScene::DrawPolarNightWhiteout(Graphics* g) const
 		const float y = 90.0f + static_cast<float>((i * 43) % 490);
 		const float length = 46.0f + static_cast<float>((i * 19) % 58);
 		const glm::vec4 snow(235.0f, 247.0f, 255.0f,
-			(38.0f + static_cast<float>((i * 11) % 42))
-			+ (54.0f + static_cast<float>((i * 7) % 38)) * strength);
+			((38.0f + static_cast<float>((i * 11) % 42))
+				+ (54.0f + static_cast<float>((i * 7) % 38)) * strength)
+			* windVisualStrength);
 		g->DrawLine(x, y, x + length, y + direction * 4.0f, snow);
 		g->DrawLine(x, y + 1.0f, x + length, y + direction * 4.0f + 1.0f, snow);
 	}

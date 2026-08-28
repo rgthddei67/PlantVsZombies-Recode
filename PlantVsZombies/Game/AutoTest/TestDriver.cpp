@@ -1179,7 +1179,8 @@ bool TestDriver::ExecuteCurrent() {
 			|| !gs->GetBoard()->SetPolarNightEnvironmentForTesting(
 				cmd.value("temperature", -14.0f),
 				cmd.value("humidity", 58.0f),
-				cmd.value("wind", 8.0f), directionIt->second, phaseIt->second)) {
+				cmd.value("wind", 8.0f), directionIt->second, phaseIt->second,
+				cmd.value("remaining", -1.0f))) {
 			Fail("set_polar_environment: 仅极夜雪原可用；phase 或 direction 无效");
 			return false;
 		}
@@ -5349,6 +5350,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "temperatureDanger", board->IsPolarTemperatureDangerous() },
 			{ "humidityDanger", board->IsPolarHumidityDangerous() },
 			{ "windDanger", board->IsPolarWindDangerous() },
+			{ "windVisualPct", static_cast<int>(std::lround(
+				board->GetPolarWindVisualStrength() * 100.0f)) },
 			{ "verticalWind", VerticalWindDirectionName(
 				board->GetPolarVerticalWindDirection()) },
 			{ "allDangerRemainingMs", static_cast<int>(std::lround(
@@ -5359,6 +5362,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetPolarWhiteoutVisualStrength() * 100.0f)) },
 			{ "whiteoutRemainingMs", static_cast<int>(std::lround(
 				board->GetPolarWhiteoutTimer() * 1000.0f)) },
+			{ "gaugeFluctuationRemainingMs", static_cast<int>(std::lround(
+				board->GetPolarFluctuationRemaining() * 1000.0f)) },
 			{ "activeHoleCount", board->GetActiveSnowHoleCount() },
 			{ "lastHoleBatchCreated", board->GetLastSnowHoleBatchCreated() },
 			{ "pendingSpawnCount", board->GetPendingSnowHoleSpawnCount() },

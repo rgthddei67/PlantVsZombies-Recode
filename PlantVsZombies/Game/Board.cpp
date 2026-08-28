@@ -134,6 +134,20 @@ namespace {
 	constexpr float kPolarSnowBlindSeconds = 45.0f;      // 普通极夜关雪盲持续时间，游戏秒
 	constexpr float kPolarFinalSnowBlindSeconds = 60.0f; // 8-9 白毛风雪盲持续时间，游戏秒
 	constexpr float kPolarWhiteoutFadeSeconds = 2.0f;    // 玩法解除后的无害音画淡出，游戏秒
+	constexpr float kPolarPostWhiteoutRecoverySeconds = 5.0f; // 白毛风结束后三仪表连续回落到常态的游戏秒
+	constexpr float kPolarFluctuationDurationMin = 1.8f; // 仪表单段微波动最短时长，游戏秒
+	constexpr float kPolarFluctuationDurationMax = 3.2f; // 仪表单段微波动最长时长，游戏秒
+	constexpr float kPolarTemperatureFluctuationMin = 0.6f; // 每段温度微波动最小幅度，摄氏度
+	constexpr float kPolarTemperatureFluctuationMax = 1.2f; // 每段温度微波动最大幅度，摄氏度
+	constexpr float kPolarHumidityFluctuationMin = 1.2f; // 每段湿度微波动最小幅度，百分点
+	constexpr float kPolarHumidityFluctuationMax = 2.8f; // 每段湿度微波动最大幅度，百分点
+	constexpr float kPolarWindFluctuationMin = 0.7f;    // 每段风速微波动最小幅度，米/秒
+	constexpr float kPolarWindFluctuationMax = 1.5f;    // 每段风速微波动最大幅度，米/秒
+	constexpr float kPolarWindVisualStartMps = 12.0f;   // 风雪带开始淡入的实数风速，米/秒
+	constexpr float kPolarWindVisualFullMps = 22.0f;    // 风雪带达到完整密度的实数风速，米/秒
+	constexpr float kPolarWindVisualRisePerSecond = 0.75f; // 风雪带淡入速度，每游戏秒强度
+	constexpr float kPolarWindVisualFallPerSecond = 1.0f; // 风雪带淡出速度，每游戏秒强度
+	constexpr float kPolarWindBreezeParticleInterval = 1.25f; // 风力预兆阶段分层粒子的最长重发间隔，游戏秒
 	constexpr float kPolarWindParticleInterval = 0.72f;  // 普通强风分层粒子的重发间隔，游戏秒
 	constexpr float kPolarWhiteoutParticleInterval = 0.42f; // 白毛风峰值分层粒子的重发间隔，游戏秒
 	constexpr float kPolarRecoverySeconds = 3.0f;        // 假信号退出危险区的连续回落时长，游戏秒
@@ -4367,7 +4381,10 @@ void Board::InitializePolarNightEnvironment()
 		mPolarNightInitialized = false;
 		mPolarNightPhase = PolarNightPhase::DORMANT;
 		mPolarVerticalWindDirection = VerticalWindDirection::NONE;
+		mPolarFluctuationTimer = 0.0f;
+		mPolarFluctuationDuration = 0.0f;
 		mPolarWindParticleTimer = 0.0f;
+		mPolarWindVisualStrength = 0.0f;
 		mSnowHoles.fill({});
 		mPendingSnowHoleSpawns.clear();
 		return;
@@ -4382,7 +4399,10 @@ void Board::InitializePolarNightEnvironment()
 	mPolarHumidityEpisodeConsumed = false;
 	mPolarTutorialHoleBatchConsumed = false;
 	mPolarFinalWaveUpgradeApplied = false;
+	mPolarFluctuationTimer = 0.0f;
+	mPolarFluctuationDuration = 0.0f;
 	mPolarWindParticleTimer = 0.0f;
+	mPolarWindVisualStrength = 0.0f;
 	mSnowHoles.fill({});
 	mPendingSnowHoleSpawns.clear();
 	RollNextPolarNightPlan();
@@ -4401,6 +4421,69 @@ static int RollPolarFalseDangerMask()
 		}
 	}
 	return GameRandom::Range(1, 2) == 1 ? 2 : 4;
+}
+
+/** 在指定安全侧内抽取邻近目标；若抽中的方向越界就改向，避免贴阈值停住。 */
+static float RollPolarNearbyValue(float current, float lower, float upper,
+	float minimumDelta, float maximumDelta)
+{
+	const float boundedCurrent = std::clamp(current, lower, upper);
+	const float magnitude = GameRandom::Range(minimumDelta, maximumDelta);
+	const float direction = GameRandom::Range(1, 2) == 1 ? -1.0f : 1.0f;
+	float candidate = boundedCurrent + direction * magnitude;
+	if (candidate < lower || candidate > upper) {
+		candidate = boundedCurrent - direction * magnitude;
+	}
+	return std::clamp(candidate, lower, upper);
+}
+
+/**
+ * 让保持阶段的仪表继续有缓慢变化，但每项严格留在当前计划指定的危险侧或安全侧。
+ * 这里只改写已保存的曲线起点/目标；计划真假和提交累计保持独立。
+ */
+void Board::BeginPolarGaugeFluctuation()
+{
+	mPolarStartTemperatureC = mPolarTemperatureC;
+	mPolarStartHumidityPercent = mPolarHumidityPercent;
+	mPolarStartWindSpeedMps = mPolarWindSpeedMps;
+	mPolarTargetTemperatureC = (mPolarDangerMask & 1) != 0
+		? RollPolarNearbyValue(mPolarTemperatureC, -24.4f, -18.6f,
+			kPolarTemperatureFluctuationMin, kPolarTemperatureFluctuationMax)
+		: RollPolarNearbyValue(mPolarTemperatureC, -17.3f, -2.6f,
+			kPolarTemperatureFluctuationMin, kPolarTemperatureFluctuationMax);
+	mPolarTargetHumidityPercent = (mPolarDangerMask & 2) != 0
+		? RollPolarNearbyValue(mPolarHumidityPercent, 86.0f, 98.5f,
+			kPolarHumidityFluctuationMin, kPolarHumidityFluctuationMax)
+		: RollPolarNearbyValue(mPolarHumidityPercent, 1.0f, 83.8f,
+			kPolarHumidityFluctuationMin, kPolarHumidityFluctuationMax);
+	mPolarTargetWindSpeedMps = (mPolarDangerMask & 4) != 0
+		? RollPolarNearbyValue(mPolarWindSpeedMps, 18.8f, 28.5f,
+			kPolarWindFluctuationMin, kPolarWindFluctuationMax)
+		: RollPolarNearbyValue(mPolarWindSpeedMps, 0.5f, 17.2f,
+			kPolarWindFluctuationMin, kPolarWindFluctuationMax);
+	mPolarFluctuationTimer = 0.0f;
+	mPolarFluctuationDuration = GameRandom::Range(
+		kPolarFluctuationDurationMin, kPolarFluctuationDurationMax);
+}
+
+/** 当前段使用 smoothstep 连续滑动，到达目标后才锁定下一段随机目标。 */
+void Board::UpdatePolarGaugeFluctuation(float deltaTime)
+{
+	if (mPolarFluctuationDuration <= 0.0f) BeginPolarGaugeFluctuation();
+	mPolarFluctuationTimer = std::min(mPolarFluctuationDuration,
+		mPolarFluctuationTimer + deltaTime);
+	const float t = mPolarFluctuationDuration > 0.0f
+		? mPolarFluctuationTimer / mPolarFluctuationDuration : 1.0f;
+	const float eased = t * t * (3.0f - 2.0f * t);
+	mPolarTemperatureC = LerpWeatherValue(
+		mPolarStartTemperatureC, mPolarTargetTemperatureC, eased);
+	mPolarHumidityPercent = LerpWeatherValue(
+		mPolarStartHumidityPercent, mPolarTargetHumidityPercent, eased);
+	mPolarWindSpeedMps = LerpWeatherValue(
+		mPolarStartWindSpeedMps, mPolarTargetWindSpeedMps, eased);
+	if (mPolarFluctuationTimer >= mPolarFluctuationDuration) {
+		BeginPolarGaugeFluctuation();
+	}
 }
 
 /** 一次性锁定连续曲线的全部随机量，运行阶段只做插值。 */
@@ -4444,6 +4527,8 @@ void Board::RollNextPolarNightPlan()
 		? GameRandom::Range(20.0f, 24.0f) : GameRandom::Range(10.0f, 19.0f);
 	mPolarNightPhase = PolarNightPhase::BUILDUP;
 	mPolarAllDangerTimer = 0.0f;
+	mPolarFluctuationTimer = 0.0f;
+	mPolarFluctuationDuration = 0.0f;
 }
 
 /** 只在空格中均匀选择不同行；选点一旦写入行槽就不再补抽。 */
@@ -4553,10 +4638,25 @@ void Board::UpdatePendingSnowHoleSpawns(float deltaTime)
 	}
 }
 
-/** 风雪粒子只消费当前实数与方向，读档或切段后可由权威状态立即重建。 */
+/** 风雪表现从 12m/s 起连续淡入；玩法仍只在 18m/s 危险线提交垂直偏行。 */
 void Board::UpdatePolarNightWindVisual(float deltaTime)
 {
-	if (!g_particleSystem || !IsPolarWindDangerous()
+	const float targetStrength = mPolarVerticalWindDirection
+		== VerticalWindDirection::NONE ? 0.0f : std::clamp(
+			(mPolarWindSpeedMps - kPolarWindVisualStartMps)
+			/ (kPolarWindVisualFullMps - kPolarWindVisualStartMps), 0.0f, 1.0f);
+	const float step = deltaTime * (targetStrength > mPolarWindVisualStrength
+		? kPolarWindVisualRisePerSecond : kPolarWindVisualFallPerSecond);
+	if (targetStrength > mPolarWindVisualStrength) {
+		mPolarWindVisualStrength = std::min(
+			targetStrength, mPolarWindVisualStrength + step);
+	}
+	else {
+		mPolarWindVisualStrength = std::max(
+			targetStrength, mPolarWindVisualStrength - step);
+	}
+
+	if (!g_particleSystem || mPolarWindVisualStrength <= 0.04f
 		|| mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
 		mPolarWindParticleTimer = 0.0f;
 		return;
@@ -4569,8 +4669,11 @@ void Board::UpdatePolarNightWindVisual(float deltaTime)
 	g_particleSystem->EmitEffect(effectName,
 		Vector(165.0f, static_cast<float>(SCENE_HEIGHT) * 0.5f),
 		LAYER_EFFECTS_WORLD);
-	mPolarWindParticleTimer = IsPolarWhiteoutCommitted()
+	const float denseInterval = IsPolarWhiteoutCommitted()
 		? kPolarWhiteoutParticleInterval : kPolarWindParticleInterval;
+	mPolarWindParticleTimer = LerpWeatherValue(
+		kPolarWindBreezeParticleInterval, denseInterval,
+		mPolarWindVisualStrength);
 }
 
 /**
@@ -4606,6 +4709,8 @@ void Board::BeginPolarFinalWavePrelude()
 	mPolarPhaseDuration = kPolarFinalPreludeBuildSeconds;
 	mPolarNightPhase = PolarNightPhase::BUILDUP;
 	mPolarAllDangerTimer = 0.0f;
+	mPolarFluctuationTimer = 0.0f;
+	mPolarFluctuationDuration = 0.0f;
 }
 
 /** 推进当前已锁计划，并在阈值边沿提交雪穴和不可逆白毛风。 */
@@ -4642,10 +4747,12 @@ void Board::UpdatePolarNightEnvironment(float deltaTime)
 				mPolarPhaseTimer = 0.0f;
 				mPolarPhaseDuration = mPolarPlanIsWhiteout
 					? 10.0f : GameRandom::Range(12.0f, 24.0f);
+				BeginPolarGaugeFluctuation();
 			}
 		}
 		break;
 	case PolarNightPhase::DANGER_HOLD:
+		UpdatePolarGaugeFluctuation(deltaTime);
 		mPolarPhaseTimer += deltaTime;
 		if (!mPolarPlanIsWhiteout && mPolarPhaseTimer >= mPolarPhaseDuration) {
 			mPolarStartTemperatureC = mPolarTemperatureC;
@@ -4657,9 +4764,12 @@ void Board::UpdatePolarNightEnvironment(float deltaTime)
 			mPolarPhaseTimer = 0.0f;
 			mPolarPhaseDuration = kPolarRecoverySeconds;
 			mPolarNightPhase = PolarNightPhase::RECOVERY;
+			mPolarFluctuationTimer = 0.0f;
+			mPolarFluctuationDuration = 0.0f;
 		}
 		break;
 	case PolarNightPhase::WHITEOUT_RAMP:
+		UpdatePolarGaugeFluctuation(deltaTime);
 		mPolarPhaseTimer += deltaTime;
 		if (mPolarPhaseTimer >= kPolarWhiteoutRampSeconds) {
 			mPolarNightPhase = PolarNightPhase::SNOW_BLIND;
@@ -4668,20 +4778,33 @@ void Board::UpdatePolarNightEnvironment(float deltaTime)
 		}
 		break;
 	case PolarNightPhase::SNOW_BLIND:
+		UpdatePolarGaugeFluctuation(deltaTime);
 		mPolarWhiteoutTimer = std::max(0.0f, mPolarWhiteoutTimer - deltaTime);
 		if (mPolarWhiteoutTimer <= 0.0f) {
 			mPolarNightPhase = PolarNightPhase::FADE;
 			mPolarWhiteoutTimer = kPolarWhiteoutFadeSeconds;
-			mPolarTemperatureC = kPolarBaselineTemperatureC;
-			mPolarHumidityPercent = kPolarBaselineHumidity;
-			mPolarWindSpeedMps = kPolarBaselineWindMps;
-			mPolarVerticalWindDirection = VerticalWindDirection::NONE;
+			mPolarStartTemperatureC = mPolarTemperatureC;
+			mPolarStartHumidityPercent = mPolarHumidityPercent;
+			mPolarStartWindSpeedMps = mPolarWindSpeedMps;
+			mPolarTargetTemperatureC = kPolarBaselineTemperatureC;
+			mPolarTargetHumidityPercent = kPolarBaselineHumidity;
+			mPolarTargetWindSpeedMps = kPolarBaselineWindMps;
+			mPolarPhaseTimer = 0.0f;
+			mPolarPhaseDuration = kPolarPostWhiteoutRecoverySeconds;
+			mPolarFluctuationTimer = 0.0f;
+			mPolarFluctuationDuration = 0.0f;
 			mPolarFirstWhiteoutCompleted = true;
 		}
 		break;
 	case PolarNightPhase::FADE:
 		mPolarWhiteoutTimer = std::max(0.0f, mPolarWhiteoutTimer - deltaTime);
-		if (mPolarWhiteoutTimer <= 0.0f) RollNextPolarNightPlan();
+		mPolarPhaseTimer = std::min(mPolarPhaseDuration,
+			mPolarPhaseTimer + deltaTime);
+		setCurveValues(mPolarPhaseDuration > 0.0f
+			? mPolarPhaseTimer / mPolarPhaseDuration : 1.0f);
+		if (mPolarPhaseTimer >= mPolarPhaseDuration) {
+			RollNextPolarNightPlan();
+		}
 		break;
 	case PolarNightPhase::DORMANT:
 		break;
@@ -7433,7 +7556,7 @@ bool Board::ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target)
 
 bool Board::SetPolarNightEnvironmentForTesting(float temperatureC,
 	float humidityPercent, float windSpeedMps, VerticalWindDirection direction,
-	PolarNightPhase phase)
+	PolarNightPhase phase, float phaseRemaining)
 {
 	if (!SupportsPolarNightEnvironment()) return false;
 	mPolarNightInitialized = true;
@@ -7442,19 +7565,55 @@ bool Board::SetPolarNightEnvironmentForTesting(float temperatureC,
 	mPolarWindSpeedMps = std::clamp(windSpeedMps, 0.0f, 30.0f);
 	mPolarVerticalWindDirection = direction;
 	mPolarWindParticleTimer = 0.0f;
+	mPolarWindVisualStrength = 0.0f;
 	mPolarNightPhase = phase;
+	mPolarDangerMask = (mPolarTemperatureC <= kPolarTemperatureDangerC ? 1 : 0)
+		| (mPolarHumidityPercent >= kPolarHumidityDanger ? 2 : 0)
+		| (mPolarWindSpeedMps >= kPolarWindDangerMps ? 4 : 0);
 	mPolarPlanIsWhiteout = mPolarTemperatureC <= kPolarTemperatureDangerC
 		&& mPolarHumidityPercent >= kPolarHumidityDanger
 		&& mPolarWindSpeedMps >= kPolarWindDangerMps;
+	mPolarStartTemperatureC = mPolarTemperatureC;
+	mPolarStartHumidityPercent = mPolarHumidityPercent;
+	mPolarStartWindSpeedMps = mPolarWindSpeedMps;
+	mPolarTargetTemperatureC = mPolarTemperatureC;
+	mPolarTargetHumidityPercent = mPolarHumidityPercent;
+	mPolarTargetWindSpeedMps = mPolarWindSpeedMps;
 	mPolarPhaseTimer = 0.0f;
+	mPolarPhaseDuration = phase == PolarNightPhase::DANGER_HOLD ? 60.0f : 0.0f;
 	mPolarAllDangerTimer = 0.0f;
 	mPolarHighHumidityTimer = 0.0f;
+	mPolarFluctuationTimer = 0.0f;
+	mPolarFluctuationDuration = 0.0f;
 	mPolarWhiteoutTimer = phase == PolarNightPhase::SNOW_BLIND
-		? (AdventureProgression::GetLevelNumberInArea(mLevel) == 9
-			? kPolarFinalSnowBlindSeconds : kPolarSnowBlindSeconds)
+		? (phaseRemaining >= 0.0f ? std::clamp(phaseRemaining, 0.0f,
+				kPolarFinalSnowBlindSeconds)
+			: (AdventureProgression::GetLevelNumberInArea(mLevel) == 9
+				? kPolarFinalSnowBlindSeconds : kPolarSnowBlindSeconds))
 		: (phase == PolarNightPhase::WHITEOUT_RAMP
 			? kPolarWhiteoutRampSeconds
 			: (phase == PolarNightPhase::FADE ? kPolarWhiteoutFadeSeconds : 0.0f));
+	if (phase == PolarNightPhase::WHITEOUT_RAMP && phaseRemaining >= 0.0f) {
+		mPolarPhaseTimer = std::clamp(
+			kPolarWhiteoutRampSeconds - phaseRemaining,
+			0.0f, kPolarWhiteoutRampSeconds);
+	}
+	if (phase == PolarNightPhase::FADE) {
+		mPolarTargetTemperatureC = kPolarBaselineTemperatureC;
+		mPolarTargetHumidityPercent = kPolarBaselineHumidity;
+		mPolarTargetWindSpeedMps = kPolarBaselineWindMps;
+		mPolarPhaseDuration = kPolarPostWhiteoutRecoverySeconds;
+		if (phaseRemaining >= 0.0f) {
+			mPolarPhaseTimer = std::clamp(
+				kPolarPostWhiteoutRecoverySeconds - phaseRemaining,
+				0.0f, kPolarPostWhiteoutRecoverySeconds);
+		}
+	}
+	else if (phase == PolarNightPhase::DANGER_HOLD
+		|| phase == PolarNightPhase::WHITEOUT_RAMP
+		|| phase == PolarNightPhase::SNOW_BLIND) {
+		BeginPolarGaugeFluctuation();
+	}
 	return true;
 }
 

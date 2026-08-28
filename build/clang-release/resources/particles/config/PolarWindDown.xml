@@ -1,7 +1,8 @@
 <Emitter>
   <Name>PolarWindDown</Name>
-  <SpawnMinActive>14</SpawnMinActive>
-  <SpawnMaxLaunched>14</SpawnMaxLaunched>
+  <SpawnMinActive>2</SpawnMinActive>
+  <SpawnMaxLaunched>18</SpawnMaxLaunched>
+  <SpawnRate>10</SpawnRate>
   <ParticleDuration>[.85 1.2]</ParticleDuration>
   <ParticleAlpha>0,0 .3,12 .18,76 0,100</ParticleAlpha>
   <ParticleScale>[.30 .52]</ParticleScale>
@@ -25,8 +26,9 @@
 
 <Emitter>
   <Name>PolarWindDown</Name>
-  <SpawnMinActive>22</SpawnMinActive>
-  <SpawnMaxLaunched>22</SpawnMaxLaunched>
+  <SpawnMinActive>3</SpawnMinActive>
+  <SpawnMaxLaunched>28</SpawnMaxLaunched>
+  <SpawnRate>14</SpawnRate>
   <ParticleDuration>[1.25 1.75]</ParticleDuration>
   <ParticleAlpha>0,0 .16,15 .1,78 0,100</ParticleAlpha>
   <ParticleScale>[.12 .27]</ParticleScale>
@@ -50,8 +52,9 @@
 
 <Emitter>
   <Name>PolarWindDown</Name>
-  <SpawnMinActive>24</SpawnMinActive>
-  <SpawnMaxLaunched>24</SpawnMaxLaunched>
+  <SpawnMinActive>4</SpawnMinActive>
+  <SpawnMaxLaunched>26</SpawnMaxLaunched>
+  <SpawnRate>14</SpawnRate>
   <ParticleDuration>[.95 1.45]</ParticleDuration>
   <ParticleAlpha>0,0 .48,10 .26,80 0,100</ParticleAlpha>
   <ParticleScale>[1.1 2.5]</ParticleScale>

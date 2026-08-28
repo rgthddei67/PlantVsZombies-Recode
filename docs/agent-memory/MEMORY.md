@@ -4,7 +4,7 @@
 
 - [AutoTest 套件与验证矩阵](project_pvz_autotest_suite.md) — 2026-08-27 验证按实际改动面分流：新植物、新僵尸、新粒子或纯出怪/逻辑本身只跑默认 `clang-release` 可见专项；只有改动渲染后端、后端兼容路径或跨后端提交实现时才加跑 `-NoInstance` 和强制 OpenGL
 
-- [第八大关极夜雪原核心环境](project_pvz_polar_night_snowfield.md) — 2026-08-28 新 `POLAR_NIGHT_SNOWFIELD` 背景、Board 权威三仪表隐藏导演、5 秒三红提交白毛风、45/60 秒三格雪盲、强风抛射偏行、持续雪穴与正式波次 1 秒出生改道均已实现；背景按真实 Cell 几何校准，关卡 schema v8、戴夫 8-1～8-3 提示、资源与可见专项闭环；新植物/新僵尸、最终出怪表和冒险入口留待下一轮
+- [第八大关极夜雪原核心环境](project_pvz_polar_night_snowfield.md) — 2026-08-28 新 `POLAR_NIGHT_SNOWFIELD` 背景、Board 权威三仪表隐藏导演、5 秒三红提交白毛风、45/60 秒三格雪盲、强风抛射偏行、持续雪穴与正式波次 1 秒出生改道均已实现；实玩反馈后补齐 12m/s 起风效淡入、两红/三红不跨阈值微波动和白毛风结束 5 秒实数回落；背景按真实 Cell 几何校准，关卡 schema v8、戴夫 8-1～8-3 提示、资源与可见专项闭环；新植物/新僵尸、最终出怪表和冒险入口留待下一轮
 
 - [冬日花园僵尸图鉴资料与预览](project_pvz_zombie_almanac_progression.md) — 2026-08-26 冰墙工程师的图鉴缺失源于 `info.txt` 标题/说明键未登记，而非 spawnlist 解锁；天气干扰僵尸的预览无 Board 必须保持 `anim_idle`，不能误触设备失败收口改成 `anim_walk2`。默认与 `-NoInstance` 图鉴专项均通过
 

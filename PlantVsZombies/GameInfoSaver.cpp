@@ -382,6 +382,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["polarVerticalWindDirection"] = static_cast<int>(
 		board->mPolarVerticalWindDirection);
 	j["polarWhiteoutTimer"] = board->mPolarWhiteoutTimer;
+	j["polarFluctuationTimer"] = board->mPolarFluctuationTimer;
+	j["polarFluctuationDuration"] = board->mPolarFluctuationDuration;
 	j["polarFinalWaveUpgradeApplied"] = board->mPolarFinalWaveUpgradeApplied;
 	j["snowHoles"] = nlohmann::json::array();
 	for (const SnowHoleState& hole : board->mSnowHoles) {
@@ -1001,6 +1003,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mSnowHoles.fill({});
 	board->mPendingSnowHoleSpawns.clear();
 	board->mPolarWindParticleTimer = 0.0f;
+	board->mPolarWindVisualStrength = 0.0f;
 	if (board->mPolarNightInitialized) {
 		board->mPolarNightPhase = static_cast<PolarNightPhase>(polarPhaseValue);
 		board->mPolarPlanIsWhiteout = j.value("polarPlanIsWhiteout", false);
@@ -1042,6 +1045,23 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			verticalWindValue);
 		board->mPolarWhiteoutTimer = std::clamp(
 			j.value("polarWhiteoutTimer", 0.0f), 0.0f, 60.0f);
+		board->mPolarFluctuationDuration = std::clamp(
+			j.value("polarFluctuationDuration", 0.0f), 0.0f, 10.0f);
+		board->mPolarFluctuationTimer = std::clamp(
+			j.value("polarFluctuationTimer", 0.0f), 0.0f,
+			board->mPolarFluctuationDuration);
+		// v8 早期档缺少微波动标记；把淡出阶段规范成当前五秒回落日程，已有基线值则稳定保持。
+		if (board->mPolarNightPhase == PolarNightPhase::FADE
+			&& !j.contains("polarFluctuationDuration")) {
+			board->mPolarStartTemperatureC = board->mPolarTemperatureC;
+			board->mPolarStartHumidityPercent = board->mPolarHumidityPercent;
+			board->mPolarStartWindSpeedMps = board->mPolarWindSpeedMps;
+			board->mPolarTargetTemperatureC = -14.0f;
+			board->mPolarTargetHumidityPercent = 58.0f;
+			board->mPolarTargetWindSpeedMps = 8.0f;
+			board->mPolarPhaseTimer = 0.0f;
+			board->mPolarPhaseDuration = 5.0f;
+		}
 		board->mPolarFinalWaveUpgradeApplied = j.value(
 			"polarFinalWaveUpgradeApplied", false);
 		const auto& holes = j.value("snowHoles", nlohmann::json::array());
@@ -1083,6 +1103,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	else {
 		board->mPolarNightPhase = PolarNightPhase::DORMANT;
 		board->mPolarVerticalWindDirection = VerticalWindDirection::NONE;
+		board->mPolarFluctuationTimer = 0.0f;
+		board->mPolarFluctuationDuration = 0.0f;
 	}
 	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。

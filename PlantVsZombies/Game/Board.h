@@ -331,7 +331,10 @@ private:
 	bool mPolarTutorialHoleBatchConsumed = false; // 8-1 全关只允许首批雪穴
 	VerticalWindDirection mPolarVerticalWindDirection = VerticalWindDirection::NONE; // 强风段锁定吹向
 	float mPolarWhiteoutTimer = 0.0f;  // 雪盲或淡出阶段剩余游戏秒
+	float mPolarFluctuationTimer = 0.0f; // 危险保持期当前微波动段已经推进的游戏秒
+	float mPolarFluctuationDuration = 0.0f; // 当前微波动段锁定总时长，单位游戏秒
 	float mPolarWindParticleTimer = 0.0f; // 纯视觉风雪粒子重发计时，不进入存档
+	float mPolarWindVisualStrength = 0.0f; // 纯视觉强风淡入强度，不进入存档
 	bool mPolarFinalWaveUpgradeApplied = false; // 8-9 最终波平滑升级只提交一次
 	std::array<SnowHoleState, 5> mSnowHoles{}; // 五行雪穴槽；每行最多一个
 	int mLastSnowHoleBatchCreated = 0; // 最近一批实际形成数量，仅供观测与测试
@@ -462,6 +465,10 @@ private:
 	void RollNextPolarNightPlan();
 	/** 推进三仪表、阈值提交、白毛风与雪穴形成状态。 */
 	void UpdatePolarNightEnvironment(float deltaTime);
+	/** 锁定下一段不跨危险线的邻近仪表目标；波动本身不改变计划提交状态。 */
+	void BeginPolarGaugeFluctuation();
+	/** 平滑推进当前仪表微波动段，到点后再一次性抽取下一段。 */
+	void UpdatePolarGaugeFluctuation(float deltaTime);
 	/** 高湿提交时均匀锁定最多两个不同行的合法空格。 */
 	void CommitSnowHoleBatch();
 	/** 只推进已经锁定的雪穴形成计时，不重新抽取格位。 */
@@ -762,6 +769,12 @@ public:
 	float GetPolarTargetWindSpeedMps() const { return mPolarTargetWindSpeedMps; }
 	/** 白毛风音画强度；爬升 0～1、雪盲 1、淡出 1～0。 */
 	float GetPolarWhiteoutVisualStrength() const;
+	/** 强风雪带的独立淡入强度；可在玩法危险线前给出连续的视觉预兆。 */
+	float GetPolarWindVisualStrength() const { return mPolarWindVisualStrength; }
+	VerticalWindDirection GetPolarWindVisualDirection() const {
+		return mPolarWindVisualStrength > 0.0f ? mPolarVerticalWindDirection
+			: VerticalWindDirection::NONE;
+	}
 	bool IsPolarTemperatureDangerous() const { return mPolarTemperatureC <= -18.0f; }
 	bool IsPolarHumidityDangerous() const { return mPolarHumidityPercent >= 85.0f; }
 	bool IsPolarWindDangerous() const { return mPolarWindSpeedMps >= 18.0f; }
@@ -777,6 +790,10 @@ public:
 	}
 	float GetPolarWhiteoutTimer() const { return mPolarWhiteoutTimer; }
 	float GetPolarAllDangerTimer() const { return mPolarAllDangerTimer; }
+	float GetPolarFluctuationRemaining() const {
+		return std::max(0.0f,
+			mPolarFluctuationDuration - mPolarFluctuationTimer);
+	}
 	int GetActiveSnowHoleCount() const;
 	int GetLastSnowHoleBatchCreated() const { return mLastSnowHoleBatchCreated; }
 	int GetPendingSnowHoleSpawnCount() const {
@@ -801,7 +818,8 @@ public:
 	/** AutoTest 固定三仪表和风向；生产逻辑只走已锁环境计划。 */
 	bool SetPolarNightEnvironmentForTesting(float temperatureC, float humidityPercent,
 		float windSpeedMps, VerticalWindDirection direction,
-		PolarNightPhase phase = PolarNightPhase::DANGER_HOLD);
+		PolarNightPhase phase = PolarNightPhase::DANGER_HOLD,
+		float phaseRemaining = -1.0f);
 	/** AutoTest 固定单行雪穴状态；生产选点仍只走高湿提交。 */
 	bool SetSnowHoleForTesting(int row, int column, SnowHolePhase phase,
 		float timer = 0.0f);
