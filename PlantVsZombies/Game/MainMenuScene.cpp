@@ -15,6 +15,8 @@ namespace
 	constexpr int kSecondAreaFirstLevel = AdventureProgression::LEVELS_PER_AREA + 1; // 主菜单跳关目标：2-1
 	const Vector kConsoleButtonPosition(920.0f, 548.0f); // 主菜单右下角控制台入口左上角坐标
 	const Vector kConsoleButtonSize(150.0f, 40.0f); // 控制台入口按钮尺寸，单位：逻辑像素
+	const Vector kConsoleOptionHitSize(620.0f, 46.0f); // 控制台选项整行命中区域，单位：逻辑像素
+	const Vector kConsoleTooltipSize(770.0f, 42.0f); // 控制台悬停说明栏尺寸，单位：逻辑像素
 }
 
 MainMenuScene::~MainMenuScene() = default;
@@ -316,30 +318,39 @@ void MainMenuScene::OpenConsole()
 	builder
 		.Panel(static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT))
 		.Text(panelCenter + Vector(-76.0f, -190.0f), 38, u8"控制台", titleColor)
+		.TooltipPanel(kConsoleTooltipSize, 17.0f)
 		.Checkbox(panelCenter + Vector(-205.0f, -75.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mEnableMonteCarloAI = !app.mEnableMonteCarloAI;
-		}, gameApp.mEnableMonteCarloAI)
+		}, gameApp.mEnableMonteCarloAI,
+			u8"让部分僵尸模拟未来战局后选择目标；关闭时改用更简单、较省性能的决策。",
+			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, -60.0f), 22,
 			u8"蒙特卡洛模拟未来AI", labelColor)
 		.Checkbox(panelCenter + Vector(-205.0f, -15.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mAdvancedPauseEnabled = !app.mAdvancedPauseEnabled;
-		}, gameApp.mAdvancedPauseEnabled)
+		}, gameApp.mAdvancedPauseEnabled,
+			u8"开启后，空格暂停时仍可选择卡片和种植；关闭后，暂停会锁住战斗操作。",
+			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 0.0f), 22,
 			u8"高级暂停（暂停时可选卡和种植）", labelColor)
 		.Checkbox(panelCenter + Vector(-205.0f, 45.0f), Vector(50.0f, 46.0f), [this]() {
 			auto& app = GameAPP::GetInstance();
 			app.mTyphoonWeatherEnabled = !app.mTyphoonWeatherEnabled;
 			mReadyToRefreshConsole = true;
-		}, gameApp.mTyphoonWeatherEnabled)
+		}, gameApp.mTyphoonWeatherEnabled,
+			u8"决定关卡是否可能出现台风；关闭后，台风概率、预警和效果都会停用。",
+			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 60.0f), 22,
 			u8"会出现台风天气", labelColor);
 	if (gameApp.mTyphoonWeatherEnabled) {
 		builder.Checkbox(panelCenter + Vector(-205.0f, 105.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mOpeningTyphoonProtectionEnabled = !app.mOpeningTyphoonProtectionEnabled;
-		}, gameApp.mOpeningTyphoonProtectionEnabled)
+		}, gameApp.mOpeningTyphoonProtectionEnabled,
+			u8"开启后，普通冒险与生存第一轮的第1～5波不会附加台风。",
+			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 120.0f), 22,
 			u8"开局台风保护（第1～5波）", labelColor);
 	}
@@ -347,6 +358,22 @@ void MainMenuScene::OpenConsole()
 		.Button(u8"关闭", panelCenter + Vector(-90.0f, 180.0f), Vector(180.0f, 52.0f),
 			24, [this]() { CloseConsole(); })
 		.Show();
+}
+
+std::string MainMenuScene::GetConsoleTooltipText() const
+{
+	if (auto menu = mConsoleMenu.lock()) {
+		return menu->GetHoveredTooltipText();
+	}
+	return {};
+}
+
+Vector MainMenuScene::GetConsoleTooltipPosition() const
+{
+	if (auto menu = mConsoleMenu.lock()) {
+		return menu->GetTooltipDrawPosition();
+	}
+	return Vector::zero();
 }
 
 void MainMenuScene::CloseConsole()

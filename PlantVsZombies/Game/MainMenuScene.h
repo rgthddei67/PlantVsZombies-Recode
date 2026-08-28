@@ -16,6 +16,10 @@ public:
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;
+	/** 返回控制台当前显示的悬停说明，供 UI 自动化验证。 */
+	std::string GetConsoleTooltipText() const;
+	/** 返回控制台浮动说明框的当前左上角，供 UI 自动化验证跟随行为。 */
+	Vector GetConsoleTooltipPosition() const;
 
 	bool mReadyToSwitchAdventureLevel = false;
 	bool mReadyToSkipToSecondArea = false;

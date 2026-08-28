@@ -41,6 +41,9 @@ private:
 	bool mEnabled = true;
 	bool m_skipDraw = false;
 	float mImageRotationDegrees = 0.0f;
+	bool mHasCustomHitBounds = false;
+	Vector mHitPosition = Vector::zero();
+	Vector mHitSize = Vector::zero();
 
 public:
 	Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
@@ -52,6 +55,8 @@ public:
 
 	void SetPosition(Vector pos);
 	void SetSize(Vector size);
+	/** 设置独立于绘制矩形的命中区域，适合让复选框连同整行标签一起响应。 */
+	void SetHitBounds(Vector pos, Vector size);
 	void SetText(const std::string& btnText, const std::string& font = ResourceKeys::Fonts::FONT_FZCQ, int size = 17);
 	void SetTextColor(const glm::vec4& color);
 	void SetHoverTextColor(const glm::vec4& color);
@@ -79,7 +84,11 @@ public:
 
 	// 命中仲裁用：可点击且判定框包含该点
 	bool CanReceiveHit(Vector point) const { return mEnabled && canClick && ContainsPoint(point); }
-	Vector GetCenter() const { return Vector(position.x + size.x * 0.5f, position.y + size.y * 0.5f); }
+	Vector GetCenter() const {
+		const Vector& hitPos = mHasCustomHitBounds ? mHitPosition : position;
+		const Vector& hitSize = mHasCustomHitBounds ? mHitSize : size;
+		return Vector(hitPos.x + hitSize.x * 0.5f, hitPos.y + hitSize.y * 0.5f);
+	}
 
 	bool IsHovered() const;
 	bool IsPressed() const;

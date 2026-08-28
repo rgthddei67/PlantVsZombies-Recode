@@ -16,6 +16,7 @@
 #include "../AdventureProgression.h"
 #include "../AnimatedObject.h"
 #include "../GameSelectScene.h"
+#include "../MainMenuScene.h"
 #include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
@@ -3963,7 +3964,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	};
 
 	// 主菜单没有 Board，但仍允许测试读取上方 GameAPP 级设置，覆盖真实按钮切换路径。
-	if (currentScene->name == "MainMenuScene") {
+	if (auto* mainMenuScene = dynamic_cast<MainMenuScene*>(currentScene)) {
+		const std::string tooltipText = mainMenuScene->GetConsoleTooltipText();
+		const Vector tooltipPosition = mainMenuScene->GetConsoleTooltipPosition();
+		out["consoleTooltipVisible"] = !tooltipText.empty();
+		out["consoleTooltipText"] = tooltipText;
+		out["consoleTooltipX"] = static_cast<int>(std::lround(tooltipPosition.x));
+		out["consoleTooltipY"] = static_cast<int>(std::lround(tooltipPosition.y));
 		return true;
 	}
 

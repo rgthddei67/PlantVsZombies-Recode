@@ -30,6 +30,8 @@ public:
 		bool autoClose = true;             // 是否自动关闭
 		bool enabled = true;               // false 时保留按钮外观，但不参与命中与点击
 		bool initChecked = false;          // 仅 checkbox 有效：创建时的初始勾选态
+		std::string tooltipText;           // 非空时，悬停该按钮显示说明
+		Vector hitSize{ 0.0f, 0.0f };      // 非零时，以 pos 为左上角扩展独立命中区域
 	};
 
 	struct SliderConfig {
@@ -50,16 +52,23 @@ public:
 		std::string font = ResourceKeys::Fonts::FONT_FZCQ;
 	};
 
+	struct TooltipPanelConfig {
+		Vector maxSize{ 0.0f, 0.0f };
+		float fontSize = 17.0f;
+		glm::vec4 textColor{ 245, 214, 127, 255 };
+	};
+
 	GameMessageBox(UIManager* owner,
 		const Vector& pos,
 		const std::string& message,
 		const std::vector<ButtonConfig>& buttons,
 		const std::vector<SliderConfig>& sliders,
 		const std::vector<TextConfig>& texts,
-		const std::string& title = "",
-		const std::string& backgroundImageKey = "",
-		float scale = 1.0f,
-		const Vector& explicitSize = Vector(0.0f, 0.0f));   // 非零=用此尺寸并以 pos 居中绘制背景（自动决定大小）
+		const std::string& title,
+		const std::string& backgroundImageKey,
+		float scale,
+		const Vector& explicitSize,
+		const TooltipPanelConfig& tooltipPanel);   // 非零 explicitSize=用此尺寸并以 pos 居中绘制背景
 
 	~GameMessageBox();
 
@@ -68,6 +77,10 @@ public:
 	void SetActive(bool active);
 	bool IsActive() const { return m_active; }
 	void Close();
+	/** 返回当前悬停控件的说明；没有可见说明时返回空字符串。 */
+	const std::string& GetHoveredTooltipText() const;
+	/** 返回随鼠标并经屏幕边缘修正后的说明框左上角；无说明时返回零向量。 */
+	Vector GetTooltipDrawPosition() const;
 
 private:
 	friend class UIManager;
@@ -85,6 +98,7 @@ private:
 	std::vector<ButtonConfig> m_buttonConfigs;
 	std::vector<SliderConfig> m_sliderConfigs;
 	std::vector<TextConfig> m_textConfigs;
+	TooltipPanelConfig m_tooltipPanel;
 
 	std::vector<std::shared_ptr<Button>> m_buttons;
 	std::vector<std::shared_ptr<Slider>> m_sliders;
@@ -96,6 +110,7 @@ private:
 	void DetachControls();
 	bool IsCloseRequested() const { return m_closeRequested; }
 	Vector GetBackgroundOriginalSize() const;
+	Vector GetTooltipDrawSize(const std::string& text) const;
 };
 
 // 流式构建器：把 9 参构造与隐式规则（空key+explicitSize=纯色面板、CHECKBOX纹理嗅探）
@@ -133,9 +148,18 @@ public:
 	}
 
 	Builder& Checkbox(const Vector& pos, const Vector& size,
-		std::function<void()> cb, bool initChecked = false) {
+		std::function<void()> cb, bool initChecked = false,
+		const std::string& tooltipText = "", const Vector& hitSize = Vector(0.0f, 0.0f)) {
 		m_buttons.push_back({ "", pos, size, 1.0f, std::move(cb),
-			ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0, false, true, initChecked });
+			ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0, false, true, initChecked,
+			tooltipText, hitSize });
+		return *this;
+	}
+
+	/** 配置仅在带说明的控件被悬停时绘制的顶层浮动说明框。 */
+	Builder& TooltipPanel(const Vector& maxSize, float fontSize,
+		const glm::vec4& textColor = glm::vec4(245, 214, 127, 255)) {
+		m_tooltipPanel = { maxSize, fontSize, textColor };
 		return *this;
 	}
 
@@ -159,6 +183,7 @@ private:
 	std::vector<GameMessageBox::ButtonConfig> m_buttons;
 	std::vector<GameMessageBox::SliderConfig> m_sliders;
 	std::vector<GameMessageBox::TextConfig>   m_texts;
+	GameMessageBox::TooltipPanelConfig m_tooltipPanel;
 };
 
 #endif

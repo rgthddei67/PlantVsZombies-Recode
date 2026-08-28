@@ -15,6 +15,10 @@ namespace {
 	const int BASE_MESSAGE_FONT_SIZE = 18;
 	const Vector TITLE_OFFSET = Vector(-70, -65);	// Title偏移
 	const Vector MESSAGE_OFFSET = Vector(-190, -25);
+	constexpr float kTooltipCursorOffset = 18.0f; // 浮动说明框与鼠标热点的间距，单位：逻辑像素
+	constexpr float kTooltipScreenMargin = 8.0f; // 浮动说明框距屏幕边缘的最小留白，单位：逻辑像素
+	constexpr float kTooltipHorizontalPadding = 24.0f; // 浮动说明框文字左右内边距总和，单位：逻辑像素
+	constexpr float kTooltipMinimumWidth = 120.0f; // 浮动说明框最小宽度，单位：逻辑像素
 }
 
 GameMessageBox::GameMessageBox(UIManager* owner,
@@ -26,7 +30,8 @@ GameMessageBox::GameMessageBox(UIManager* owner,
 	const std::string& title,
 	const std::string& backgroundImageKey,
 	float scale,
-	const Vector& explicitSize)
+	const Vector& explicitSize,
+	const TooltipPanelConfig& tooltipPanel)
 	: m_owner(owner)
 	, m_position(pos)
 	, m_scale(scale)
@@ -37,6 +42,7 @@ GameMessageBox::GameMessageBox(UIManager* owner,
 	, m_buttonConfigs(buttons)
 	, m_sliderConfigs(sliders)
 	, m_textConfigs(texts)
+	, m_tooltipPanel(tooltipPanel)
 {
 	Vector originalSize = GetBackgroundOriginalSize();
 	if (explicitSize.x > 0.0f && explicitSize.y > 0.0f)
@@ -102,6 +108,9 @@ void GameMessageBox::InitializeControls()
 			}
 			});
 		button->SetEnabled(config.enabled);
+		if (config.hitSize.x > 0.0f && config.hitSize.y > 0.0f) {
+			button->SetHitBounds(config.pos, config.hitSize * m_scale);
+		}
 
 		m_buttons.push_back(button);
 		button->SetSkipDraw(true);
@@ -186,6 +195,28 @@ void GameMessageBox::Draw(Graphics* g)
 	for (const auto& slider : m_sliders) {
 		if (slider) slider->Draw(g);
 	}
+
+	// 浮动说明必须位于面板自有控件之上，避免相邻行的复选框覆盖提示文字。
+	const std::string& tooltipText = GetHoveredTooltipText();
+	if (!tooltipText.empty() && m_tooltipPanel.maxSize.x > 0.0f && m_tooltipPanel.maxSize.y > 0.0f) {
+		const float borderWidth = 2.0f; // 悬停说明框边框宽度，单位：逻辑像素
+		const Vector tooltipPos = GetTooltipDrawPosition();
+		const Vector tooltipSize = GetTooltipDrawSize(tooltipText);
+		Vector outer = g->LogicalToWorld(tooltipPos.x, tooltipPos.y);
+		Vector inner = g->LogicalToWorld(
+			tooltipPos.x + borderWidth, tooltipPos.y + borderWidth);
+		g->FillRect(outer.x, outer.y, tooltipSize.x, tooltipSize.y,
+			glm::vec4(150, 170, 110, 230));
+		g->FillRect(inner.x, inner.y,
+			tooltipSize.x - borderWidth * 2.0f,
+			tooltipSize.y - borderWidth * 2.0f,
+			glm::vec4(27, 29, 24, 244));
+		Vector textPos = g->LogicalToWorld(
+			tooltipPos.x + 12.0f, tooltipPos.y + 10.0f);
+		GameAPP::GetInstance().DrawText(tooltipText, textPos, m_tooltipPanel.textColor,
+			ResourceKeys::Fonts::FONT_FZCQ,
+			std::max(8, static_cast<int>(m_tooltipPanel.fontSize * m_scale)));
+	}
 }
 
 void GameMessageBox::SetActive(bool active)
@@ -202,6 +233,54 @@ void GameMessageBox::SetActive(bool active)
 	for (const auto& slider : m_sliders) {
 		if (slider) slider->SetDrag(active);
 	}
+}
+
+const std::string& GameMessageBox::GetHoveredTooltipText() const
+{
+	static const std::string empty;
+	for (size_t i = 0; i < m_buttons.size() && i < m_buttonConfigs.size(); ++i) {
+		if (m_buttons[i] && m_buttons[i]->IsHovered() && !m_buttonConfigs[i].tooltipText.empty()) {
+			return m_buttonConfigs[i].tooltipText;
+		}
+	}
+	return empty;
+}
+
+Vector GameMessageBox::GetTooltipDrawSize(const std::string& text) const
+{
+	const int fontSize = std::max(8, static_cast<int>(m_tooltipPanel.fontSize * m_scale));
+	int textWidth = 0;
+	int textHeight = 0;
+	if (TTF_Font* font = ResourceManager::GetInstance().GetFont(
+		ResourceKeys::Fonts::FONT_FZCQ, fontSize)) {
+		TTF_SizeUTF8(font, text.c_str(), &textWidth, &textHeight);
+	}
+	const float desiredWidth = std::max(kTooltipMinimumWidth,
+		static_cast<float>(textWidth) + kTooltipHorizontalPadding);
+	return Vector(std::min(m_tooltipPanel.maxSize.x, desiredWidth),
+		m_tooltipPanel.maxSize.y);
+}
+
+Vector GameMessageBox::GetTooltipDrawPosition() const
+{
+	const std::string& text = GetHoveredTooltipText();
+	if (text.empty() || !GameAPP::GetInstance().IsInputHandlerValid()) return Vector::zero();
+
+	const Vector mouse = GameAPP::GetInstance().GetInputHandler().GetMousePosition();
+	const Vector tooltipSize = GetTooltipDrawSize(text);
+	float left = mouse.x + kTooltipCursorOffset;
+	float top = mouse.y + kTooltipCursorOffset;
+	if (left + tooltipSize.x > SCENE_WIDTH - kTooltipScreenMargin) {
+		left = mouse.x - tooltipSize.x - kTooltipCursorOffset;
+	}
+	if (top + tooltipSize.y > SCENE_HEIGHT - kTooltipScreenMargin) {
+		top = mouse.y - tooltipSize.y - kTooltipCursorOffset;
+	}
+	left = std::clamp(left, kTooltipScreenMargin,
+		std::max(kTooltipScreenMargin, SCENE_WIDTH - tooltipSize.x - kTooltipScreenMargin));
+	top = std::clamp(top, kTooltipScreenMargin,
+		std::max(kTooltipScreenMargin, SCENE_HEIGHT - tooltipSize.y - kTooltipScreenMargin));
+	return Vector(left, top);
 }
 
 void GameMessageBox::Close()
@@ -230,7 +309,8 @@ std::shared_ptr<GameMessageBox> GameMessageBox::Builder::Show()
 {
 	auto& ui = SceneManager::GetInstance().GetCurrectSceneUIManager();
 	auto messageBox = std::make_shared<GameMessageBox>(&ui, m_pos, m_message,
-		m_buttons, m_sliders, m_texts, m_title, m_bgKey, m_scale, m_explicitSize);
+		m_buttons, m_sliders, m_texts, m_title, m_bgKey, m_scale, m_explicitSize,
+		m_tooltipPanel);
 	ui.AddMessageBox(messageBox);
 	return messageBox;
 }

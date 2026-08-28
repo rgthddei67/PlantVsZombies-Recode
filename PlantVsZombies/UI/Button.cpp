@@ -36,6 +36,13 @@ void Button::SetSize(Vector size)
 	this->size = size;
 }
 
+void Button::SetHitBounds(Vector pos, Vector hitSize)
+{
+	mHitPosition = pos;
+	mHitSize = hitSize;
+	mHasCustomHitBounds = hitSize.x > 0.0f && hitSize.y > 0.0f;
+}
+
 void Button::SetText(const std::string& btnText, const std::string& font, int size)
 {
 	this->text = btnText;
@@ -248,6 +255,8 @@ void Button::ForceResetHoverState()
 
 bool Button::ContainsPoint(Vector point) const
 {
-	return point.x >= position.x && point.x <= position.x + size.x &&
-		point.y >= position.y && point.y <= position.y + size.y;
+	const Vector& hitPos = mHasCustomHitBounds ? mHitPosition : position;
+	const Vector& hitSize = mHasCustomHitBounds ? mHitSize : size;
+	return point.x >= hitPos.x && point.x <= hitPos.x + hitSize.x &&
+		point.y >= hitPos.y && point.y <= hitPos.y + hitSize.y;
 }

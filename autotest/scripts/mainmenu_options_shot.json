@@ -12,7 +12,8 @@
     { "op": "wait_frames", "value": 10 },
     { "op": "screenshot", "name": "options_closed_buttons_restored" },
     { "op": "click", "x": 710, "y": 145, "hold_frames": 2 },
-    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 15 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "scene", "equals": "GameSelectScene" },
     { "op": "quit" }
   ]
 }

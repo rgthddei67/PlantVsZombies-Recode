@@ -23,3 +23,13 @@ Builder 调用接口不变，但 `Show()` 现在把普通 `GameMessageBox` 注�
 绘制契约同步固定为“普通 Button/Slider → 活动 GameMessageBox”；弹框自有控件保持
 `skipDraw`，由 `GameMessageBox::Draw()` 在背景和文字之后自行提交。这样模态框稳定盖住
 其他 UI，调用方只需禁用背景控件的输入，不应再把背景控件从绘制路径删掉。
+
+## 2026-08-28 浮动 Tooltip 与独立命中区
+
+`Button::SetHitBounds` 允许命中矩形独立于绘制矩形；`ContainsPoint` 与命中仲裁中心读取该区域，
+而复选框贴图仍保持原尺寸。`GameMessageBox::Builder::Checkbox` 可附带说明文字和整行命中尺寸，
+`.TooltipPanel(maxSize,fontSize)` 配置浮动说明框。活动控件悬停时按文字实际宽度绘制，位置跟随逻辑
+鼠标，靠近场景边缘自动换侧并夹紧；移出命中区立即不再绘制。未配置说明的既有 MessageBox 行为不变。
+
+控制台专项通过 `consoleTooltipVisible/Text/X/Y` 锁定实文、移动和消失；通用回归仍需覆盖
+`mainmenu_options_shot` 与 `pause_menu_shot`，防止 Builder 默认路径受新可选配置影响。
