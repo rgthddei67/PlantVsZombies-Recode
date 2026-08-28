@@ -27,7 +27,7 @@ private:
 	Board* mBoard = nullptr;
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
 	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
-	bool mPauseGameplayInputBlocked = false; // 普通空格暂停仅冻结卡槽/落种，手持预览仍跟随鼠标
+	bool mPauseGameplayInputBlocked = false; // 普通空格暂停的附加门禁；非 GAME 状态始终禁止玩法输入
 	int mLastSun = 0; // 上次同步卡牌灰态的阳光值，按场景实例隔离
 	bool mPreviewRenderProbeReady = false; // AutoTest：最近一帧是否真正提交了手持预览
 	int mPreviewRenderMouseOffsetX = 0; // AutoTest：实际提交锚点相对鼠标 X，单位：逻辑 px
@@ -58,7 +58,11 @@ public:
 	void DeselectCard();
 	/** 设置普通空格暂停的玩法输入门禁；不会销毁进入暂停前已拿起的植物预览。 */
 	void SetPauseGameplayInputBlocked(bool blocked) { mPauseGameplayInputBlocked = blocked; }
-	bool CanAcceptGameplayInput() const { return !mPauseGameplayInputBlocked; }
+	/** 只有正式战斗状态且未被普通暂停门禁时，卡槽与草坪才接收玩法输入。 */
+	bool CanAcceptGameplayInput() const {
+		return mBoard && mBoard->mBoardState == BoardState::GAME
+			&& !mPauseGameplayInputBlocked;
+	}
 	/** 点击路灯花卡片或本体时切换挡位菜单。 */
 	void TogglePlanternGearMenu();
 	bool IsPlanternGearMenuOpen() const { return mPlanternGearMenuOpen; }

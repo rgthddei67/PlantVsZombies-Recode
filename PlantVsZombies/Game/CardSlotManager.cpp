@@ -91,8 +91,8 @@ void CardSlotManager::Start() {
 }
 
 void CardSlotManager::Update() {
-	// 普通暂停保留已有手持预览；位置仍在绘制前按本帧最终相机同步。
-	if (mPauseGameplayInputBlocked) {
+	// 非战斗选卡/词条页与普通暂停都保留已有预览，但不处理任何玩法输入。
+	if (!CanAcceptGameplayInput()) {
 		return;
 	}
 
@@ -173,7 +173,7 @@ bool CardSlotManager::HasInteractablePlanternAt(int row, int col) const
 void CardSlotManager::UpdatePlanternHoverCursor() const
 {
 	// 手持植物、铲子或炮击准星时，路灯花不覆盖当前操作，也不把鼠标改成手型。
-	if (!mBoard || mPauseGameplayInputBlocked || selectedCard
+	if (!CanAcceptGameplayInput() || selectedCard
 		|| mBoard->mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) {
 		return;
 	}
@@ -189,7 +189,7 @@ void CardSlotManager::UpdatePlanternHoverCursor() const
 void CardSlotManager::UpdateCobCannonHoverCursor() const
 {
 	// 拿着植物、铲子或其他场景手持物时，格子点击有更高语义，不能提示或触发炮击。
-	if (!mBoard || mPauseGameplayInputBlocked || selectedCard
+	if (!CanAcceptGameplayInput() || selectedCard
 		|| mBoard->mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) {
 		return;
 	}
@@ -228,7 +228,7 @@ void CardSlotManager::ClearAllCards() {
 }
 
 void CardSlotManager::SelectCard(Card* card) {
-	if (!card || mPauseGameplayInputBlocked) return;
+	if (!card || !CanAcceptGameplayInput()) return;
 
 	if (!card->IsReady()) {
 		return;
@@ -278,7 +278,7 @@ bool CardSlotManager::CanAfford(int cost) const {
 
 void CardSlotManager::TogglePlanternGearMenu()
 {
-	if (mPauseGameplayInputBlocked) return;
+	if (!CanAcceptGameplayInput()) return;
 	if (!mBoard || !mBoard->GetActivePlantern() || !FindPlanternCard()) {
 		mPlanternGearMenuOpen = false;
 		return;
@@ -581,7 +581,7 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 }
 
 void CardSlotManager::HandleCellClick(int row, int col) {
-	if (mPauseGameplayInputBlocked || !mBoard) return;
+	if (!CanAcceptGameplayInput()) return;
 	if (mBoard->IsCobCannonTargeting()) {
 		mBoard->FireTargetedCobCannonAt(
 			GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition(), row);
@@ -606,7 +606,7 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 }
 
 bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
-	if (!selectedCard || !cell || mPauseGameplayInputBlocked) return false;
+	if (!selectedCard || !cell || !CanAcceptGameplayInput()) return false;
 
 	// 检查阳光是否足够
 	if (!mBoard || !mBoard->CanPlantAt(selectedCard->GetGameplayPlantType(),

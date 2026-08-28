@@ -1,0 +1,36 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1000 },
+    { "op": "choose_cards", "cards": ["PLANT_KERNELPULT", "PLANT_COBCANNON"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_KERNELPULT", "row": 2, "col": 3 },
+    { "op": "plant", "type": "PLANT_KERNELPULT", "row": 2, "col": 4 },
+    { "op": "plant", "type": "PLANT_COBCANNON", "row": 2, "col": 4 },
+    { "op": "set_cob_cannon_arming", "row": 2, "col": 4, "value": 0 },
+    { "op": "wait_seconds", "value": 1.5, "timeout": 4 },
+    { "op": "assert_state", "path": "plants.0.cobPhase", "equals": "READY" },
+
+    { "op": "begin_cob_cannon_targeting", "row": 2, "col": 4 },
+    { "op": "assert_state", "path": "cobCannonTargeting", "equals": true },
+    { "op": "force_survival_round_clear" },
+    { "op": "assert_state", "path": "boardState", "equals": "CHOOSE_CARD" },
+    { "op": "assert_state", "path": "perkSelect.active", "equals": true },
+    { "op": "assert_state", "path": "paused", "equals": true },
+    { "op": "assert_state", "path": "pauseGameplayInputBlocked", "equals": true },
+    { "op": "assert_state", "path": "cobCannonTargeting", "equals": false },
+
+    { "op": "click", "x": 522, "y": 338, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "cobCannonTargeting", "equals": false },
+    { "op": "assert_state", "path": "plants.0.cobPhase", "equals": "READY" },
+    { "op": "click", "x": 722, "y": 338, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "cobCannonTargeting", "equals": false },
+    { "op": "assert_state", "path": "plants.0.cobPhase", "equals": "READY" },
+    { "op": "assert_state", "path": "bulletCount", "equals": 0 },
+    { "op": "screenshot", "name": "perk_select_cob_input_blocked.png" },
+    { "op": "quit" }
+  ]
+}

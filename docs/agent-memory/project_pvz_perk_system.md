@@ -1,6 +1,6 @@
 ---
 name: project_pvz_perk_system
-description: 生存模式统一 SurvivalPerkManager；2026-08-27 共18词条(10植物增益+8僵尸诅咒)，支持地图条件与固定概率稀有面板；每轮2次随机正负配对、查看面板、字符串key存档和AutoTest均已接入
+description: 生存模式统一 SurvivalPerkManager；2026-08-28 共18词条(10植物增益+8僵尸诅咒)，支持地图条件与固定概率稀有面板；每轮2次随机正负配对、模态输入门禁、查看面板、字符串key存档和AutoTest均已接入
 metadata:
   node_type: memory
   type: project
@@ -77,3 +77,5 @@ metadata:
 - 僵尸侧：`ZOMBIE_FOG_BREAKOUT`（迷雾专属，一生首次由浓雾转可见时清慢/冻/黄油/麻痹并免控 3 秒）；`ZOMBIE_DEATH_RELAY`（敌对死亡给同排最靠房屋且仍活动的友方前锋 1 次免费受击）；`ZOMBIE_DEVOUR_REPAIR`（亲口吃死植物时修满仍存在的本体/头盔/盾，不复活装备）；`ZOMBIE_ARMOR_BREAK_RUSH`（一生首次标准头盔或盾被打碎时解控免控 5 秒、动作/移动 +60%，魅惑取消收益）。
 - 状态与存档：不屈根系的每株已消费/免伤计时、三种僵尸一生状态/加速计时、Board 十击计数均持久化；根系在 `OnSurvivalRoundClear` 按轮重置，十击计数进入新棋盘清零后由读档覆盖。毒层仍复用原有二十层计时存档。
 - 验证：`clang-release` 构建及 Win7 378 项 import 审计通过；`smoke_survival_perk_expansion`、`smoke_survival_perk_fog_and_toxin` 在默认与 `-NoInstance` 均通过，后者成对锁定路灯花 0 层 10/45 与 2 层 20/90、红眼巨人二十层毒 2 秒基础约 200 与腐蚀约 240。既有 `smoke_toxic_peashooter`、`smoke_perk_select` 通过，三项 CTest 全绿。`smoke_plantern_fuel_curve` 与本次相关的基础燃料曲线、预算、上限、燃烧断言均通过，但后续进入关卡 31 时旧断言 `maxWave=30` 与当前 20 不符而退出 1；本次未改该无关波数口径。
+
+**2026-08-28 轮间模态输入门禁修复**：轮清正式入口先把 `Board` 切到 `CHOOSE_CARD`；`CardSlotManager::CanAcceptGameplayInput()` 现在只在 `GAME` 且普通暂停门禁未开启时允许卡牌与草坪交互，格子点击、路灯花和玉米炮统一复用。`BeginSurvivalPerkSelect()` 同时清除上一轮尚未提交的手持物或玉米炮准星，避免其跨轮残留。可见 `smoke_perk_select_cob_input_modal` 先带着 READY 玉米炮的活动准星正式轮清，再真实点击被词条面板覆盖的炮体与草坪，断言准星保持关闭、炮仍为 READY、`bulletCount=0`；既有 `smoke_perk_select` 与 `smoke_advanced_pause` 继续通过。

@@ -110,6 +110,8 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 若修改选择次数、候选数或按钮语义，必须同步 `GameScene` 常量/计数/标题、`TestDriver.cpp` 的 `perkSelect` dump、两个选择脚本、本技能和项目记忆。
 
+词条页是覆盖战场的轮间模态流程。正式入口已经把 `Board` 切到 `CHOOSE_CARD`；`BeginSurvivalPerkSelect()` 还必须清除上一轮未提交的 `CursorObjectManager` 手持状态（含玉米加农炮落点准星）。`CardSlotManager::CanAcceptGameplayInput()` 只在 `BoardState::GAME` 且未被普通暂停门禁时返回 true，卡牌点击、格子点击、路灯花和玉米炮交互都复用这一资格，不能只依赖 `DeltaTime::IsPaused()`。这样选择按钮释放的同一帧也不会穿透到底层 Cell；专项用正式 `force_survival_round_clear` 进入 `CHOOSE_CARD`，先带入一个活动炮击准星，再以真实 `click` 点击炮体与草坪并断言准星已清除、炮仍为 READY、没有炮弹。
+
 ## 存档契约
 
 - manager 层数按稳定字符串 `PerkInfo::key` 保存，不能依赖 enum 序号；新增 key 缺失时自然加载为 0。
@@ -143,6 +145,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 2. `smoke_perk_select_skip_all.json`：第 1 次放弃后仍 active 且进入第 2 次；再次放弃后 steps=2、picks=0。
 3. `smoke_perk_select_skip_then_pick.json`：第 1 次放弃、第 2 次选择，最终 steps=2、picks=1。
 4. `smoke_perk_view.json`：查看面板仍能显示和分页。
+5. `smoke_perk_select_cob_input_modal.json`：正式轮清会清除已有炮击准星；词条页真实点击炮体与草坪均不得开始瞄准或发射。
 
 数值或伤害钟点改动至少跑对应专项脚本、`smoke_perks_damage_sources.json`、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
 

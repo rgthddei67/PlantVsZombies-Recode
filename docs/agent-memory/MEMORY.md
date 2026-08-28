@@ -33,7 +33,7 @@
 - [第六大关黑夜屋顶完成状态](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-26 当前定案内容已完成：6-1～6-9黑夜屋顶、坡面径流、独立雷荷、6-9完整迷雾、5-9接地菇、6-2～6-8植物奖励，以及绝缘/劫持者/急救员/接地四种专属僵尸及逐关编排均已闭环；6-1与6-9按设计无植物奖励，6-9不设BOSS槽，旧“僵尸博士放在6-9”只保留为历史提案而非待办
 - [第六大关避雷花盆](project_pvz_lightning_rod_pot.md) — 2026-08-15 `PLANT_LIGHTNINGRODPOT` 为6-4奖励：150阳光/50秒/700生命，under层原位升级花盆并保留上层；单格宿主要求同格，多格宿主任一占格下的有效盆都保护整株免普通雷荷停机与劫持者处决；有效承载时同排雷击伤害翻倍且多盆不叠加
 - [第六大关冰瓜](project_pvz_winter_melon.md) — 2026-08-25 `PLANT_WINTERMELON` 为6-5奖励：200阳光/50秒/300生命，第44帧投出100直击/33三行溅射并减速10秒；同行冰墙优先且只承受100直击，墙后/邻行不溅射或减速；升级、护盾、资源与双路径专项合同见主题文件
-- [经典玉米加农炮与双格植物占用](project_pvz_cob_cannon.md) — 2026-08-27 `PLANT_COBCANNON` 为6-6双格单实体；冰像处决按任一轮冻土资格并需七锤；全局蒙特卡洛按当前阶段与34.83秒后续间隔模拟高操作玩家炮击，优先最大命中数、有效伤害和稳定ID，已离膛固定落点独立结算；第78帧、2秒飞行、115px三行1800灰烬及双格危险契约保持
+- [经典玉米加农炮与双格植物占用](project_pvz_cob_cannon.md) — 2026-08-28 `PLANT_COBCANNON` 为6-6双格单实体；词条/选卡等非GAME状态统一阻断卡槽与草坪玩法输入并在进词条页时清除未提交准星；冰像七锤、MC炮击、第78帧、2秒飞行、115px三行1800灰烬及双格危险契约保持
 
 - [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍；白天睡眠轨从闭眼切图的第26帧起循环，绝不闪回第25帧睁眼图；震击电弧以紫罗兰暗边和浅紫亮芯抵抗缩放与黑夜暗化
 - [选卡界面普通卡 48/1 翻页与模仿者独立入口](project_pvz_choose_card_pagination.md) — 2026-08-23 50 张注册植物中 49 张普通卡按 48 张分页、磁暴菇独占第二页；模仿者使用紧贴面板右下角的固定 AddOn 背景与独立 Card，选择窗新建临时 Card 并排除紫卡
@@ -178,7 +178,7 @@
 - [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
 - [僵尸按行与稀有品种索引 ✅](project_pvz_zombie_row_index.md) — 2026-08-12 EntityRegistry加ForEachZombieInRow替GetAllZombieIDs全表扫；通用桶惰性每帧重建承接任意换行，同帧新增会置脏；黄色冰道与屋脊督军血条使用品种专用弱索引，逐帧稀有类型查询不得扫描全体；foot-gun=取全集或全表按类型过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
-- [生存词条系统](project_pvz_perk_system.md) — 2026-08-27 共18词条(10植8僵)：新增地图条件、固定1.5%稀有面板预算及8个机制词条；迷雾精炼/突围、百分比毒液、每轮致命伤保命、十击回响、死亡接力、吞噬修复、破甲狂潮均接入正式状态与存档链
+- [生存词条系统](project_pvz_perk_system.md) — 2026-08-28 共18词条(10植8僵)；轮间词条页清除未提交手持状态，CardSlotManager只在GAME接收玩法输入，真实点击不再穿透玉米炮；地图条件、固定1.5%稀有预算、8个机制词条与存档链保持
 - [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，debug/noavx2用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**

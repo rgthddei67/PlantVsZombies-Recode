@@ -2419,6 +2419,10 @@ void GameScene::BeginSurvivalPerkSelect()
 {
 	if (!mBoard) return;
 
+	// 词条页是轮间模态流程：清掉上一轮尚未提交的手持物或炮击准星，避免其跨过
+	// CHOOSE_CARD 状态残留，并由 CardSlotManager 的 BoardState 门禁阻止草坪点击穿透。
+	mBoard->mCursorObjectManager.ClearActive();
+
 	// Board 已切到 CHOOSE_CARD，退出场景会立即保存；实际清空卡槽虽在词条结算后执行，
 	// 但冷却快照必须现在就独立出来，保证词条界面点 X 后仍能恢复上一轮未完成的冷却。
 	mSurvivalCardCooldowns.clear();

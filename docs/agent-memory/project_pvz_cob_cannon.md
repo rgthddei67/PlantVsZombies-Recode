@@ -4,7 +4,7 @@ description: 6-6玉米加农炮双格footprint、指定落点炮弹、冰像七�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-27
+  updated_at: 2026-08-28
 ---
 
 # 经典玉米加农炮与双格植物占用
@@ -65,3 +65,7 @@ metadata:
 - 2026-08-27 加入冰像七锤与全局蒙特卡洛能力画像；可见 `smoke_ice_executioner_cob_monte_carlo`
   47 条命令通过单轮冻土、MC 模式/候选/rollout、六锤快照和第七锤消失。共享纯数值测试通过，
   `clang-release` LTO 链接与 Win7 378 项导入审计通过。
+- 2026-08-28 修复生存轮间词条框点击穿透：`CardSlotManager` 的卡牌、格子、路灯花与玉米炮交互统一只在
+  `BoardState::GAME` 且普通暂停门禁未开启时接收输入；进入词条页还会清除尚未提交的炮击准星，避免跨轮残留。
+  可见 `smoke_perk_select_cob_input_modal` 以正式轮清和真实点击覆盖“已有准星被取消、点击炮体不重新瞄准、
+  点击草坪不发炮”，最终炮仍为 READY 且 `bulletCount=0`。
