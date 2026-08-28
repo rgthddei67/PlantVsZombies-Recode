@@ -13,7 +13,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 生存词条本身没有可机械照搬的 C# 架构。若某个词条复用原版伤害、承伤、冷却、产阳光或实体状态，只把 C# 当作该基础机制的玩家可感知行为证据；先核对本项目的唯一结算钟点、`DamageSource`、对象生命周期、存档和既有聚合倍率，再在 manager getter 与当前钟点接入。未获主人批准不得改变基础机制的原版结果，也不得为了贴近 C# 在词条层复制一套植物、僵尸或 Board 状态。
 
-## 当前词条目录（2026-08-27）
+## 当前词条目录（2026-08-28）
 
 | 枚举 | 类别/准入 | 当前效果 | 上限 | 主要钟点 |
 |---|---|---:|---:|---|
@@ -28,7 +28,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 | `PLANT_SUN_BONUS` | 植物 | 收集阳光 +15%/层 | 10 | `Board::AddSun`；不缩放 `set_sun`、开局值和消费 |
 | `PLANT_CARD_RECHARGE` | 植物 | 卡片冷却速度 +12%/层 | 10 | `Card::UpdateCooldown` |
 | `PLANT_MIST_REFINING` | 植物/迷雾 | 雾火价值与本波并发接收上限 +50%/层 | 2 | `Board::CollectMistFuelFromZombie`、`Plantern::ReserveFuel`；仓储容量仍为 100 |
-| `PLANT_CORROSIVE_TOXIN` | 植物/稀有 | 每层毒素每秒造成目标最大可计生命 0.1%，且不低于原 5 DPS | 1 | `Zombie::UpdateToxin`；百分比基数不吃全局植物增伤，仍过僵尸免伤 |
+| `PLANT_CORROSIVE_TOXIN` | 植物/稀有 | 每层毒素每秒造成目标最大可计生命 1%，且不低于原 5 DPS | 1 | `Zombie::UpdateToxin`；百分比基数不吃全局植物增伤，仍过僵尸免伤 |
 | `PLANT_UNYIELDING_ROOTS` | 植物/稀有 | 每株每轮首次致命普通伤害留 1 HP，免伤 3 秒 | 1 | `Plant::TakeDamage`、`Board::OnSurvivalRoundClear`；非伤害移除不触发 |
 | `PLANT_DAMAGE_ECHO` | 植物 | 每第 10 次实际植物伤害命中使该击翻倍 | 1 | `Zombie::TakeDamage`、Board 共享计数；免费免伤不计、`PLANT_ASH` 排除 |
 | `ZOMBIE_FOG_BREAKOUT` | 僵尸/迷雾 | 一生首次从浓雾走到可见区时解控并免控 3 秒 | 1 | `Zombie::UpdateSurvivalPerkStates` + `Board::IsZombieObscuredByFog` |
@@ -123,6 +123,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - 原型 A/C 通常不增加独立存档；原型 B 必须持久化实体状态。
 - Board 共享进度只在生存档保存，并在进入新棋盘时清零；读档再以存档覆盖。每轮一次的实体消耗状态要明确在 `OnSurvivalRoundClear` 重置，不能误做成每波或每局。
 - 百分比持续伤害若设计为不吃全局植物增伤，应从目标最大可计生命生成基础伤害，并用非 `PLANT` 来源进入正式僵尸免伤链；同时用无词条/有词条同靶对照锁定基础毒伤未漂移。
+- 批量或百分比持续伤害调用虚受伤入口后，必须假定派生僵尸会同步 `Die()` 并释放宿主侧车；返回后先重新检查宿主仍活动且侧车仍存在，再访问层数、余量或其他状态。专项至少包含一种本体归零即直接死亡的车辆，锁定“致死后实体消失且不会继续解引用侧车”。
 
 ## AutoTest 验证
 
@@ -149,7 +150,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 数值或伤害钟点改动至少跑对应专项脚本、`smoke_perks_damage_sources.json`、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
 
-地图条件、基础机制强化或稀有质变还必须做成对对照：同一地图、同一实体和同一时长先验证 0 层保持旧值，再开启词条只断言预期差异。当前扩展专项为 `smoke_survival_perk_expansion.json` 与 `smoke_survival_perk_fog_and_toxin.json`；后者同时锁定路灯花无词条/两层燃料价值与接收上限、毒液无词条/腐蚀词条伤害、迷雾出界清控及存档。
+地图条件、基础机制强化或稀有质变还必须做成对对照：同一地图、同一实体和同一时长先验证 0 层保持旧值，再开启词条只断言预期差异。当前扩展专项为 `smoke_survival_perk_expansion.json` 与 `smoke_survival_perk_fog_and_toxin.json`；后者同时锁定路灯花无词条/两层燃料价值与接收上限、毒液无词条/腐蚀词条伤害、迷雾出界清控及存档。`smoke_corrosive_toxin_lethal_catapult.json` 另锁定腐蚀毒素致死会同步释放毒素侧车的投篮车生命周期边界。
 
 ## 构建与交付
 

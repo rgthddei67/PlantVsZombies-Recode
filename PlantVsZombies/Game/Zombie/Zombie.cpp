@@ -1736,6 +1736,9 @@ void Zombie::UpdateToxin(float deltaTime)
 			}
 		}
 	}
+	// 投篮车等品种会在 TakeBodyDamage() 内立即 Die()；死亡会同步释放毒素侧车，
+	// 因此任何批量伤害返回后都必须先重新确认宿主和侧车仍有效。
+	if (!IsActive() || !mToxinState) return;
 	if (mToxinState->mActiveLayerCount == 0) {
 		mToxinState.reset();
 	}

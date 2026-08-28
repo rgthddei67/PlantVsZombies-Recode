@@ -90,7 +90,7 @@
     { "op": "apply_toxin_stacks", "row": 2, "count": 20 },
     { "op": "assert_state", "path": "zombies.0.toxinStacks", "equals": 20 },
     { "op": "wait_seconds", "value": 2.0 },
-    { "op": "assert_state", "path": "zombies.0.bodyHealth", "atLeast": 5750, "atMost": 5770 },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "atLeast": 3590, "atMost": 3610 },
     { "op": "save_level_snapshot", "name": "corrosive_toxin" },
     { "op": "reload_level_snapshot", "name": "corrosive_toxin" },
     { "op": "assert_state", "path": "perks.stacks.PLANT_CORROSIVE_TOXIN", "equals": 1 },

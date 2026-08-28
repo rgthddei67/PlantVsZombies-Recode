@@ -58,6 +58,19 @@
       }
     },
     {
+      "name": "clang-asan",
+      "displayName": "Clang ASan（开发诊断：/O1 + AddressSanitizer + 完整帧指针）",
+      "inherits": "clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "PVZ_ENABLE_ASAN": "ON",
+        "PVZ_ENABLE_LTO": "OFF",
+        "PVZ_ENABLE_AVX2": "OFF",
+        "PVZ_ENABLE_PDB": "ON",
+        "PVZ_SHARED_RUNTIME_ROOT": "${sourceDir}/build/clang-release"
+      }
+    },
+    {
       "name": "clang-release-noavx2",
       "displayName": "Clang Release No AVX2（Win7 兼容：/O2 + fast-math + LTO + 精简行表 PDB）",
       "inherits": "clang-release",
@@ -70,6 +83,7 @@
   "buildPresets": [
     { "name": "clang-release", "configurePreset": "clang-release" },
     { "name": "clang-debug", "configurePreset": "clang-debug" },
+    { "name": "clang-asan", "configurePreset": "clang-asan" },
     { "name": "clang-release-noavx2", "configurePreset": "clang-release-noavx2" }
   ]
 }

@@ -7,8 +7,65 @@ project(PlantsVsZombies LANGUAGES CXX)
 option(PVZ_ENABLE_LTO "为发布构建启用 Clang LTO" OFF)
 option(PVZ_ENABLE_AVX2 "允许游戏目标生成 AVX/AVX2 指令" ON)
 option(PVZ_ENABLE_PDB "为优化构建生成函数栈与源码行可读的精简 PDB" OFF)
+option(PVZ_ENABLE_ASAN "启用仅供开发诊断的 Clang AddressSanitizer" OFF)
 set(PVZ_SHARED_RUNTIME_ROOT "" CACHE PATH
     "共享 resources/font 的权威运行目录；留空表示当前构建持有实体目录")
+
+if(PVZ_ENABLE_ASAN)
+    if(NOT WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(FATAL_ERROR "PVZ_ENABLE_ASAN 当前只支持 Windows clang-cl")
+    endif()
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER}
+                /clang:-print-file-name=clang_rt.asan_dynamic-x86_64.dll
+        RESULT_VARIABLE _pvz_asan_runtime_result
+        OUTPUT_VARIABLE PVZ_ASAN_RUNTIME_DLL
+        ERROR_VARIABLE _pvz_asan_runtime_error
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT _pvz_asan_runtime_result EQUAL 0 OR NOT EXISTS "${PVZ_ASAN_RUNTIME_DLL}")
+        message(FATAL_ERROR
+            "无法定位 clang-cl ASan runtime: ${PVZ_ASAN_RUNTIME_DLL}\n${_pvz_asan_runtime_error}")
+    endif()
+    get_filename_component(_pvz_asan_runtime_dir "${PVZ_ASAN_RUNTIME_DLL}" DIRECTORY)
+    set(PVZ_ASAN_RUNTIME_LIB
+        "${_pvz_asan_runtime_dir}/clang_rt.asan_dynamic-x86_64.lib")
+    set(PVZ_ASAN_RUNTIME_THUNK
+        "${_pvz_asan_runtime_dir}/clang_rt.asan_dynamic_runtime_thunk-x86_64.lib")
+    if(NOT EXISTS "${PVZ_ASAN_RUNTIME_LIB}" OR NOT EXISTS "${PVZ_ASAN_RUNTIME_THUNK}")
+        message(FATAL_ERROR
+            "clang-cl ASan import library 不完整: ${_pvz_asan_runtime_dir}")
+    endif()
+endif()
+
+# ASan 使用独立诊断预设：保留适量优化以接近正式生命周期，同时关闭内联折叠并保留帧指针。
+# Runtime DLL 自动复制到游戏 EXE 旁边，避免依赖开发者命令行的 PATH。
+function(pvz_enable_address_sanitizer target_name)
+    if(NOT PVZ_ENABLE_ASAN)
+        return()
+    endif()
+    # vcpkg 静态依赖按普通 Release ABI 构建；关闭 MSVC STL 额外容器注解以消除
+    # annotate_* 的 /FAILIFMISMATCH，常规堆栈/堆 UAF 与越界插桩仍保留。
+    target_compile_definitions(${target_name} PRIVATE
+        PVZ_ADDRESS_SANITIZER=1
+        _DISABLE_STL_ANNOTATION=1
+    )
+    target_compile_options(${target_name} PRIVATE /fsanitize=address /O1 /Oy-)
+    # Ninja 直接调用 lld-link，不能传只由 clang-cl 驱动识别的 /fsanitize=address；
+    # 显式链接动态 runtime，并整体保留初始化 thunk，等价于 clang-cl 的链接注入。
+    target_link_libraries(${target_name} PRIVATE "${PVZ_ASAN_RUNTIME_LIB}")
+    target_link_options(${target_name} PRIVATE
+        "/WHOLEARCHIVE:${PVZ_ASAN_RUNTIME_THUNK}"
+        /INCREMENTAL:NO
+        /OPT:NOICF
+    )
+    add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${PVZ_ASAN_RUNTIME_DLL}" "$<TARGET_FILE_DIR:${target_name}>"
+        COMMENT "Copying clang AddressSanitizer runtime for ${target_name}"
+        VERBATIM
+    )
+endfunction()
 
 # 非发布预设通过 NTFS 目录联接复用发布版的 resources/font。联接只在首次配置时创建，
 # 不复制资源；Shader、存档与 AutoTest 输出仍保留在各自 build/<preset>/ 中。
@@ -81,6 +138,11 @@ if(WIN32)
     # 每个 Windows 可执行目标链接后都与 Win7 x64 官方导出表核对，防止依赖更新
     # 再次引入只能在 Windows 8+ 解析的静态入口。
     function(pvz_assert_win7_imports target_name)
+        if(PVZ_ENABLE_ASAN AND "${target_name}" STREQUAL "PlantsVsZombies")
+            # Windows ASan runtime 最低支持 Windows 8.1；该预设不属于 Win7 发布矩阵。
+            message(STATUS "Skipping Win7 import audit for ASan target ${target_name}")
+            return()
+        endif()
         add_custom_command(TARGET ${target_name} POST_BUILD
             COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
                     -File "${CMAKE_CURRENT_SOURCE_DIR}/cmake/assert_win7_imports.ps1"
@@ -182,6 +244,8 @@ if(PVZ_ENABLE_PDB)
     )
 endif()
 
+pvz_enable_address_sanitizer(PlantsVsZombies)
+
 target_link_options(PlantsVsZombies PRIVATE /STACK:4194304,65536)
 
 target_link_libraries(PlantsVsZombies PRIVATE
@@ -271,7 +335,7 @@ foreach(entry IN LISTS SHADER_SOURCES)
     list(GET parts 1 stage)
     # 只剥 .glsl（NAME_WE 会把 batch.vert.glsl 剥成 batch，与 batch.frag 撞名）
     string(REPLACE ".glsl" "" name ${shader})
-    # 与旧工程一致：spv 落在源码树 Shader/spv/，三个 preset 共享同一份产物
+    # 与旧工程一致：spv 落在源码树 Shader/spv/，所有 preset 共享同一份产物
     set(spv ${SRC_DIR}/Shader/spv/${name}.spv)
     add_custom_command(
         OUTPUT ${spv}

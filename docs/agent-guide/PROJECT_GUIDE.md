@@ -37,13 +37,19 @@
   cmake --preset clang-release-noavx2
   cmake --build --preset clang-release-noavx2
 
+  # 5) 仅在排查内存越界、UAF 等问题时使用；不能替代 Release 验收
+  cmake --preset clang-asan
+  cmake --build --preset clang-asan
+
   ```
 
-  三个预设统一使用 `clang-cl + lld-link`。`clang-release` 是所有普通功能、逻辑、UI、资源、存档、性能和架构任务的唯一默认预设：直接用它迭代、F5、跑范围最小的 AutoTest 并交付。同一份当前源码已用 Release 产物完成相关验证时，不再必跑一轮 Debug 构建或重复 AutoTest。`clang-debug` 仅在主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时显式使用；`clang-release-noavx2` 仅用于 Win7/旧 CPU 兼容诊断。`clang-release`/`clang-release-noavx2` 用 `/Z7 -gline-tables-only -gcodeview-ghash` 与 `/DEBUG:GHASH`，只保留符号化函数栈和源码行所需的信息，不写变量/类型，并缩短 LLD 合并；EXE 只保留同目录 PDB 文件名的定位记录，不嵌入调试符号或本机构建绝对路径。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
+  四个预设统一使用 `clang-cl + lld-link`。`clang-release` 是所有普通功能、逻辑、UI、资源、存档、性能和架构任务的唯一默认预设：直接用它迭代、F5、跑范围最小的 AutoTest 并交付。同一份当前源码已用 Release 产物完成相关验证时，不再必跑一轮 Debug 构建或重复 AutoTest。`clang-debug` 仅在主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时显式使用；`clang-release-noavx2` 仅用于 Win7/旧 CPU 兼容诊断；`clang-asan` 仅用于排查内存越界、释放后使用等生命周期问题。`clang-release`/`clang-release-noavx2` 用 `/Z7 -gline-tables-only -gcodeview-ghash` 与 `/DEBUG:GHASH`，只保留符号化函数栈和源码行所需的信息，不写变量/类型，并缩短 LLD 合并；EXE 只保留同目录 PDB 文件名的定位记录，不嵌入调试符号或本机构建绝对路径。四个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
 
 - **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码；同次构建的精简 PDB 可符号化函数栈、内联关系和源码行，但不能检查变量或类型。若 LTO 内联/合并使调用栈仍难以定位，优先给最小复现补充针对性的状态投影、日志或断言；同一路径能在 `clang-debug` 复现时可显式用其辅助诊断。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后用 `clang-release` 重建并重跑原失败脚本及父类回归。
 
-- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-release-noavx2`、`clang-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
+- **AddressSanitizer 诊断：** `clang-asan` 使用 `RelWithDebInfo`、`/fsanitize=address /O1 /Oy-`，关闭 LTO、AVX2 与 identical COMDAT folding；只给游戏目标插桩，clang 的动态 ASan runtime 会自动复制到游戏 EXE 旁，三个纯逻辑 CTest 保持普通 ABI。vcpkg 静态依赖也保持普通 Release ABI，因此该预设关闭 MSVC STL 的专用容器注解，但普通堆栈/堆越界、use-after-free 等插桩仍启用。Windows ASan 的 shadow memory 会使用首机会异常，故该预设不注册项目 `CrashHandler`，报告以 stderr 为准。它不属于 Win7 发布矩阵（runtime 最低 Windows 8.1），跳过游戏目标的 Win7 import audit；修复后的最终验收仍必须回到 `clang-release`。运行 AutoTest 时可在导入 VS 环境后设置 `$env:ASAN_SYMBOLIZER_PATH=(Get-Command llvm-symbolizer.exe).Source`，并把 stderr 重定向到独立日志。
+
+- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-release-noavx2`、`clang-debug`、`clang-asan` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
 - **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
 - **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
 - **源文件管理：** `GLOB_RECURSE CONFIGURE_DEPENDS` 会自动收集源文件，新增 `.cpp` 无需修改构建文件；不参与编译的文件放入 `CMakeLists.txt` 的 `REMOVE_ITEM` 列表（当前为 `Reanimation/AttachmentSystem.cpp`）。

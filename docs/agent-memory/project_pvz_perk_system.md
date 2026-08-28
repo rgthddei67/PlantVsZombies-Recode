@@ -73,9 +73,11 @@ metadata:
 
 **2026-08-27 机制词条扩展（18 项）**：`PerkInfo` 新增彼此独立的 `PerkRarity` 与 `PerkCondition`；`PerkOfferContext` 从当前地图注入路灯花机制准入。普通池仍做随机正负笛卡尔配对；每块三选面板只掷一次固定 1.5% 稀有判定，命中时最多出现一个稀有植物词条，目录扩张不会抬高总概率；普通植物全满但稀有仍可用时强制稀有，避免空面板。UI 与查看页用 `[稀有]`、`[迷雾]` 标签，但正式流程不显示概率。
 
-- 植物侧：`PLANT_MIST_REFINING`（迷雾专属，两层内每层使雾火单份价值与本波并发接收上限 +50%，仓储容量仍 100）；`PLANT_CORROSIVE_TOXIN`（稀有，毒层 DPS 取 `max(5, 最大可计生命×0.1%)`，不吃全局植物增伤但仍过僵尸免伤）；`PLANT_UNYIELDING_ROOTS`（稀有，每株每个生存轮首次 `Plant::TakeDamage` 致命伤留 1 HP 并免普通伤害 3 秒，碾压/铲除/蹦极/处决/自我退场不触发）；`PLANT_DAMAGE_ECHO`（Board 共享第 10 次实际植物伤害命中使该击翻倍，免费免伤不计且灰烬排除）。
+- 植物侧：`PLANT_MIST_REFINING`（迷雾专属，两层内每层使雾火单份价值与本波并发接收上限 +50%，仓储容量仍 100）；`PLANT_CORROSIVE_TOXIN`（稀有，当前毒层 DPS 取 `max(5, 最大可计生命×1%)`，不吃全局植物增伤但仍过僵尸免伤）；`PLANT_UNYIELDING_ROOTS`（稀有，每株每个生存轮首次 `Plant::TakeDamage` 致命伤留 1 HP 并免普通伤害 3 秒，碾压/铲除/蹦极/处决/自我退场不触发）；`PLANT_DAMAGE_ECHO`（Board 共享第 10 次实际植物伤害命中使该击翻倍，免费免伤不计且灰烬排除）。
 - 僵尸侧：`ZOMBIE_FOG_BREAKOUT`（迷雾专属，一生首次由浓雾转可见时清慢/冻/黄油/麻痹并免控 3 秒）；`ZOMBIE_DEATH_RELAY`（敌对死亡给同排最靠房屋且仍活动的友方前锋 1 次免费受击）；`ZOMBIE_DEVOUR_REPAIR`（亲口吃死植物时修满仍存在的本体/头盔/盾，不复活装备）；`ZOMBIE_ARMOR_BREAK_RUSH`（一生首次标准头盔或盾被打碎时解控免控 5 秒、动作/移动 +60%，魅惑取消收益）。
 - 状态与存档：不屈根系的每株已消费/免伤计时、三种僵尸一生状态/加速计时、Board 十击计数均持久化；根系在 `OnSurvivalRoundClear` 按轮重置，十击计数进入新棋盘清零后由读档覆盖。毒层仍复用原有二十层计时存档。
 - 验证：`clang-release` 构建及 Win7 378 项 import 审计通过；`smoke_survival_perk_expansion`、`smoke_survival_perk_fog_and_toxin` 在默认与 `-NoInstance` 均通过，后者成对锁定路灯花 0 层 10/45 与 2 层 20/90、红眼巨人二十层毒 2 秒基础约 200 与腐蚀约 240。既有 `smoke_toxic_peashooter`、`smoke_perk_select` 通过，三项 CTest 全绿。`smoke_plantern_fuel_curve` 与本次相关的基础燃料曲线、预算、上限、燃烧断言均通过，但后续进入关卡 31 时旧断言 `maxWave=30` 与当前 20 不符而退出 1；本次未改该无关波数口径。
 
 **2026-08-28 轮间模态输入门禁修复**：轮清正式入口先把 `Board` 切到 `CHOOSE_CARD`；`CardSlotManager::CanAcceptGameplayInput()` 现在只在 `GAME` 且普通暂停门禁未开启时允许卡牌与草坪交互，格子点击、路灯花和玉米炮统一复用。`BeginSurvivalPerkSelect()` 同时清除上一轮尚未提交的手持物或玉米炮准星，避免其跨轮残留。可见 `smoke_perk_select_cob_input_modal` 先带着 READY 玉米炮的活动准星正式轮清，再真实点击被词条面板覆盖的炮体与草坪，断言准星保持关闭、炮仍为 READY、`bulletCount=0`；既有 `smoke_perk_select` 与 `smoke_advanced_pause` 继续通过。
+
+**2026-08-28 腐蚀毒素致死生命周期修复**：当前腐蚀数值为每层每秒最大可计生命 1%。崩溃报告符号化到 `Zombie::UpdateToxin`：百分比批量伤害把投篮车本体打到 0 后，派生 `TakeBodyDamage()` 会同步 `Die()` 并释放 `mToxinState`，调用方随后继续解引用形成访问违例。修复为批量受伤返回后先重查 `IsActive()` 与侧车；`smoke_corrosive_toxin_lethal_catapult.json` 固定 50 生命投篮车、二十层毒，锁定死亡与爆炸一次完成且不崩溃。最终 Release 专项、`smoke_survival_perk_fog_and_toxin`、`smoke_perks_damage_sources`、`smoke_perks_balance`、`smoke_perks` 五条可见回归均退出 0、状态通过、日志完成；同一致死专项在 `clang-asan` 下也通过且 stderr 空。Release 3/3 CTest 与 Win7 378 项 import audit 通过。

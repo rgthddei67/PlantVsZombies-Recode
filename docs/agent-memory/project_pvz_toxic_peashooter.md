@@ -4,7 +4,7 @@ description: 毒囊射手、目标级二十层独立计时毒素、腐蚀毒液�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-22
+  updated_at: 2026-08-28
 ---
 
 # 毒囊射手与目标级叠毒
@@ -15,7 +15,7 @@ metadata:
 
 - 毒豆直击 15；命中目标增加一层 6 秒、每 0.2 秒 1 伤（5 DPS）的独立计时毒素。所有来源共享该目标的二十层上限；满层再命中刷新剩余时间最短的一层。
 - 毒伤按未减速的游戏 `deltaTime` 累积目标级小数余量，统一以 `TakeProjectileDamage(..., 0.0f)` 结算，因此不会以背击规则绕过二类护盾。行走、啃食、跳跃、减速与冻结的行为早退都不停止毒素。
-- 生存稀有词条 `PLANT_CORROSIVE_TOXIN` 把每层 DPS 改为 `max(5, 目标最大可计生命×0.1%)`；
+- 生存稀有词条 `PLANT_CORROSIVE_TOXIN` 把每层 DPS 改为 `max(5, 目标最大可计生命×1%)`；
   最大可计生命为本体、标准头盔与标准盾的最大生命之和。百分比基础不再乘全局植物增伤，
   但仍进入正式僵尸免伤链；0 层继续逐点走原有 5 DPS 植物伤害路径，保持旧语义。
 - 二十层剩余时间和小数余量进入 `Zombie::SaveProtectedData/LoadProtectedData`；旧档默认无毒，旧版较短数组自然补空槽。死亡清理；`StartMindControlled` 与魅惑旧档归一化立即清除毒层，避免友军残留死亡。
@@ -42,3 +42,5 @@ metadata:
 红眼巨人、20 层、2 游戏秒验证：0 层词条约 200 伤，开启后约 240 伤；词条层数与二十层毒计时
 快照往返后均保留。既有 `smoke_toxic_peashooter.json` 再次退出 0，确认无词条叠层、伤害、抵抗、
 紫焰与存档路径不变；新增专项默认与 `-NoInstance` 均退出 0。
+
+2026-08-28 当前腐蚀毒素数值已调整为每层每秒最大可计生命 1%。`Zombie::UpdateToxin` 的批量伤害可能经投篮车等派生受伤入口同步 `Die()`，死亡会立即释放 `ToxinState`；伤害返回后必须重查宿主活动状态与侧车指针，再访问层数或余量。`smoke_corrosive_toxin_lethal_catapult.json` 用 50 本体生命的投篮车承受二十层腐蚀毒素，锁定实体消失、爆炸恰好一次且不再发生侧车解引用。最终 `clang-release` 与 `clang-asan` 桌面可见专项均退出 0；ASan stderr 空。Release 的 `smoke_survival_perk_fog_and_toxin` 也按 1% 当前数值通过，6000 最大生命红眼巨人在二十层毒、2 秒后剩余约 3600 生命。

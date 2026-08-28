@@ -1,15 +1,15 @@
 ---
 name: pvz-cmake-migration
-description: CMake+vcpkg 唯一构建系统；三个 preset 统一使用 clang-cl+lld-link，所有常规构建、F5 与 AutoTest 默认直接使用 clang-release
+description: CMake+vcpkg 唯一构建系统；四个 preset 统一使用 clang-cl+lld-link，常规验证默认 clang-release，clang-asan 仅供内存诊断
 metadata:
   node_type: memory
   type: project
   originSessionId: 83b50c95-5f75-4a56-8bd0-5051666fb921
 ---
 
-**2026-08-25 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
+**2026-08-28 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
 - 2026-08-25 起，Clang Release 仅对 `Game/AutoTest/TestDriver.cpp` 在目标级 `/O2 ... -flto` 之后追加 `/Od`：保持 `-MT`、`_HAS_ITERATOR_DEBUGGING=0`、AVX2、`-flto` 与精简行表 PDB，不启用 Debug CRT 或 `_DEBUG`。普通游戏每逻辑步只执行单例取址与 `mActive` 早退；文件级名称映射仍按现状在启动构造，AutoTest JSON 命令重逻辑允许未优化。
-- `clang-debug`、`clang-release`、`clang-release-noavx2` 三个 preset 全部继承 `clang-base`，统一使用 VS LLVM 的 `clang-cl + lld-link`；旧 `msvc-debug` 与 `clang-playtest` preset 均已删除。
+- `clang-debug`、`clang-release`、`clang-release-noavx2`、`clang-asan` 四个 preset 全部继承 `clang-base`，统一使用 VS LLVM 的 `clang-cl + lld-link`；旧 `msvc-debug` 与 `clang-playtest` preset 均已删除。
 - 所有普通功能、逻辑、UI、资源、存档、性能与架构任务，编译、F5、范围最小诊断 AutoTest 和最终相关回归都默认直接使用 `clang-release`。同一份当前源码已用该产物完成相关验证时，不再必须先编译 Debug 或为交付重跑同一轮 AutoTest。
 - `clang-release` 使用 Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 -gline-tables-only -gcodeview-ghash` + `/DEBUG:GHASH` 生成与优化机器码匹配的精简外置 PDB。它只保留符号化函数栈、内联关系和源码行所需的信息，不包含变量、变量位置或类型；LLVM 文档明确把 `-gline-tables-only` 定义为可生成符号化回溯的最小信息。
 - `clang-debug` 仅在主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时显式使用；它保留 `/Ob0 /Od /RTC1 -MTd -Zi`、Debug CRT、断言与 PDB，但不再是常规必跑阶段。
@@ -17,9 +17,13 @@ metadata:
 - `clang-release-noavx2` 是 Win7/旧环境发生 `0xC000001D` 时的独立发布预设；只把 `PVZ_ENABLE_AVX2` 关掉，仍保留 `/O2`、fast-math、LTO、静态运行时和精简行表 PDB，不能取代默认预设。
 - 该开关约束游戏自己的编译单元，不保证最终静态 EXE 逐字节不含 AVX：libjpeg-turbo 等依赖仍可能内置由运行时能力检测保护的多套 SIMD 实现。验收应同时核对游戏 152 条编译命令无 `/arch:AVX2` 与目标 Win7 实机不再触发 `0xC000001D`，不能只对最终 EXE 搜指令助记符。
 - 2026-08-25 主人确认完整 Release 重编已缩至一分钟内且 20000 僵尸存档仍约 110 FPS，随后删除用途重叠的无 LTO `clang-playtest`，并进一步确认所有常规编译、F5 与 AutoTest 默认直接使用 `clang-release`。Release 难定位问题改用同次精简 PDB、最小状态投影/日志/断言，能在 `clang-debug` 复现时再显式用它辅助诊断。
-- `clang-release-noavx2` 与 `clang-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
+- `clang-release-noavx2`、`clang-debug` 与 `clang-asan` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
+- `clang-asan` 是单独的 Windows 内存诊断预设：`RelWithDebInfo` + `/fsanitize=address /O1 /Oy-`，关闭 LTO、AVX2 与 identical COMDAT folding，只给游戏目标插桩并把 clang 动态 ASan runtime 复制到游戏 EXE 旁；三个纯逻辑 CTest 保持普通 ABI。项目由 Ninja 直接调用 `lld-link`，所以 CMake 显式链接 `clang_rt.asan_dynamic` 与 whole-archive runtime thunk；vcpkg 静态依赖未插桩，游戏目标关闭 MSVC STL 专用容器注解以保持 ABI 一致。普通越界/UAF 插桩仍保留。
+- Windows ASan shadow memory 通过首机会 Access Violation 按需提交，`clang-asan` 因而不注册抢占优先级的项目 `CrashHandler`，诊断报告以 stderr 为准。该 runtime 最低 Windows 8.1，预设跳过 Win7 import audit且不得作为发布产物；最终验收仍使用 `clang-release`。
 - Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
 - `find_package(Vulkan)` 可能优先命中 vcpkg `vulkan-headers`；VMA 头固定从 `$ENV{VULKAN_SDK}/Include/vma/vk_mem_alloc.h` 取得，不能再通过 `Vulkan_INCLUDE_DIR` 间接推导。
+
+2026-08-28 ASan 接入证据：`clang-asan` 全量 190 步编译与游戏链接通过，实际 Ninja flags 中 `/fsanitize=address /O1 /Oy-` 位于通用 `/O2` 与省略帧指针选项之后，动态 runtime 已复制到游戏 EXE 旁。三个保持普通 ABI 的 CTest 通过且各自 Win7 import audit 通过；桌面可见 `smoke_corrosive_toxin_lethal_catapult` 退出 0、`status=passed`、日志完成，ASan stderr 为 0 字节。默认 `clang-release` 最终重链、378 项 import audit 与 3/3 CTest 同样通过，确认诊断预设未改变发布合同。
 
 2026-08-23 迁移证据：从不存在的 `build/clang-debug` 全新配置并完成 180 步全量构建，CMake 识别 `Clang 22.1.3 with MSVC-like command-line`；实际游戏编译命令为 `clang-cl.exe /Ob0 /Od /RTC1 -MTd -Zi`，实际链接命令为 `lld-link.exe /debug`，生成约 121 MB `PlantsVsZombies.pdb`。游戏与三个测试目标的 Win7 导入审计分别通过，`resources`/`font` Junction 指向唯一 `build/clang-release` 实体。`clang-debug` 与重新配置后的 `clang-release` 各自 3 个 CTest 全部通过，当前桌面可见 `smoke_quit` 两次均退出 0、`status=passed`、Vulkan 正常初始化并 `script finished OK`。三个权威资源生成脚本同步收敛为只写 `build/clang-release/resources`，不再按 Debug preset 重复写同一 Junction。该段只记录当时迁移取证，PDB 生成方式以 2026-08-24 当前契约为准。
 

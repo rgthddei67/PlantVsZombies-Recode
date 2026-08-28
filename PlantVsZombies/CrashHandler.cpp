@@ -18,6 +18,11 @@ PVOID CrashHandler::vehHandle = nullptr;
 LONG64 CrashHandler::lastUACTime = 0;
 
 void CrashHandler::Initialize() {
+#if defined(PVZ_ADDRESS_SANITIZER)
+	// Windows ASan 通过首机会 Access Violation 按需提交 shadow memory。项目 VEH 若注册在最前，
+	// 会把这些内部异常误判为游戏崩溃并提前终止进程，因此诊断构建把异常所有权交给 ASan。
+	return;
+#endif
 	ULONG stackGuarantee = 4 * 1024; // 4KB stack guarantee
 	SetThreadStackGuarantee(&stackGuarantee);
 	vehHandle = AddVectoredExceptionHandler(1, VectoredExceptionHandler);
