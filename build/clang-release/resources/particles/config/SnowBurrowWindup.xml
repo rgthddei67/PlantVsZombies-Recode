@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>SnowBurrowWindup</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleDuration>[.45 .75]</ParticleDuration>
+  <ParticleAlpha>.7,70 0</ParticleAlpha>
+  <ParticleScale>[.3 .58]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[12 30]</EmitterRadius>
+  <LaunchSpeed>[12 35]</LaunchSpeed>
+  <ParticleGravity>45</ParticleGravity>
+  <SystemDuration>.82</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-180 180]</ParticleSpinSpeed>
+</Emitter>

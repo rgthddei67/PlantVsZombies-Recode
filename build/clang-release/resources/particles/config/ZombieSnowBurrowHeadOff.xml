@@ -1,0 +1,14 @@
+<Emitter>
+  <Name>ZombieSnowBurrowHeadOff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.0</ParticleDuration>
+  <ParticleAlpha>1 .9</ParticleAlpha>
+  <ParticleScale>.75 .75</ParticleScale>
+  <LaunchSpeed>[60 100]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>140</ParticleGravity>
+  <ParticleSpinSpeed>[-5 5]</ParticleSpinSpeed>
+  <SystemDuration>1.1</SystemDuration>
+  <Image>PARTICLE_ZOMBIESNOWBURROWHEAD</Image>
+</Emitter>

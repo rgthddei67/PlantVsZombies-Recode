@@ -8,11 +8,12 @@
 namespace AdventureProgression
 {
 	inline constexpr int LEVELS_PER_AREA = 9;
-	inline constexpr int ADVENTURE_AREA_COUNT = 7;
+	inline constexpr int ADVENTURE_AREA_COUNT = 8;
 	inline constexpr int LAST_ADVENTURE_LEVEL = LEVELS_PER_AREA * ADVENTURE_AREA_COUNT;
 	inline constexpr int AREA_FIVE_BOSS_LEVEL = LEVELS_PER_AREA * 5;
 	inline constexpr int AREA_SIX_FINAL_LEVEL = LEVELS_PER_AREA * 6;
 	inline constexpr int AREA_SEVEN_FINAL_LEVEL = LEVELS_PER_AREA * 7;
+	inline constexpr int AREA_EIGHT_FINAL_LEVEL = LEVELS_PER_AREA * 8;
 
 	/** 冒险关的 BOSS 槽位；枚举值同时是关卡编排选择，不直接承担实体所有权。 */
 	enum class BossSlot {
@@ -102,6 +103,17 @@ namespace AdventureProgression
 		NO_PLANT_REWARD,
 		PlantType::PLANT_ALARMBELLFLOWER,
 		PlantType::PLANT_FURNACECOREFLOWER,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+
+		// 8-1 ... 8-9（极夜雪原；植物奖励随植物实现单独落表）
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 	};
@@ -218,6 +230,11 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(61) == PlantType::PLANT_FURNACECOREFLOWER);
 	static_assert(GetAreaNumber(63) == 7 && GetLevelNumberInArea(63) == 9);
 	static_assert(GetPlantReward(63) == NO_PLANT_REWARD);
+	static_assert(IsAdventureLevel(64) && IsAdventureLevel(72));
+	static_assert(GetAreaNumber(64) == 8 && GetLevelNumberInArea(64) == 1);
+	static_assert(GetAreaNumber(65) == 8 && GetLevelNumberInArea(65) == 2);
+	static_assert(GetPlantReward(64) == NO_PLANT_REWARD);
+	static_assert(GetPlantReward(72) == NO_PLANT_REWARD);
 	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL - 1));
 	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL));
 	static_assert(!HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL - 2));

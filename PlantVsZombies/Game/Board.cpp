@@ -291,6 +291,9 @@ namespace {
 	constexpr int kIceCrackDrillMaxPerWave = 3;           // 每个正式波次最多成功生成三只冰裂钻机
 	constexpr int kWeatherJammerMaxPerWave = 2;           // 每个正式波次最多成功生成两只气象干扰僵尸
 	constexpr int kIceStatueExecutionerMaxPerWave = 5;   // 每个正式波次最多成功生成五只冰像处刑者
+	constexpr int kSnowBurrowTutorialMaxPerWave = 1;      // 8-1 每波与同时最多一只潜雪僵尸
+	constexpr int kSnowBurrowCompositeMaxPerWave = 2;     // 8-2 起每波与同时最多两只潜雪僵尸
+	constexpr int kSnowBurrowTutorialLevel = 64;           // 内部 64 即 8-1，雪穴形成后保底一次潜雪出生
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -2592,6 +2595,15 @@ void Board::RestoreIceStatueExecutionerWaveSpawnCount(int count)
 		count, 0, kIceStatueExecutionerMaxPerWave);
 }
 
+/** 旧档缺字段时以零值恢复；本波计数按当前关卡的实际限额夹紧。 */
+void Board::RestoreSnowBurrowSpawnState(int count, bool tutorialHoleSpawnConsumed)
+{
+	const int maxPerWave = mLevel == kSnowBurrowTutorialLevel
+		? kSnowBurrowTutorialMaxPerWave : kSnowBurrowCompositeMaxPerWave;
+	mSnowBurrowsSpawnedThisWave = std::clamp(count, 0, maxPerWave);
+	mSnowBurrowTutorialHoleSpawnConsumed = tutorialHoleSpawnConsumed;
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2835,7 +2847,32 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 		}
 		++mIceStatueExecutionersSpawnedThisWave;
 	}
+	if (selected == ZombieType::ZOMBIE_SNOW_BURROW) {
+		const int maxPerWave = mLevel == kSnowBurrowTutorialLevel
+			? kSnowBurrowTutorialMaxPerWave : kSnowBurrowCompositeMaxPerWave;
+		if (mSnowBurrowsSpawnedThisWave >= maxPerWave
+			|| CountActiveOrPendingZombieType(selected) >= maxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mSnowBurrowsSpawnedThisWave;
+	}
 	return ResolveRainMutationType(selected, mutationRoll);
+}
+
+int Board::CountActiveOrPendingZombieType(ZombieType type) const
+{
+	int count = static_cast<int>(std::count_if(mPendingSnowHoleSpawns.begin(),
+		mPendingSnowHoleSpawns.end(), [type](const PendingSnowHoleSpawn& pending) {
+			return pending.type == type;
+		}));
+	for (int id : mEntityRegistry.GetAllZombieIDs()) {
+		Zombie* zombie = mEntityRegistry.GetZombie(id);
+		if (zombie && zombie->IsActive() && !zombie->IsDying()
+			&& !zombie->IsMindControlled() && zombie->mZombieType == type) {
+			++count;
+		}
+	}
+	return count;
 }
 
 Zombie* Board::CreateResolvedWaveZombie(ZombieType actualType, int row, float x)
@@ -4581,7 +4618,8 @@ void Board::UpdateSnowHoles(float deltaTime)
  * 正式波次只在活动雪穴处建立延迟事务；预算与行选择已经由调用方提交，
  * 因而预警期间封穴只能把这一只改回右侧入口，不能取消或重抽僵尸。
  */
-bool Board::CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightEdgeX)
+bool Board::CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightEdgeX,
+	bool tutorialSnowBurrow)
 {
 	if (SupportsPolarNightEnvironment() && row >= 0
 		&& row < static_cast<int>(mSnowHoles.size())
@@ -4593,7 +4631,7 @@ bool Board::CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightE
 				return pending.row == row && pending.holeColumn == holeColumn;
 			});
 		mPendingSnowHoleSpawns.push_back({ actualType, row, holeColumn,
-			mCurrentWave, kPolarHoleSpawnWarningSeconds });
+			mCurrentWave, kPolarHoleSpawnWarningSeconds, tutorialSnowBurrow });
 		if (!warningAlreadyVisible && g_particleSystem) {
 			g_particleSystem->EmitEffect("SnowHolePuff",
 				GetCellCenterPosition(row, holeColumn));
@@ -4633,6 +4671,10 @@ void Board::UpdatePendingSnowHoleSpawns(float deltaTime)
 		if (Zombie* zombie = CreateResolvedWaveZombie(it->type, it->row, spawnX)) {
 			zombie->mSpawnWave = it->spawnWave;
 			AssignMistFuelReward(zombie);
+			if (useHole && it->tutorialSnowBurrow
+				&& it->type == ZombieType::ZOMBIE_SNOW_BURROW) {
+				mSnowBurrowTutorialHoleSpawnConsumed = true;
+			}
 		}
 		it = mPendingSnowHoleSpawns.erase(it);
 	}
@@ -8410,6 +8452,7 @@ void Board::SummonNextWave()
 	mIceCrackDrillsSpawnedThisWave = 0;
 	mWeatherJammersSpawnedThisWave = 0;
 	mIceStatueExecutionersSpawnedThisWave = 0;
+	mSnowBurrowsSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -8771,6 +8814,25 @@ inline void Board::TrySummonZombie()
 			}
 		}
 	}
+	// 8-1 的雪穴形成后，在首个可用波次锁定一只潜雪僵尸；封穴使本次退回右侧且不消费全关保底。
+	if (!mIsSurvival && mLevel == kSnowBurrowTutorialLevel
+		&& !mSnowBurrowTutorialHoleSpawnConsumed) {
+		int tutorialRow = -1;
+		for (int row = 0; row < std::min(mRows,
+			static_cast<int>(mSnowHoles.size())); ++row) {
+			if (mSnowHoles[row].phase == SnowHolePhase::ACTIVE) {
+				tutorialRow = row;
+				break;
+			}
+		}
+		if (tutorialRow >= 0) {
+			const ZombieType actualType = ResolveWaveZombieType(
+				ZombieType::ZOMBIE_SNOW_BURROW);
+			if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+				CreateOrQueueWaveZombie(actualType, tutorialRow, x, true);
+			}
+		}
+	}
 
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
@@ -9095,6 +9157,7 @@ void Board::OnSurvivalRoundClear()
 	mIceCrackDrillsSpawnedThisWave = 0;
 	mWeatherJammersSpawnedThisWave = 0;
 	mIceStatueExecutionersSpawnedThisWave = 0;
+	mSnowBurrowsSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

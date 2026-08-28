@@ -77,6 +77,7 @@
 #include "../Zombie/IceCrackDrillZombie.h"
 #include "../Zombie/WeatherJammerZombie.h"
 #include "../Zombie/IceStatueExecutionerZombie.h"
+#include "../Zombie/SnowBurrowZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -396,6 +397,7 @@ namespace {
 		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM), ZT(ZOMBIE_ICE_WALL_ENGINEER),
 		ZT(ZOMBIE_ICE_CRACK_DRILL), ZT(ZOMBIE_WEATHER_JAMMER),
 		ZT(ZOMBIE_ICE_STATUE_EXECUTIONER),
+		ZT(ZOMBIE_SNOW_BURROW),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -2165,7 +2167,8 @@ bool TestDriver::ExecuteCurrent() {
 		return false;
 	}
 	if (op == "interrupt_zombie_special_action"
-		|| op == "apply_winter_corrosion_to_zombie") {
+		|| op == "apply_winter_corrosion_to_zombie"
+		|| op == "force_zombie_surface_from_ground_hazard") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
 			Fail(op + ": 不在 GameScene 或 Board 为空");
@@ -2192,9 +2195,16 @@ bool TestDriver::ExecuteCurrent() {
 			if (desiredType != ZombieType::NUM_ZOMBIE_TYPES
 				&& zombie->mZombieType != desiredType) continue;
 			if (seen++ != index) continue;
-			const bool changed = op == "interrupt_zombie_special_action"
-				? zombie->InterruptUncommittedSpecialAction()
-				: zombie->ApplyWinterCorrosion(cmd.value("corrosion", 0));
+			bool changed = false;
+			if (op == "interrupt_zombie_special_action") {
+				changed = zombie->InterruptUncommittedSpecialAction();
+			}
+			else if (op == "force_zombie_surface_from_ground_hazard") {
+				changed = zombie->ForceSurfaceFromGroundHazard();
+			}
+			else {
+				changed = zombie->ApplyWinterCorrosion(cmd.value("corrosion", 0));
+			}
 			if (cmd.contains("expectedChanged")
 				&& changed != cmd.value("expectedChanged", false)) {
 				Fail(op + ": changed 与 expectedChanged 不符");
@@ -4424,6 +4434,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Particles::PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0, false) != nullptr },
 	};
+	out["snowBurrowResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_SNOW_BURROW_ZOMBIE) },
+		{ "bodyLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_ZOMBIE_SNOWBURROW_BODY", false) != nullptr },
+		{ "shovelLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_ZOMBIE_SNOWBURROW_SHOVEL", false) != nullptr },
+		{ "brokenArmLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_SNOWBURROW_OUTERARM_UPPER2,
+			false) != nullptr },
+		{ "sleeveLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_ZOMBIE_SNOWBURROW_OUTERARM_LOWER", false) != nullptr },
+		{ "headParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_SNOWBURROWHEAD, false) != nullptr },
+		{ "armParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_SNOWBURROWARM, false) != nullptr },
+	};
 	out["potatoMineResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_POTATOMINE) },
@@ -5219,6 +5246,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetWeatherJammersSpawnedThisWave() },
 			{ "iceStatueExecutionersSpawnedThisWave",
 				board->GetIceStatueExecutionersSpawnedThisWave() },
+			{ "snowBurrowsSpawnedThisWave",
+				board->GetSnowBurrowsSpawnedThisWave() },
+			{ "snowBurrowTutorialHoleSpawnConsumed",
+				board->HasConsumedSnowBurrowTutorialHoleSpawn() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -5747,6 +5778,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int gildedZamboniCount = 0;
 	int diggerZombieCount = 0;
 	int eliteDiggerZombieCount = 0;
+	int snowBurrowZombieCount = 0;
 	int elitePogoZombieCount = 0;
 	int eliteLadderZombieCount = 0;
 	int eliteCatapultZombieCount = 0;
@@ -5801,6 +5833,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_DIGGER) {
 			++eliteDiggerZombieCount;
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_SNOW_BURROW) {
+			++snowBurrowZombieCount;
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_CATAPULT) {
 			++eliteCatapultZombieCount;
@@ -6325,6 +6360,38 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 					eliteDigger->HasResolvedBlast();
 			}
 		}
+		if (auto* snowBurrow = dynamic_cast<SnowBurrowZombie*>(z)) {
+			const auto* shadow = z->GetShadow();
+			zombieState["snowBurrowPhase"] = snowBurrow->GetPhaseName();
+			zombieState["snowBurrowPhaseRemainingMs"] = static_cast<int>(std::lround(
+				snowBurrow->GetPhaseRemaining() * 1000.0f));
+			zombieState["snowBurrowOriginXInt"] = static_cast<int>(std::lround(
+				snowBurrow->GetBurrowOriginX()));
+			zombieState["snowBurrowLimitXInt"] = static_cast<int>(std::lround(
+				snowBurrow->GetBurrowLimitX()));
+			zombieState["snowBurrowTargetXInt"] = static_cast<int>(std::lround(
+				snowBurrow->GetBurrowTargetX()));
+			zombieState["snowBurrowMaxDistanceInt"] = static_cast<int>(std::lround(
+				snowBurrow->GetBurrowOriginX() - snowBurrow->GetBurrowLimitX()));
+			zombieState["snowBurrowEmergenceColumn"] =
+				snowBurrow->GetEmergenceColumn();
+			zombieState["snowBurrowsCommitted"] = snowBurrow->GetBurrowsCommitted();
+			zombieState["snowBurrowRetryRemainingMs"] = static_cast<int>(std::lround(
+				snowBurrow->GetReburrowRetryRemaining() * 1000.0f));
+			zombieState["snowBurrowNaturalImpactPending"] =
+				snowBurrow->IsNaturalImpactPending();
+			zombieState["snowBurrowTargetableGroundProjectile"] =
+				snowBurrow->CanBeTargetedByProjectile(false);
+			zombieState["snowBurrowGroundHazardEligible"] =
+				snowBurrow->CanBeAffectedByGroundHazards();
+			zombieState["snowBurrowInterruptibleRemainingMs"] = static_cast<int>(
+				std::lround(snowBurrow->GetInterruptibleSpecialActionRemaining() * 1000.0f));
+			zombieState["snowBurrowShadowVisible"] = shadow && shadow->IsVisible();
+			zombieState["snowBurrowShovelVisible"] = anim
+				&& anim->GetTrackVisible("Zombie_digger_pickaxe");
+			zombieState["snowBurrowHatVisible"] = anim
+				&& anim->GetTrackVisible("Zombie_digger_hardhat");
+		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
 			zombieState["zamboniPuncturedByCaltrop"] = zamboni->IsPuncturedByCaltrop();
@@ -6778,6 +6845,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["diggerZombieCount"] = diggerZombieCount;
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
+	out["snowBurrowZombieCount"] = snowBurrowZombieCount;
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
 	out["eliteCatapultZombieCount"] = eliteCatapultZombieCount;
@@ -7315,6 +7383,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["TallNutBlock"] = 0;
 	out["particleEffectNameCounts"]["DiggerTunnel"] = 0;
 	out["particleEffectNameCounts"]["DiggerRise"] = 0;
+	out["particleEffectNameCounts"]["SnowBurrowTrail"] = 0;
+	out["particleEffectNameCounts"]["SnowBurrowRise"] = 0;
+	out["particleEffectNameCounts"]["SnowBurrowImpact"] = 0;
+	out["particleEffectNameCounts"]["SnowBurrowWindup"] = 0;
+	out["particleEffectNameCounts"]["ZombieSnowBurrowArmOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieSnowBurrowHeadOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDiggerArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDiggerHeadOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieHeadLight"] = 0;

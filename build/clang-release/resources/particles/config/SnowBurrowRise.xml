@@ -1,0 +1,35 @@
+<Emitter>
+  <Name>SnowBurrowRise</Name>
+  <SpawnMinActive>22</SpawnMinActive>
+  <SpawnMaxLaunched>22</SpawnMaxLaunched>
+  <ParticleDuration>[.4 .7]</ParticleDuration>
+  <ParticleAlpha>.9,72 0</ParticleAlpha>
+  <ParticleScale>[.48 .9]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[4 26]</EmitterRadius>
+  <LaunchSpeed>[55 120]</LaunchSpeed>
+  <ParticleGravity>125</ParticleGravity>
+  <SystemDuration>.78</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-420 420]</ParticleSpinSpeed>
+</Emitter>
+
+<Emitter>
+  <Name>SnowBurrowRiseCloud</Name>
+  <SpawnMinActive>7</SpawnMinActive>
+  <SpawnMaxLaunched>7</SpawnMaxLaunched>
+  <ParticleDuration>[.45 .72]</ParticleDuration>
+  <ParticleAlpha>.48,58 0</ParticleAlpha>
+  <ParticleScale>[.38 .7] 1.15</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-22 22]</EmitterBoxX>
+  <EmitterBoxY>[-4 4]</EmitterBoxY>
+  <SystemDuration>.8</SystemDuration>
+  <Image>PARTICLE_DUST_PUFFS</Image>
+  <ImageFrames>3</ImageFrames>
+  <AnimationRate>12</AnimationRate>
+  <ParticleRed>.72</ParticleRed>
+  <ParticleGreen>.88</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+</Emitter>

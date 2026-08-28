@@ -336,6 +336,8 @@
     <Texture>./resources/particles/ZombieDiggerArm.png</Texture>
     <Texture>./resources/particles/ZombieEliteDiggerArm.png</Texture>
     <Texture>./resources/particles/ZombieDiggerHead.png</Texture>
+	<Texture>./resources/particles/ZombieSnowBurrowArm.png</Texture>
+	<Texture>./resources/particles/ZombieSnowBurrowHead.png</Texture>
     <Texture>./resources/particles/ZombieDolphinRiderHead.png</Texture>
     <Texture>./resources/particles/ZombieEliteDolphinRiderHead.png</Texture>
     <Texture>./resources/particles/ZombieFootballHead.png</Texture>
@@ -612,6 +614,7 @@
     <Reanimation name="ZombieHijacker">./resources/reanim/Zombie_Hijacker.reanim</Reanimation>
     <Reanimation name="ZombieBalloon">./resources/reanim/Zombie_balloon.reanim</Reanimation>
     <Reanimation name="ZombieDigger">./resources/reanim/Zombie_digger.reanim</Reanimation>
+	<Reanimation name="SnowBurrow">./resources/reanim/SnowBurrow.reanim</Reanimation>
     <Reanimation name="EliteDigger">./resources/reanim/EliteDigger.reanim</Reanimation>
     <Reanimation name="DiggerRisingDirt">./resources/reanim/Digger_rising_dirt.reanim</Reanimation>
     <Reanimation name="DiggerCharred">./resources/reanim/Zombie_charred_digger.reanim</Reanimation>

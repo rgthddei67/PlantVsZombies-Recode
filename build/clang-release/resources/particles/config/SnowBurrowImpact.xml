@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>SnowBurrowImpact</Name>
+  <SpawnMinActive>16</SpawnMinActive>
+  <SpawnMaxLaunched>16</SpawnMaxLaunched>
+  <ParticleDuration>[.28 .55]</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>[.42 .82]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 18]</EmitterRadius>
+  <LaunchSpeed>[70 145]</LaunchSpeed>
+  <ParticleGravity>170</ParticleGravity>
+  <SystemDuration>.62</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-500 500]</ParticleSpinSpeed>
+</Emitter>

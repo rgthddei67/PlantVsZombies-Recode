@@ -3,8 +3,8 @@
 ## 当前边界
 
 2026-08-28 已建立第八大关公共底座；完整规格见
-`docs/superpowers/specs/2026-08-28-polar-night-snowfield-design.md`。本轮不决定奖励植物、
-新僵尸、逐关最终僵尸池或 `spawnlists.json`，也不补完冒险选择入口；下一轮内容设计必须接入这里的
+`docs/superpowers/specs/2026-08-28-polar-night-snowfield-design.md`。同日后续已把 8-1/8-2、潜雪僵尸和
+初版 `spawnlists.json` 接入；植物奖励与 8-3～8-9 最终僵尸池仍待后续。新增内容必须继续复用这里的
 背景、环境资格和正式波次创建边界，不能复制第二套雪原状态。
 
 ## 地图与资源

@@ -252,6 +252,7 @@ private:
 		int holeColumn = -1;
 		int spawnWave = 0;
 		float timer = 0.0f;
+		bool tutorialSnowBurrow = false;
 	};
 
 	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
@@ -424,6 +425,8 @@ private:
 	int mIceCrackDrillsSpawnedThisWave = 0; // 当前波正式生成的冰裂钻机数量；所有正式波次统一至多三只
 	int mWeatherJammersSpawnedThisWave = 0; // 当前波正式生成的气象干扰僵尸数量；所有正式波次统一至多一只
 	int mIceStatueExecutionersSpawnedThisWave = 0; // 当前波正式生成的冰像处刑者数量；所有正式波次统一至多一只
+	int mSnowBurrowsSpawnedThisWave = 0; // 当前波已接受的潜雪僵尸数量；8-1 上限一只，其后上限两只
+	bool mSnowBurrowTutorialHoleSpawnConsumed = false; // 8-1 是否已有一只潜雪僵尸真正从雪穴提交出生
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -478,7 +481,10 @@ private:
 	/** 周期发射与锁定垂直方向一致的分层风雪粒子。 */
 	void UpdatePolarNightWindVisual(float deltaTime);
 	/** 创建正式波次僵尸，或在同行活动雪穴处锁定一次延迟出生事务。 */
-	bool CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightEdgeX);
+	bool CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightEdgeX,
+		bool tutorialSnowBurrow = false);
+	/** 返回活动实体与已锁定雪穴事务中指定类型的敌对数量。 */
+	int CountActiveOrPendingZombieType(ZombieType type) const;
 	/** 最终波警告开始时从当前实数平滑补齐三项危险，不重新触发已有白毛风。 */
 	void BeginPolarFinalWavePrelude();
 	void UpdateWeatherPanelInterference(float deltaTime);
@@ -1066,6 +1072,10 @@ public:
 	int GetIceStatueExecutionersSpawnedThisWave() const {
 		return mIceStatueExecutionersSpawnedThisWave;
 	}
+	int GetSnowBurrowsSpawnedThisWave() const { return mSnowBurrowsSpawnedThisWave; }
+	bool HasConsumedSnowBurrowTutorialHoleSpawn() const {
+		return mSnowBurrowTutorialHoleSpawnConsumed;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -1120,6 +1130,8 @@ public:
 	ZombieType ResolveRainMutationType(ZombieType selected, int mutationRoll = 0);
 	/** 正式波次总解析入口；超过类型上限返回 NUM_ZOMBIE_TYPES，调用方必须跳过候选。 */
 	ZombieType ResolveWaveZombieType(ZombieType selected, int mutationRoll = 0);
+	/** 从存档恢复潜雪僵尸本波计数与 8-1 雪穴保底提交状态。 */
+	void RestoreSnowBurrowSpawnState(int count, bool tutorialHoleSpawnConsumed);
 	/** 创建已解析的正式波次类型；成功后记录依赖实际出生的永久遭遇。 */
 	Zombie* CreateResolvedWaveZombie(ZombieType actualType, int row, float x);
 

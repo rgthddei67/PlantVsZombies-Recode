@@ -51,7 +51,7 @@ bool Caltrop::HasTargetInAttackRect() const
 	bool found = false;
 	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (found || !zombie || zombie->IsMindControlled() || zombie->IsDying()
-			|| !zombie->CanBeTargetedByProjectile(false)) return;
+			|| !zombie->CanBeAffectedByGroundHazards()) return;
 		const ColliderComponent* collider = zombie->GetColliderComponent();
 		if (collider && collider->mEnabled && HorizontalOverlap(collider->GetBoundingBox(),
 			attackLeft, kAttackRectWidth) > 0.0f) {
@@ -69,7 +69,7 @@ void Caltrop::DamageTargetsAtAttackFrame()
 	bool hitAny = false;
 	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (!zombie || zombie->IsMindControlled() || zombie->IsDying()
-			|| !zombie->CanBeTargetedByProjectile(false)) return;
+			|| !zombie->CanBeAffectedByGroundHazards()) return;
 		const ColliderComponent* collider = zombie->GetColliderComponent();
 		if (!collider || !collider->mEnabled || HorizontalOverlap(collider->GetBoundingBox(),
 			attackLeft, kAttackRectWidth) <= 0.0f) {
@@ -82,6 +82,10 @@ void Caltrop::DamageTargetsAtAttackFrame()
 			return;
 		}
 		zombie->TakeDamage(kCaltropDamage, DamageSource::PLANT);
+		if (zombie->IsActive() && !zombie->IsDying()) {
+			// 地刺只发出地面命中请求；地下状态、冲击取消与出土时序仍由目标自己拥有。
+			zombie->ForceSurfaceFromGroundHazard();
+		}
 	});
 
 	if (hitAny) {

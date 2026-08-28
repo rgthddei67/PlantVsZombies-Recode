@@ -420,6 +420,11 @@ public:
 	virtual bool CanBeButtered() const { return CanBeFrozen(); }
 	/** 地面区域危害的通用命中资格；飞行单位默认免疫，特殊阶段可进一步收紧。 */
 	virtual bool CanBeAffectedByGroundHazards() const { return !IsFlying(); }
+	/**
+	 * 地面能力命中后请求目标立即结束地下阶段；普通品种无地下阶段，默认不处理。
+	 * @return true 表示目标接受请求并开始出地，调用方不得直接改写其私有阶段。
+	 */
+	virtual bool ForceSurfaceFromGroundHazard() { return false; }
 	/** 玉米加农炮爆炸的品种/阶段命中资格；默认沿用地面危害，飞行品种可单独放行。 */
 	virtual bool CanBeAffectedByCobCannonExplosion() const {
 		return CanBeAffectedByGroundHazards();

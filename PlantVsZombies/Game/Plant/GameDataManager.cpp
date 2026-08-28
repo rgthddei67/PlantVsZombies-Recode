@@ -115,6 +115,7 @@
 #include "../Zombie/IceCrackDrillZombie.h"
 #include "../Zombie/WeatherJammerZombie.h"
 #include "../Zombie/IceStatueExecutionerZombie.h"
+#include "../Zombie/SnowBurrowZombie.h"
 
 namespace {
 	template<typename T>
@@ -709,6 +710,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_LADDER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_LADDER_ZOMBIE,
 		&MakeZombie<IceStatueExecutionerZombie>);
+
+	// 潜雪僵尸独立复用矿工时间线；雪帽与雪铲无耐久，全部潜雪状态由本体拥有。
+	RegisterZombie(ZombieType::ZOMBIE_SNOW_BURROW, "ZOMBIE_SNOW_BURROW",
+		AnimationType::ANIM_SNOW_BURROW_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_SNOW_BURROW_ZOMBIE,
+		&MakeZombie<SnowBurrowZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

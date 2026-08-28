@@ -1,0 +1,17 @@
+<Emitter>
+  <Name>SnowBurrowTrail</Name>
+  <SpawnMinActive>5</SpawnMinActive>
+  <SpawnMaxLaunched>5</SpawnMaxLaunched>
+  <ParticleDuration>[.22 .36]</ParticleDuration>
+  <ParticleAlpha>.75,68 0</ParticleAlpha>
+  <ParticleScale>[.32 .58]</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-12 12]</EmitterBoxX>
+  <EmitterBoxY>[-3 3]</EmitterBoxY>
+  <LaunchSpeed>[15 42]</LaunchSpeed>
+  <ParticleGravity>45</ParticleGravity>
+  <SystemDuration>.42</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-240 240]</ParticleSpinSpeed>
+</Emitter>

@@ -139,7 +139,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 **一次性爆发云**（FumeCloud/IceFumeCloud）：`SpawnMinActive [16 32]` + `ParticleAlpha .9,80 0` + Position 场区间轨迹铺开 + `Shake 1` + `SystemDuration 1.25`。染色版只加三行 RGB；实体阻断长度走 `clipRightX`，XML 保持完整射程。
 
 **掉落物**（ZombieHeadOff）：`SpawnMinActive 1` + `LaunchSpeed [60 100]` + `RandomLaunchSpin 1` + `ParticleGravity 140` + `ParticleSpinSpeed [-5 5]`。通用旧效果可保留 Position 场修正；新部件效果优先由代码传入轨道世界锚点并让 XML 偏移归零。
-若帽子、头饰等必须与头保持固定连接，先在透明画布中预合成一张专属 PNG，再用单粒子整体抛飞；不要并发两颗带随机速度/自旋的粒子。可复现生成脚本应锁定合成图 SHA-256，AutoTest 断言专属效果一颗/一 quad 且通用掉头效果为 0。
+若帽子、头饰等必须与头保持固定连接，即使它只是无耐久装饰、从不走护甲破损，也要先在透明画布中预合成一张专属 PNG，再用单粒子整体抛飞；不要并发两颗带随机速度/自旋的粒子。断头提交时同步隐藏本体头轨与这条装饰轨，避免离体粒子出现后宿主仍残留帽子。可复现生成脚本应锁定合成图 SHA-256，AutoTest 断言专属效果一颗/一 quad、宿主装饰轨已隐藏且通用掉头效果为 0。
 
 **命中飞溅**（PeaBulletHit，双发射器）：主溅斑（1颗、`ParticleScale 1.2 0.4` 缩小消失）+ 碎屑环（`EmitterType Circle` + `LaunchSpeed [65]` + `Friction 0.0,10 0.1` 先快后刹 + `Acceleration Y=5` 微下坠）。
 

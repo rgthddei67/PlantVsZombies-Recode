@@ -401,6 +401,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			{ "holeColumn", pending.holeColumn },
 			{ "spawnWave", pending.spawnWave },
 			{ "timer", pending.timer },
+			{ "tutorialSnowBurrow", pending.tutorialSnowBurrow },
 		});
 	}
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
@@ -482,6 +483,9 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["weatherJammersSpawnedThisWave"] = board->mWeatherJammersSpawnedThisWave;
 	j["iceStatueExecutionersSpawnedThisWave"] =
 		board->mIceStatueExecutionersSpawnedThisWave;
+	j["snowBurrowsSpawnedThisWave"] = board->mSnowBurrowsSpawnedThisWave;
+	j["snowBurrowTutorialHoleSpawnConsumed"] =
+		board->mSnowBurrowTutorialHoleSpawnConsumed;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -1097,6 +1101,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				static_cast<ZombieType>(type), row, column,
 				std::clamp(pending.value("spawnWave", 0), 0, 10000),
 				std::clamp(pending.value("timer", 0.0f), 0.0f, 1.0f),
+				pending.value("tutorialSnowBurrow", false),
 			});
 		}
 	}
@@ -1340,6 +1345,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("weatherJammersSpawnedThisWave", 0));
 	board->RestoreIceStatueExecutionerWaveSpawnCount(
 		j.value("iceStatueExecutionersSpawnedThisWave", 0));
+	board->RestoreSnowBurrowSpawnState(
+		j.value("snowBurrowsSpawnedThisWave", 0),
+		j.value("snowBurrowTutorialHoleSpawnConsumed", false));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

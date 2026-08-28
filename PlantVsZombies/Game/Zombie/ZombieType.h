@@ -78,6 +78,7 @@ enum class ZombieType {
 	ZOMBIE_ICE_CRACK_DRILL, // 冰裂钻机：冻土蓄力后提交同行持续地裂
 	ZOMBIE_WEATHER_JAMMER, // 气象干扰僵尸：铁桶本体停步干扰当前全部公开天气预报
 	ZOMBIE_ICE_STATUE_EXECUTIONER, // 冰像处刑者：封存冻土高价值植物并以三锤推进处决
+	ZOMBIE_SNOW_BURROW, // 潜雪僵尸：出生潜雪，并在半血前摇后提交第二次短潜雪
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
