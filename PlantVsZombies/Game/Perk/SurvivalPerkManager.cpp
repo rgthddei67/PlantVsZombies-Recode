@@ -18,7 +18,7 @@ namespace {
 		{ "PLANT_SUN_BONUS", u8"阳光增产", u8"每层使收集到的阳光 +15%（最多 10 层）", 0.15f, 10, PerkCategory::PLANT_BUFF, PerkRarity::COMMON, PerkCondition::NONE },
 		{ "PLANT_CARD_RECHARGE", u8"卡片加速", u8"每层使植物卡片冷却速度 +12%（最多 10 层）", 0.12f, 10, PerkCategory::PLANT_BUFF, PerkRarity::COMMON, PerkCondition::NONE },
 		{ "PLANT_MIST_REFINING", u8"雾灯精炼", u8"雾火价值与本波并发接收上限 +50%（最多 2 层）", 0.50f, 2, PerkCategory::PLANT_BUFF, PerkRarity::COMMON, PerkCondition::PLANTERN_MECHANICS },
-		{ "PLANT_CORROSIVE_TOXIN", u8"腐蚀毒液", u8"毒液按目标最大生命造成百分比伤害", 0.001f, 1, PerkCategory::PLANT_BUFF, PerkRarity::RARE, PerkCondition::NONE },
+		{ "PLANT_CORROSIVE_TOXIN", u8"腐蚀毒液", u8"毒液按目标最大生命造成百分比伤害", 0.01f, 1, PerkCategory::PLANT_BUFF, PerkRarity::RARE, PerkCondition::NONE },
 		{ "PLANT_UNYIELDING_ROOTS", u8"不屈根系", u8"每株植物每轮首次致命伤保留 1 HP，并免伤 3 秒", 3.0f, 1, PerkCategory::PLANT_BUFF, PerkRarity::RARE, PerkCondition::NONE },
 		{ "PLANT_DAMAGE_ECHO", u8"火力回响", u8"每 10 次实际植物伤害命中，额外回响一次同额伤害", 10.0f, 1, PerkCategory::PLANT_BUFF, PerkRarity::COMMON, PerkCondition::NONE },
 		{ "ZOMBIE_FOG_BREAKOUT", u8"雾幕突围", u8"首次走出浓雾时解控，并获得 3 秒控制免疫", 3.0f, 1, PerkCategory::ZOMBIE_CURSE, PerkRarity::COMMON, PerkCondition::PLANTERN_MECHANICS },
