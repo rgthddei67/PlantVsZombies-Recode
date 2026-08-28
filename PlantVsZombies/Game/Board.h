@@ -1131,8 +1131,11 @@ public:
 	bool CanBeginCobCannonTargeting(int row, int col) const;
 	/** 点击任一占格选择一株已装填加农炮，并进入独占落点模式。 */
 	bool BeginCobCannonTargeting(int row, int col);
-	/** 让当前已选加农炮向点击世界点开火；成功或目标失效都会退出落点模式。 */
-	bool FireTargetedCobCannonAt(const Vector& target, int targetRow);
+	/**
+	 * 让当前已选加农炮向点击世界点开火；屋顶只按该 X 的连续坡面推导逻辑行，
+	 * 不会把权威像素落点吸附到格子或坡面。成功或目标失效都会退出落点模式。
+	 */
+	bool FireTargetedCobCannonAt(const Vector& target);
 	/** 植物死亡或场景切换时按稳定 ID 取消仍指向它的落点模式。 */
 	void CancelCobCannonTargeting(int plantID);
 	bool IsCobCannonTargeting() const {

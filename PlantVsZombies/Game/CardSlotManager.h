@@ -28,6 +28,7 @@ private:
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
 	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
 	bool mPauseGameplayInputBlocked = false; // 普通空格暂停的附加门禁；非 GAME 状态始终禁止玩法输入
+	bool mSuppressCobTargetRelease = false; // 进入瞄准态的同一次左键释放不得立刻提交炮击
 	int mLastSun = 0; // 上次同步卡牌灰态的阳光值，按场景实例隔离
 	bool mPreviewRenderProbeReady = false; // AutoTest：最近一帧是否真正提交了手持预览
 	int mPreviewRenderMouseOffsetX = 0; // AutoTest：实际提交锚点相对鼠标 X，单位：逻辑 px
@@ -114,6 +115,8 @@ private:
 	bool HasInteractablePlanternAt(int row, int col) const;
 	/** 空手悬停于已装填加农炮时请求手型光标；资格与正式点击入口保持一致。 */
 	void UpdateCobCannonHoverCursor() const;
+	/** 在全战场接收炮击落点释放，允许提交到没有 Cell 的草坪外可见区域。 */
+	void UpdateCobCannonTargetingInput();
 	/** 右键命中三叶草卡槽时切换方向；返回是否消费了本次右键。 */
 	bool UpdateBloverDirectionInput();
 	void ApplySelectedBloverDirection(Plant* plant) const;

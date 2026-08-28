@@ -100,11 +100,7 @@ void CardSlotManager::Update() {
 	UpdatePlanternGearMenuInput();
 	UpdatePlanternHoverCursor();
 	UpdateCobCannonHoverCursor();
-	if (mBoard && mBoard->IsCobCannonTargeting()
-		&& GameAPP::GetInstance().GetInputHandler()
-			.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
-		mBoard->mCursorObjectManager.ClearActive();
-	}
+	UpdateCobCannonTargetingInput();
 
 	// 如果有选中的卡牌，更新鼠标悬停的Cell
 	auto* selected = selectedCard;
@@ -200,6 +196,28 @@ void CardSlotManager::UpdateCobCannonHoverCursor() const
 		hoveredCell->mRow, hoveredCell->mColumn)) {
 		CursorManager::GetInstance().IncrementHoverCount();
 	}
+}
+
+void CardSlotManager::UpdateCobCannonTargetingInput()
+{
+	if (!mBoard || !mBoard->IsCobCannonTargeting()) {
+		mSuppressCobTargetRelease = false;
+		return;
+	}
+
+	auto& input = GameAPP::GetInstance().GetInputHandler();
+	if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
+		mSuppressCobTargetRelease = false;
+		mBoard->mCursorObjectManager.ClearActive();
+		return;
+	}
+	if (mSuppressCobTargetRelease) {
+		// 场景可能在本控制器 Update 之后才派发 Cell::onClick；保护标志最多存活到下一步。
+		mSuppressCobTargetRelease = false;
+		if (input.IsMouseButtonReleased(SDL_BUTTON_LEFT)) return;
+	}
+	if (!input.IsMouseButtonReleased(SDL_BUTTON_LEFT)) return;
+	mBoard->FireTargetedCobCannonAt(input.GetMouseWorldPosition());
 }
 
 void CardSlotManager::UpdateAllCardsState() {
@@ -583,8 +601,7 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 void CardSlotManager::HandleCellClick(int row, int col) {
 	if (!CanAcceptGameplayInput()) return;
 	if (mBoard->IsCobCannonTargeting()) {
-		mBoard->FireTargetedCobCannonAt(
-			GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition(), row);
+		// 落点释放由全战场输入入口统一处理；Cell 只负责开始瞄准与普通落种。
 		return;
 	}
 	if (!selectedCard) {
@@ -593,7 +610,7 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 			TogglePlanternGearMenu();
 			return;
 		}
-		mBoard->BeginCobCannonTargeting(row, col);
+		mSuppressCobTargetRelease = mBoard->BeginCobCannonTargeting(row, col);
 		return;
 	}
 

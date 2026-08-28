@@ -6953,9 +6953,21 @@ bool Board::CanBeginCobCannonTargeting(int row, int col) const
 	return cannon && cannon->IsActive() && cannon->IsReady();
 }
 
-bool Board::FireTargetedCobCannonAt(const Vector& target, int targetRow)
+bool Board::FireTargetedCobCannonAt(const Vector& target)
 {
 	if (!IsCobCannonTargeting()) return false;
+	const float rowHeight = GetCellHeight();
+	const float boardTop = mRows > 0
+		? GetRowCenterYAtX(0, target.x) - rowHeight * 0.5f : -1.0f;
+	if (mRows <= 0 || rowHeight <= 0.0f || boardTop < 0.0f || target.y < boardTop) {
+		// 与原版草坪上界门禁一致：点到卡槽/UI 区只取消准星，不提交炮击。
+		mCursorObjectManager.ClearActive();
+		return false;
+	}
+	// 只用屋顶在 target.x 处的连续坡面划分逻辑行；target 本身保持玩家点击像素不变，
+	// 避免原版先转格再写回 Y 所产生的屋顶“上界之风”落点偏移。
+	const int targetRow = std::clamp(static_cast<int>(std::floor(
+		(target.y - boardTop) / rowHeight)), 0, mRows - 1);
 	auto* cannon = dynamic_cast<CobCannon*>(
 		mEntityRegistry.GetPlant(mTargetingCobCannonID));
 	const bool fired = cannon && cannon->IsActive()

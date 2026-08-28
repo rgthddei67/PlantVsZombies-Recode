@@ -1406,9 +1406,8 @@ bool TestDriver::ExecuteCurrent() {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()
 			|| !gs->GetBoard()->FireTargetedCobCannonAt(
-				Vector(cmd.value("x", -1.0f), cmd.value("y", -1.0f)),
-				cmd.value("row", -1))) {
-			Fail("fire_targeted_cob_cannon: 当前未瞄准、目标行非法或炮体不再可发射");
+				Vector(cmd.value("x", -1.0f), cmd.value("y", -1.0f)))) {
+			Fail("fire_targeted_cob_cannon: 当前未瞄准、落点位于战场上界外或炮体不再可发射");
 			return false;
 		}
 		return true;
