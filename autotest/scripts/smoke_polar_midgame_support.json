@@ -59,6 +59,7 @@
     { "op": "wait_seconds", "value": 18.3 },
     { "op": "set_timescale", "value": 1.0 },
     { "op": "assert_state", "path": "plants.0.iceMirrorCount", "equals": 2 },
+    { "op": "screenshot", "name": "02a_ice_mirror_two_faceted_panes.png" },
     { "op": "spawn_zombie", "type": "ZOMBIE_THERMAL_SNIPER", "row": 2, "x": 930, "stationary": true },
     { "op": "wait_seconds", "value": 6.2 },
     { "op": "assert_state", "path": "zombies.0.thermalSniperPhase", "equals": 1 },
