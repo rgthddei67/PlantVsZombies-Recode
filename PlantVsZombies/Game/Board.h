@@ -561,6 +561,10 @@ private:
 	void UpdateWeatherTransition(float deltaTime);
 	void FinishWeatherTransitionImmediately();
 	void RestoreWeatherTransition(RainIntensity previous, float remaining);
+	/** 将当前普通出波倒计时夹紧到暴风雨夜上限；波次调度常量仍由 Board 核心唯一持有。 */
+	void ClampStormyNightWaveCountdown();
+	/** 使用 Board 核心持有的统一音量播放一次天气雷声。 */
+	void PlayWeatherThunder();
 	void ActivateStormyNight();
 	void EnforceStormyNightWeather();
 	void UpdateStormyNightFlash(float deltaTime);

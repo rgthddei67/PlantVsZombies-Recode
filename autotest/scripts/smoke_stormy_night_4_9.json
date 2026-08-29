@@ -1,6 +1,7 @@
 {
   "commands": [
     { "op": "goto_level", "level": 36, "resetTestState": true },
+    { "op": "set_difficulty", "value": 1 },
     { "op": "set_timescale", "value": 1.0 },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
     { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },

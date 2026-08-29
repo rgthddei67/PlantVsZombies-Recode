@@ -51,7 +51,7 @@
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-23 普通卡继续保存稳定枚举名；模仿者以 `PLANT_IMITATER:PLANT_TARGET` 保存代理身份与目标，恢复时重新验证目标资格并复用飞入动画
 - [疯狂戴夫关卡闲聊与隐性机制提示](project_pvz_crazy_dave_tutorial_dialog.md) — 2026-08-26 2-1、4-1、4-2、4-9、5-1、6-1、6-9、7-1、7-8、7-9 以原版风格闲聊含蓄提示天气、雾、燃料、屋顶、雷荷与寒潮；7-8/7-9 在选卡前提示开局强寒潮并说明回暖后恢复随机，完成/跳过一次记录，玩家 schema v5、原版 JPG 灰度 alpha 遮罩、原版 12 段短/长/超长/疯狂语音及切页停声；1-1、3-1不出现
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-29 已分两批把寒潮/冻融/霜线迁入 `BoardWinterClimate.cpp`，把极夜导演/雪穴状态/强风偏行迁入 `BoardPolarNight.cpp`；`Board` 公共门面、状态权威、字段布局和存档键不变，核心创建与波次入口继续留在 `Board.cpp`；每次任务提交前审计相关 skills
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-29 已分三批把寒潮/冻融/霜线迁入 `BoardWinterClimate.cpp`，把极夜导演/雪穴状态/强风偏行迁入 `BoardPolarNight.cpp`，把基础雨势/预报/台风/暴风雨夜迁入 `BoardWeather.cpp`；`Board` 公共门面、状态权威、字段布局和存档键不变，雾势、屋顶积累器、核心创建与波次入口继续留在 `Board.cpp`；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环
@@ -91,7 +91,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-08-27当前契约：BatchVertex保留逐顶点framebuffer裁剪，活动Clip的实例精灵/Animator/字形按原调用位置回退batch；Push/Pop仍不flush、不录worker状态命令或改动态scissor，无裁剪InstanceRecord因而收回48B
-- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-28 `PlayerInfo` 默认开启“会出现台风天气”，`SupportsTyphoon()` 统一约束总开关与冬日花园地图门禁；无尽不再按模式禁台风，雪原仍按背景禁用；开局保护只在总开关开启时显示并保护普通冒险/无尽首轮第 1～5 波，控制台整行悬停说明区分两项语义
+- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-29 基础雨势、导演/预报、台风、4-9 暴风雨夜与天气栏目干扰已迁入 `BoardWeather.cpp`，独立雾势和屋顶积累器仍留 `Board.cpp`；Board 唯一权威、字段布局与存档键不变，普通雨链/预报/台风/暴风雨夜/督军改天可见回归闭环
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-08-22 唯一路灯花以25/100雾火维持四挡逐格照明/索敌与产光；本体交互改由CardSlotManager和Cell唯一解析，空手悬停显示手型并可开菜单，拿植物/铲子/炮击准星时不显示手型、不展开菜单且不截断同格南瓜头或under层避雷花盆放置；燃料曲线、6-9动态雾和存档合同保持
 - [雾夜第四大关4-1至4-9出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-08-03 4-8当前为普通/精英海豚、气球、跳跳三高度池；4-9为12类型暴风雨终局综合池并以普通/精英跳跳收尾；权威资源未改，4-7～4-9有序池与预览专项已同步并可见通过
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-08-02 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧直接清除爆区全部植物层），明确不受南瓜范围拦截影响；专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归
