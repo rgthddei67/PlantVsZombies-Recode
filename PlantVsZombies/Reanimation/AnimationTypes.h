@@ -124,6 +124,8 @@ enum class AnimationType
 	ANIM_LISTENINGGRASS, // 听雪草独立覆霜材质；复用经典叶子保护伞时间线
 	ANIM_GATLINGPEA, // 经典机枪射手独立时间线；追加在末尾避免旧动画枚举值错位
 	ANIM_AURORATORCHWOOD, // 极光树桩复用火炬树桩运动并替换晶化分件
+	ANIM_NORTHSTARFLOWER, // 北极星花复用向日葵摇摆时间线并替换极夜分件
+	ANIM_ICEMIRRORGRASS, // 冰镜草复用路灯花呼吸时间线并替换冰晶分件
 };
 
 #endif

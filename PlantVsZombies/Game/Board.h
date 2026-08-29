@@ -272,7 +272,10 @@ private:
 	bool mIsLoadSave = false;	// 是否正在加载存档
 	/** 用独立的实体身份和落种语义创建植物；普通入口传入相同类型。 */
 	Plant* CreatePlantInternal(PlantType actualType, PlantType placementType,
-		int row, int column, bool skipsettings, bool isPreview);
+		int row, int column, bool skipsettings, bool isPreview,
+		bool playerDeployment = false);
+	/** 成功完成卡片落种后向同行僵尸发布一次原子部署事件。 */
+	void NotifyPlayerPlantDeployed(const Plant& plant, PlantType placementType);
 	/** 读档版双类型创建；调用方必须先从模仿者 extraData 取得目标。 */
 	Plant* CreatePlantWithIDInternal(PlantType actualType, PlantType placementType,
 		int row, int col, int id);
@@ -429,6 +432,8 @@ private:
 	bool mSnowBurrowTutorialHoleSpawnConsumed = false; // 8-1 是否已有一只潜雪僵尸真正从雪穴提交出生
 	int mAdaptiveHelmetsSpawnedThisWave = 0; // 当前波已接受的适应头盔僵尸数量；8-3 起每波至多四只
 	bool mAdaptiveHelmetTutorialWaveSpawned = false; // 8-3 首轮白毛风结束后的独立教学出场是否已提交
+	int mThermalSnipersSpawnedThisWave = 0; // 当前波已接受的热感狙击僵尸数量；8-5/8-6 上限分别为三/四只
+	bool mThermalSniperTutorialSpawned = false; // 当前关要求的独立保底是否已经提交
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -824,7 +829,10 @@ public:
 	/** 专用封穴语义与小推车共用；普通伤害和铲子不得调用。 */
 	bool SealSnowHole(int row);
 	/** 发射时锁定垂直风切变；返回 false 表示越界落空。 */
-	bool ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target) const;
+	bool ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target,
+		bool guided = false) const;
+	/** 为一次即将提交的抛射动作取得现有领域或按稳定规则消费最近就绪北极星花。 */
+	bool PreparePolarLobbedNavigation(const Plant* plant);
 	/** AutoTest 固定三仪表和风向；生产逻辑只走已锁环境计划。 */
 	bool SetPolarNightEnvironmentForTesting(float temperatureC, float humidityPercent,
 		float windSpeedMps, VerticalWindDirection direction,
@@ -955,7 +963,7 @@ public:
 	/** 返回指定格受到的路灯花照明比例（0～1）；所有雾玩法消费同一形状。 */
 	float GetPlanternIllumination(int row, int col) const;
 	/** 远程植物的统一雾中索敌许可；可见边界外一格薄雾与近身目标仍可感知。 */
-	bool CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const;
+	bool CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie);
 	/** 周围产光植物的局部效率倍率；三档峰值依次为 1.10/1.20/1.35。 */
 	float GetPlanternSunProductionMultiplier(const Plant* producer) const;
 	float GetPlanternFuel() const;
@@ -1086,6 +1094,10 @@ public:
 	bool HasSpawnedAdaptiveHelmetTutorialWave() const {
 		return mAdaptiveHelmetTutorialWaveSpawned;
 	}
+	int GetThermalSnipersSpawnedThisWave() const { return mThermalSnipersSpawnedThisWave; }
+	bool HasSpawnedThermalSniperTutorial() const { return mThermalSniperTutorialSpawned; }
+	/** 恢复热感狙击僵尸的当前波上限计数与本关保底提交状态。 */
+	void RestoreThermalSniperSpawnState(int waveCount, bool tutorialSpawned);
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -1390,6 +1402,8 @@ public:
 
 	// 创建植物
 	Plant* CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
+	/** 玩家卡片和 AutoTest 的正式落种入口；预览、初始布置与读档不得调用。 */
+	Plant* CreatePlayerPlant(PlantType plantType, int row, int column);
 	/** 创建按目标占层/占格的模仿者占位；卡槽只在目标有效时调用。 */
 	Plant* CreateImitaterPlant(PlantType targetType, int row, int column);
 	/** 把已完成 anim_explode 的模仿者原子替换为同 ID 的泛白目标。 */

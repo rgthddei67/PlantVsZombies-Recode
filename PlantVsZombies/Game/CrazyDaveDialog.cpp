@@ -42,7 +42,7 @@ namespace {
 	};
 
 	// 信息刻意藏在戴夫的闲聊里：说明大关规则，不提前点名具体僵尸或解法。
-	const std::array<Conversation, 13> kConversations = {{
+	const std::array<Conversation, 15> kConversations = {{
 		{ 10, {
 			{ u8"欢迎来到夜班！夜班没有加班费，只有天气预报。", "anim_smalltalk" },
 			{ u8"从这儿开始，天说变就变——下雨时，院子两边都会跟着换个节奏。", "anim_mediumtalk" },
@@ -105,9 +105,17 @@ namespace {
 			{ u8"直着飞和贴地打的倒不在乎。它们比较固执。", "anim_blahblah" },
 		} },
 		{ 66, {
-			{ u8"如果温度、湿度、风速三只表一起变红……别等我的天气预报。", "anim_smalltalk" },
-			{ u8"白毛风会让植物只看得见附近三格；你还是看得见，别拿雪盲当借口！", "anim_mediumtalk" },
-			{ u8"它什么时候真正扑过来？自己盯着趋势猜。探险就该有点不讲理。哇卜！", "anim_crazy" },
+			{ u8"如果三只表一起变红，白毛风就要来了！", "anim_smalltalk" },
+			{ u8"北极星花蓄满以后，会在附近植物真正看不清、或者弹道要被吹偏时自动指路！", "anim_mediumtalk" },
+			{ u8"极光只照九格、只维持八秒，别把所有火力摊得太开。哇卜！", "anim_crazy" },
+		} },
+		{ 68, {
+			{ u8"那些红眼睛的家伙能感觉到新种下的植物！", "anim_smalltalk" },
+			{ u8"先拿坚果挡住热脉冲，或者骗它开枪后趁装填赶快种！", "anim_crazy" },
+		} },
+		{ 69, {
+			{ u8"冰镜草要先花时间凝出镜子，临时种可来不及！", "anim_smalltalk" },
+			{ u8"一株能攒两面，每面只能挡住一发直线敌弹！", "anim_mediumtalk" },
 		} },
 	}};
 

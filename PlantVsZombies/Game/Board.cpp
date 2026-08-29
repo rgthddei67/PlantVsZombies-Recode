@@ -296,6 +296,12 @@ namespace {
 	constexpr int kSnowBurrowTutorialLevel = 64;           // 内部 64 即 8-1，雪穴形成后保底一次潜雪出生
 	constexpr int kAdaptiveHelmetTutorialLevel = 66;      // 内部 66 即 8-3，首轮白毛风结束后独立教学
 	constexpr int kAdaptiveHelmetMaxPerWave = 4;          // 8-3 起每波最多四只，不设同时或累计上限
+	constexpr int kThermalSniperTutorialLevel = 68;       // 内部 68 即 8-5，第三波独立保底后开放自然候选
+	constexpr int kThermalSniperCompositeLevel = 69;      // 内部 69 即 8-6，第一波开放且第二波额外保底
+	constexpr int kThermalSniperTutorialWave = 3;         // 8-5 首次教学的额外保底波次
+	constexpr int kThermalSniperCompositeWave = 2;        // 8-6 组合教学的额外保底波次
+	constexpr int kThermalSniperTutorialMaxPerWave = 3;   // 8-5 每波最多三只
+	constexpr int kThermalSniperCompositeMaxPerWave = 4;  // 8-6 每波最多四只
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -2617,6 +2623,17 @@ void Board::RestoreAdaptiveHelmetSpawnState(
 		&& tutorialWaveSpawned;
 }
 
+void Board::RestoreThermalSniperSpawnState(int waveCount, bool tutorialSpawned)
+{
+	const int maxPerWave = mLevel == kThermalSniperTutorialLevel
+		? kThermalSniperTutorialMaxPerWave : kThermalSniperCompositeMaxPerWave;
+	mThermalSnipersSpawnedThisWave = std::clamp(waveCount, 0, maxPerWave);
+	mThermalSniperTutorialSpawned = !mIsSurvival
+		&& (mLevel == kThermalSniperTutorialLevel
+			|| mLevel == kThermalSniperCompositeLevel)
+		&& tutorialSpawned;
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2877,6 +2894,16 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mAdaptiveHelmetsSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_THERMAL_SNIPER && !mIsSurvival) {
+		const int maxPerWave = mLevel == kThermalSniperTutorialLevel
+			? kThermalSniperTutorialMaxPerWave : kThermalSniperCompositeMaxPerWave;
+		if ((mLevel == kThermalSniperTutorialLevel
+				&& !mThermalSniperTutorialSpawned)
+			|| mThermalSnipersSpawnedThisWave >= maxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mThermalSnipersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -5781,7 +5808,7 @@ float Board::GetPlanternIllumination(int row, int col) const
 	return 0.0f;
 }
 
-bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const
+bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie)
 {
 	if (!plant || !zombie || !plant->CanAcquireZombie(zombie)) return false;
 	if (IsPolarSnowBlindActive()) {
@@ -5796,7 +5823,8 @@ bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) cons
 		const Vector plantCenter = centerOf(plant, plant->GetColliderComponent());
 		const Vector zombieCenter = centerOf(zombie, zombie->GetColliderComponent());
 		if ((zombieCenter - plantCenter).sqrMagnitude()
-			> kPolarSnowBlindRange * kPolarSnowBlindRange) return false;
+			> kPolarSnowBlindRange * kPolarSnowBlindRange
+			&& !PreparePolarLobbedNavigation(plant)) return false;
 	}
 	if (!SupportsPlanternMechanics()) return true;
 	const Vector plantPosition = plant->GetPosition();
@@ -7630,9 +7658,10 @@ bool Board::SealSnowHole(int row)
 }
 
 /** 锁定当前强风带来的恰好一行偏移；越界仍移动视觉落点但禁止命中。 */
-bool Board::ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target) const
+bool Board::ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target,
+	bool guided) const
 {
-	if (!SupportsPolarNightEnvironment() || !IsPolarWindDangerous()
+	if (guided || !SupportsPolarNightEnvironment() || !IsPolarWindDangerous()
 		|| mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
 		landingRow = sourceRow;
 		return true;
@@ -7642,6 +7671,29 @@ bool Board::ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target)
 	landingRow = sourceRow + rowDelta;
 	target.y += static_cast<float>(rowDelta) * mCellHeight;
 	return landingRow >= 0 && landingRow < mRows;
+}
+
+bool Board::PreparePolarLobbedNavigation(const Plant* plant)
+{
+	if (!plant || !SupportsPolarNightEnvironment()) return false;
+	Plant* nearestReady = nullptr;
+	int nearestDistance = 0;
+	for (const int plantID : mEntityRegistry.GetAllPlantIDs()) {
+		Plant* provider = mEntityRegistry.GetPlant(plantID);
+		if (!provider || !provider->CoversPolarNavigationCell(
+			plant->mRow, plant->mColumn)) continue;
+		if (provider->IsPolarNavigationActive()) return true;
+		if (!provider->IsPolarNavigationReady()) continue;
+		const int distance = std::abs(provider->mRow - plant->mRow)
+			+ std::abs(provider->mColumn - plant->mColumn);
+		if (!nearestReady || distance < nearestDistance
+			|| (distance == nearestDistance
+				&& provider->mPlantID < nearestReady->mPlantID)) {
+			nearestReady = provider;
+			nearestDistance = distance;
+		}
+	}
+	return nearestReady && nearestReady->ActivatePolarNavigation();
 }
 
 bool Board::SetPolarNightEnvironmentForTesting(float temperatureC,
@@ -8067,7 +8119,13 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column,
 	bool skipsettings, bool isPreview)
 {
 	return CreatePlantInternal(plantType, plantType, row, column,
-		skipsettings, isPreview);
+		skipsettings, isPreview, false);
+}
+
+Plant* Board::CreatePlayerPlant(PlantType plantType, int row, int column)
+{
+	return CreatePlantInternal(plantType, plantType, row, column,
+		false, false, true);
 }
 
 Plant* Board::CreateImitaterPlant(PlantType targetType, int row, int column)
@@ -8078,11 +8136,11 @@ Plant* Board::CreateImitaterPlant(PlantType targetType, int row, int column)
 		return nullptr;
 	}
 	return CreatePlantInternal(PlantType::PLANT_IMITATER, targetType,
-		row, column, false, false);
+		row, column, false, false, true);
 }
 
 Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
-	int row, int column, bool skipsettings, bool isPreview)
+	int row, int column, bool skipsettings, bool isPreview, bool playerDeployment)
 {
 	const int requestedRow = row;
 	const int requestedColumn = column;
@@ -8211,9 +8269,22 @@ Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 		if (placementType == PlantType::PLANT_PLANTERN) {
 			mActivePlanternID = plant->mPlantID;
 		}
+		if (playerDeployment && !mIsLoadSave) {
+			NotifyPlayerPlantDeployed(*plant, placementType);
+		}
 	}
 
 	return plant.get();
+}
+
+void Board::NotifyPlayerPlantDeployed(const Plant& plant, PlantType placementType)
+{
+	const int baseMaxHealth = std::max(1,
+		GameDataManager::GetInstance().GetPlantSimulationProfile(
+			placementType).baseHealth);
+	mEntityRegistry.ForEachZombieInRow(plant.mRow, [&](Zombie* zombie) {
+		if (zombie) zombie->OnPlayerPlantDeployed(plant, baseMaxHealth);
+	});
 }
 
 Plant* Board::MorphImitater(Imitater* imitater)
@@ -8502,6 +8573,7 @@ void Board::SummonNextWave()
 	mIceStatueExecutionersSpawnedThisWave = 0;
 	mSnowBurrowsSpawnedThisWave = 0;
 	mAdaptiveHelmetsSpawnedThisWave = 0;
+	mThermalSnipersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -8815,6 +8887,8 @@ inline ZombieType Board::PickZombieType(int remainingPoints)
 		ZombieType type = GetWeightedRandomZombie();
 		int cost = GameDataManager::GetInstance().GetZombieWeight(type);
 		int minWave = GameDataManager::GetInstance().GetZombieAppearWave(type);
+		if (!mIsSurvival && mLevel == kThermalSniperCompositeLevel
+			&& type == ZombieType::ZOMBIE_THERMAL_SNIPER) minWave = 1;
 		if (remainingPoints >= cost && (mIsSurvival || mCurrentWave >= minWave))
 			return type;
 	}
@@ -8889,6 +8963,27 @@ inline void Board::TrySummonZombie()
 				ZombieType::ZOMBIE_SNOW_BURROW);
 			if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
 				CreateOrQueueWaveZombie(actualType, tutorialRow, x, true);
+			}
+		}
+	}
+	// 8-5/8-6 的保底不消耗普通预算，但会消费本波品种名额并随存档保持一次性。
+	const bool thermalTutorialEdge = !mIsSurvival && !mThermalSniperTutorialSpawned
+		&& ((mLevel == kThermalSniperTutorialLevel
+				&& mCurrentWave == kThermalSniperTutorialWave)
+			|| (mLevel == kThermalSniperCompositeLevel
+				&& mCurrentWave == kThermalSniperCompositeWave));
+	const int thermalWaveCap = mLevel == kThermalSniperTutorialLevel
+		? kThermalSniperTutorialMaxPerWave : kThermalSniperCompositeMaxPerWave;
+	if (thermalTutorialEdge && mThermalSnipersSpawnedThisWave < thermalWaveCap) {
+		const int row = SelectSpawnRow(ZombieType::ZOMBIE_THERMAL_SNIPER);
+		if (row >= 0) {
+			++mThermalSnipersSpawnedThisWave;
+			if (CreateResolvedWaveZombie(ZombieType::ZOMBIE_THERMAL_SNIPER,
+				row, x)) {
+				mThermalSniperTutorialSpawned = true;
+			}
+			else {
+				--mThermalSnipersSpawnedThisWave;
 			}
 		}
 	}
@@ -9219,6 +9314,8 @@ void Board::OnSurvivalRoundClear()
 	mSnowBurrowsSpawnedThisWave = 0;
 	mAdaptiveHelmetsSpawnedThisWave = 0;
 	mAdaptiveHelmetTutorialWaveSpawned = false;
+	mThermalSnipersSpawnedThisWave = 0;
+	mThermalSniperTutorialSpawned = false;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

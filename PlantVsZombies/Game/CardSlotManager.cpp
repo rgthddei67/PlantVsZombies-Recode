@@ -654,7 +654,7 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 	// 创建植物
 	Plant* plant = selectedCard->GetPlantType() == PlantType::PLANT_IMITATER
 		? mBoard->CreateImitaterPlant(selectedCard->GetImitaterTarget(), row, col)
-		: mBoard->CreatePlant(selectedCard->GetPlantType(), row, col);
+		: mBoard->CreatePlayerPlant(selectedCard->GetPlantType(), row, col);
 
 	if (plant) {
 		if (auto* blover = dynamic_cast<Blover*>(plant)) {

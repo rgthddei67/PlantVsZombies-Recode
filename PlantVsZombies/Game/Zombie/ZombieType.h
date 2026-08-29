@@ -81,6 +81,7 @@ enum class ZombieType {
 	ZOMBIE_ICE_STATUE_EXECUTIONER, // 冰像处刑者：封存冻土高价值植物并以三锤推进处决
 	ZOMBIE_SNOW_BURROW, // 潜雪僵尸：出生潜雪，并在半血前摇后提交第二次短潜雪
 	ZOMBIE_ADAPTIVE_HELMET, // 适应头盔僵尸：头盔被击穿时免疫原植物谱系或全部灰烬
+	ZOMBIE_THERMAL_SNIPER, // 热感狙击僵尸：玩家部署植物时向原位置发射热脉冲
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

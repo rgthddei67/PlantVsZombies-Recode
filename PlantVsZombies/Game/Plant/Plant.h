@@ -101,6 +101,27 @@ public:
 	virtual void DrawStackBackground(Graphics*) {}
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
 	virtual void TakeDamage(int damage, DamageSource source);
+	/**
+	 * 结算热感部署拦截命中原触发实体的数值伤害。
+	 * 默认仍走普通承伤；只有拥有部署前短暂无敌的即时植物覆写以放行这一次数值攻击。
+	 */
+	virtual void TakeDeploymentInterceptionDamage(int damage, DamageSource source) {
+		TakeDamage(damage, source);
+	}
+	/**
+	 * 敌方水平直射弹进入本格时请求消耗一层附属拦截。
+	 * 返回 true 表示弹体已被完整吸收；普通植物保持 false。
+	 */
+	virtual bool TryInterceptHostileStraightProjectile(
+		float /*velocityX*/, const Vector& /*impactPosition*/) { return false; }
+	/** 当前是否为可覆盖指定格的极夜导航提供者。 */
+	virtual bool CoversPolarNavigationCell(int, int) const { return false; }
+	/** 当前活动领域是否已经能为覆盖格提供导航。 */
+	virtual bool IsPolarNavigationActive() const { return false; }
+	/** 当前是否已蓄满并可按需开启领域。 */
+	virtual bool IsPolarNavigationReady() const { return false; }
+	/** 按真实受干扰动作开启领域；返回 false 表示边沿已经失效。 */
+	virtual bool ActivatePolarNavigation() { return false; }
 	/** 新一轮开始时恢复本株一次不屈根系资格；新种植物默认也尚未消费。 */
 	void ResetUnyieldingRootsForRound();
 	bool HasSpentUnyieldingRoots() const { return mUnyieldingRootsSpent; }

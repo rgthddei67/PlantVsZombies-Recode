@@ -46,6 +46,7 @@ private:
 		TrajectoryKind kind = TrajectoryKind::LINEAR;
 		bool targetsIceWall = false; // 抛射起手时是否已锁定冰墙；在途存档后继续忽略墙后僵尸
 		bool polarWindMiss = false; // 发射时已被垂直风切变吹出边界；在途读档不得重判
+		bool polarGuided = false; // 发射边沿已由北极星领域锁定；读档后保持原落点
 
 		TrajectoryState() : apexHeight(0.0f) {}
 	};
@@ -81,6 +82,10 @@ protected:
 	std::unique_ptr<AuroraState> mAuroraState; // 首次变为极光弹时分配，保存四目标历史与单次音效状态
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
+	float mThermalEndpointX = 0.0f; // 热脉冲发射时锁定的原落种位置，单位世界 px
+	float mThermalEndpointY = 0.0f; // 热脉冲从真实炮口斜向收束到同行目标的终点高度，单位世界 px
+	int mThermalOriginalPlantID = NULL_PLANT_ID; // 只有该实体命中走部署拦截承伤入口
+	bool mThermalConfigured = false; // 对象池复用时防止未配置热脉冲误用零终点
 
 	// 子弹击中僵尸的效果
 	void BulletHitZombie(Zombie* zombie);
@@ -223,11 +228,12 @@ public:
 	 */
 	void ConfigureLobbedMotion(
 		const Vector& target, float durationSeconds, float apexHeight,
-		bool targetsIceWall = false);
+		bool targetsIceWall = false, bool polarGuided = false);
 	/** 按存档恢复在途解析抛物线，并重建速度、位置与末段碰撞门禁。 */
 	void RestoreLobbedMotion(const Vector& start, const Vector& target,
 		float elapsedSeconds, float durationSeconds, float apexHeight,
-		bool targetsIceWall = false, bool polarWindMiss = false);
+		bool targetsIceWall = false, bool polarWindMiss = false,
+		bool polarGuided = false);
 	bool IsLobbedMotion() const { return mTrajectory.kind == TrajectoryKind::LOBBED; }
 	bool TargetsIceWall() const {
 		return IsLobbedMotion() && mTrajectory.targetsIceWall;
@@ -242,15 +248,16 @@ public:
 	float GetLobDuration() const { return IsLobbedMotion() ? mTrajectory.duration : 0.0f; }
 	float GetLobApexHeight() const { return IsLobbedMotion() ? mTrajectory.apexHeight : 0.0f; }
 	bool IsPolarWindMiss() const { return mTrajectory.polarWindMiss; }
+	bool IsPolarGuided() const { return mTrajectory.polarGuided; }
 	float GetLobProgress() const;
 	float GetLobArcHeight() const;
 	/** 配置玉米加农炮专属轨迹；目标由玩家点击冻结，不再追踪实体。 */
 	void ConfigureCobCannonMotion(const Vector& target, int targetRow,
-		float durationSeconds = 1.4f);
+		float durationSeconds = 1.4f, bool polarGuided = false);
 	/** 按存档恢复在途玉米棒；不会重放已经过去的发射音效。 */
 	void RestoreCobCannonMotion(const Vector& start, const Vector& target,
 		int targetRow, float elapsedSeconds, float durationSeconds,
-		bool polarWindMiss = false);
+		bool polarWindMiss = false, bool polarGuided = false);
 	bool IsCobCannonMotion() const {
 		return mTrajectory.kind == TrajectoryKind::COB_CANNON;
 	}
@@ -266,6 +273,11 @@ public:
 	float GetCobDuration() const {
 		return IsCobCannonMotion() ? mTrajectory.duration : 0.0f;
 	}
+	/** 锁定敌方热脉冲的硬终点和原触发实体，并从真实炮口线性收束到目标；沿途实体仍可提前吸收。 */
+	void ConfigureThermalPulse(const Vector& endpoint, int originalPlantID);
+	float GetThermalEndpointX() const { return mThermalEndpointX; }
+	float GetThermalEndpointY() const { return mThermalEndpointY; }
+	int GetThermalOriginalPlantID() const { return mThermalOriginalPlantID; }
 	int GetCobTargetRow() const {
 		return IsCobCannonMotion() ? mTrajectory.targetRow : -1;
 	}

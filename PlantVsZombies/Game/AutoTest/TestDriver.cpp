@@ -59,6 +59,8 @@
 #include "../Plant/AlarmBellFlower.h"
 #include "../Plant/FurnaceCoreFlower.h"
 #include "../Plant/ListeningGrass.h"
+#include "../Plant/NorthStarFlower.h"
+#include "../Plant/IceMirrorGrass.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -80,6 +82,7 @@
 #include "../Zombie/IceStatueExecutionerZombie.h"
 #include "../Zombie/SnowBurrowZombie.h"
 #include "../Zombie/AdaptiveHelmetZombie.h"
+#include "../Zombie/ThermalSniperZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -373,6 +376,7 @@ namespace {
 		PT(PLANT_FURNACECOREFLOWER),
 		PT(PLANT_LISTENINGGRASS),
 		PT(PLANT_AURORATORCHWOOD),
+		PT(PLANT_NORTHSTARFLOWER), PT(PLANT_ICEMIRRORGRASS),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -382,6 +386,7 @@ namespace {
 		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 		BT(BULLET_MELT_SNOW), BT(BULLET_SALT_CRYSTAL),
 		BT(BULLET_AURORA_PEA),
+		BT(BULLET_THERMAL_PULSE),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -405,6 +410,7 @@ namespace {
 		ZT(ZOMBIE_ICE_STATUE_EXECUTIONER),
 		ZT(ZOMBIE_SNOW_BURROW),
 		ZT(ZOMBIE_ADAPTIVE_HELMET),
+		ZT(ZOMBIE_THERMAL_SNIPER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1415,7 +1421,7 @@ bool TestDriver::ExecuteCurrent() {
 				cmd.value("row", 0), cmd.value("col", 0));
 		}
 		else {
-			p = gs->GetBoard()->CreatePlant(it->second,
+			p = gs->GetBoard()->CreatePlayerPlant(it->second,
 				cmd.value("row", 0), cmd.value("col", 0));
 		}
 		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
@@ -4834,6 +4840,30 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "simulationSupportOnly", simulation.supportOnly },
 		};
 	}
+	out["polarMidgameResources"] = {
+		{ "northStarReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_NORTHSTARFLOWER) },
+		{ "northStarCardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_NORTHSTARFLOWER, false) != nullptr },
+		{ "northStarHeadTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_NORTHSTARFLOWER_HEAD, false) != nullptr },
+		{ "iceMirrorReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ICEMIRRORGRASS) },
+		{ "iceMirrorCardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ICEMIRRORGRASS, false) != nullptr },
+		{ "iceMirrorBodyTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ICEMIRRORGRASS_BODY, false) != nullptr },
+		{ "thermalPulseTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILETHERMALPULSE, false) != nullptr },
+		{ "thermalLauncherReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_THERMAL_SNIPER_LAUNCHER) },
+		{ "thermalGogglesTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_THERMAL_GOGGLES, false) != nullptr },
+		{ "thermalPackTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_THERMAL_PACK, false) != nullptr },
+		{ "thermalRifleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_THERMAL_RIFLE, false) != nullptr },
+	};
 	out["flowerPotResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_FLOWERPOT) },
@@ -5331,6 +5361,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetAdaptiveHelmetsSpawnedThisWave() },
 			{ "adaptiveHelmetTutorialWaveSpawned",
 				board->HasSpawnedAdaptiveHelmetTutorialWave() },
+			{ "thermalSnipersSpawnedThisWave",
+				board->GetThermalSnipersSpawnedThisWave() },
+			{ "thermalSniperTutorialSpawned",
+				board->HasSpawnedThermalSniperTutorial() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -5861,6 +5895,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int eliteDiggerZombieCount = 0;
 	int snowBurrowZombieCount = 0;
 	int adaptiveHelmetZombieCount = 0;
+	int thermalSniperZombieCount = 0;
 	int adaptedHelmetZombieCount = 0;
 	int elitePogoZombieCount = 0;
 	int eliteLadderZombieCount = 0;
@@ -5922,6 +5957,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_ADAPTIVE_HELMET) {
 			++adaptiveHelmetZombieCount;
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_THERMAL_SNIPER) {
+			++thermalSniperZombieCount;
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_CATAPULT) {
 			++eliteCatapultZombieCount;
@@ -6125,6 +6163,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				|| anim->GetTrackVisible("Zombie_innerarm_screendoor")
 				|| anim->GetTrackVisible("Zombie_innerarm_screendoor_hand")) },
 		};
+		if (auto* thermal = dynamic_cast<ThermalSniperZombie*>(z)) {
+			zombieState["thermalSniperPhase"] = static_cast<int>(thermal->GetSniperPhase());
+			zombieState["thermalReloadRemainingMs"] = static_cast<int>(std::lround(
+				thermal->GetReloadRemaining() * 1000.0f));
+			zombieState["thermalAimRemainingMs"] = static_cast<int>(std::lround(
+				thermal->GetAimRemaining() * 1000.0f));
+			zombieState["thermalLockedPlantID"] = thermal->GetLockedPlantID();
+		}
 		if (auto* elite = dynamic_cast<EliteDancerZombie*>(z)) {
 			zombieState["eliteBackupCount"] = elite->GetActiveBackupCount();
 			zombieState["eliteSummonRemainingMs"] = static_cast<int>(std::lround(
@@ -6950,6 +6996,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
 	out["snowBurrowZombieCount"] = snowBurrowZombieCount;
 	out["adaptiveHelmetZombieCount"] = adaptiveHelmetZombieCount;
+	out["thermalSniperZombieCount"] = thermalSniperZombieCount;
 	out["adaptedHelmetZombieCount"] = adaptedHelmetZombieCount;
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
@@ -7349,6 +7396,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			const std::string cellKey =
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["listeningGrassesByCell"][cellKey] = plantState;
+		}
+		if (auto* northStar = dynamic_cast<NorthStarFlower*>(p)) {
+			plantState["northStarChargeMs"] = static_cast<int>(std::lround(
+				northStar->GetChargeSeconds() * 1000.0f));
+			plantState["northStarActiveRemainingMs"] = static_cast<int>(std::lround(
+				northStar->GetActiveRemaining() * 1000.0f));
+			plantState["northStarReady"] = northStar->IsPolarNavigationReady();
+		}
+		if (auto* iceMirror = dynamic_cast<IceMirrorGrass*>(p)) {
+			plantState["iceMirrorCount"] = iceMirror->GetMirrorCount();
+			plantState["iceMirrorFormationProgressMs"] = static_cast<int>(std::lround(
+				iceMirror->GetFormationProgress() * 1000.0f));
 		}
 		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
 			plantState["imitaterTarget"] = PlantTypeName(
@@ -7892,6 +7951,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int flyingTargetSpikePiercedZombieCount = 0;
 	int groundTargetSpikePiercedZombieCount = 0;
 	int torchwoodProtectedPeaCount = 0;
+	int thermalPulseBulletCount = 0;
 	int animatedBulletCount = 0;
 	for (int id : board->mEntityRegistry.GetAllBulletIDs()) {
 		Bullet* bullet = board->mEntityRegistry.GetBullet(id);
@@ -7954,6 +8014,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_BASKETBALL) {
 			++basketballBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_THERMAL_PULSE) {
+			++thermalPulseBulletCount;
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
 			++spikeBulletCount;
@@ -8027,6 +8090,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				bulletShadow->GetOffset().y * 1000.0f)) : 0 },
 			{ "lobbedMotion", bullet->IsLobbedMotion() },
 			{ "polarWindMiss", bullet->IsPolarWindMiss() },
+			{ "polarGuided", bullet->IsPolarGuided() },
+			{ "thermalEndpointXInt", static_cast<int>(std::lround(
+				bullet->GetThermalEndpointX())) },
+			{ "thermalEndpointYInt", static_cast<int>(std::lround(
+				bullet->GetThermalEndpointY())) },
+			{ "thermalOriginalPlantID", bullet->GetThermalOriginalPlantID() },
 			{ "targetsIceWall", bullet->TargetsIceWall() },
 			{ "lobElapsedMs", static_cast<int>(std::lround(
 				bullet->GetLobElapsed() * 1000.0f)) },
@@ -8079,6 +8148,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["kernelBulletCount"] = kernelBulletCount;
 	out["butterBulletCount"] = butterBulletCount;
 	out["basketballBulletCount"] = basketballBulletCount;
+	out["thermalPulseBulletCount"] = thermalPulseBulletCount;
 	out["lobbedBulletCount"] = lobbedBulletCount;
 	out["flyingTargetSpikeCount"] = flyingTargetSpikeCount;
 	out["groundTargetSpikeCount"] = groundTargetSpikeCount;

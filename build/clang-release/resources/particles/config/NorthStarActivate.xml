@@ -1,0 +1,18 @@
+<Emitter>
+  <Name>NorthStarActivate</Name>
+  <SpawnMinActive>[12 18]</SpawnMinActive>
+  <SpawnMaxLaunched>18</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[6 24]</EmitterRadius>
+  <ParticleDuration>[.42 .82]</ParticleDuration>
+  <ParticleAlpha>.9,68 0</ParticleAlpha>
+  <ParticleScale>[.2 .44] .06</ParticleScale>
+  <ParticleRed>.58</ParticleRed>
+  <ParticleGreen>.82</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <LaunchSpeed>[24 68]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-180 180]</ParticleSpinSpeed>
+  <SystemDuration>.86</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

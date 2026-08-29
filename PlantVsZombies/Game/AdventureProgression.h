@@ -108,10 +108,10 @@ namespace AdventureProgression
 
 		// 8-1 ... 8-9（极夜雪原；8-1 通关后解锁首株极夜植物）
 		PlantType::PLANT_LISTENINGGRASS,
-		PlantType::PLANT_GATLINGPEA,
+		PlantType::PLANT_NORTHSTARFLOWER,
 		PlantType::PLANT_AURORATORCHWOOD,
-		NO_PLANT_REWARD,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_GATLINGPEA,
+		PlantType::PLANT_ICEMIRRORGRASS,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
@@ -234,8 +234,11 @@ namespace AdventureProgression
 	static_assert(GetAreaNumber(64) == 8 && GetLevelNumberInArea(64) == 1);
 	static_assert(GetAreaNumber(65) == 8 && GetLevelNumberInArea(65) == 2);
 	static_assert(GetPlantReward(64) == PlantType::PLANT_LISTENINGGRASS);
-	static_assert(GetPlantReward(65) == PlantType::PLANT_GATLINGPEA);
+	static_assert(GetPlantReward(65) == PlantType::PLANT_NORTHSTARFLOWER);
 	static_assert(GetPlantReward(66) == PlantType::PLANT_AURORATORCHWOOD);
+	static_assert(GetPlantReward(67) == PlantType::PLANT_GATLINGPEA);
+	static_assert(GetPlantReward(68) == PlantType::PLANT_ICEMIRRORGRASS);
+	static_assert(GetPlantReward(69) == NO_PLANT_REWARD);
 	static_assert(GetPlantReward(72) == NO_PLANT_REWARD);
 	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL - 1));
 	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL));

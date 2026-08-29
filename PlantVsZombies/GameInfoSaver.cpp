@@ -489,6 +489,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["adaptiveHelmetsSpawnedThisWave"] = board->mAdaptiveHelmetsSpawnedThisWave;
 	j["adaptiveHelmetTutorialWaveSpawned"] =
 		board->mAdaptiveHelmetTutorialWaveSpawned;
+	j["thermalSnipersSpawnedThisWave"] = board->mThermalSnipersSpawnedThisWave;
+	j["thermalSniperTutorialSpawned"] = board->mThermalSniperTutorialSpawned;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -642,6 +644,12 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		b["spikeDamageRemainders"] = bullet->GetSpikeDamageRemainders();
 		b["threepeaterMotion"] = bullet->IsThreepeaterMotion();
 		b["targetsFlying"] = bullet->TargetsFlying();
+		b["polarGuided"] = bullet->IsPolarGuided();
+		if (bullet->mBulletType == BulletType::BULLET_THERMAL_PULSE) {
+			b["thermalEndpointX"] = bullet->GetThermalEndpointX();
+			b["thermalEndpointY"] = bullet->GetThermalEndpointY();
+			b["thermalOriginalPlantID"] = bullet->GetThermalOriginalPlantID();
+		}
 		b["lobbedMotion"] = bullet->IsLobbedMotion();
 		if (bullet->IsLobbedMotion()) {
 			b["lobStartX"] = bullet->GetLobStart().x;
@@ -1359,6 +1367,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->RestoreAdaptiveHelmetSpawnState(
 		j.value("adaptiveHelmetsSpawnedThisWave", 0),
 		j.value("adaptiveHelmetTutorialWaveSpawned", false));
+	board->RestoreThermalSniperSpawnState(
+		j.value("thermalSnipersSpawnedThisWave", 0),
+		j.value("thermalSniperTutorialSpawned", false));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1586,7 +1597,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 					b.value("lobDuration", 1.2f),
 					b.value("lobApexHeight", 0.0f),
 					b.value("lobTargetsIceWall", false),
-					b.value("polarWindMiss", false));
+					b.value("polarWindMiss", false),
+					b.value("polarGuided", false));
 			}
 			if (b.value("cobCannonMotion", false)) {
 				bullet->RestoreCobCannonMotion(
@@ -1595,7 +1607,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 					b.value("cobTargetRow", row),
 					b.value("cobElapsed", 0.0f),
 					b.value("cobDuration", 1.4f),
-					b.value("polarWindMiss", false));
+					b.value("polarWindMiss", false),
+					b.value("polarGuided", false));
+			}
+			if (type == BulletType::BULLET_THERMAL_PULSE) {
+				bullet->ConfigureThermalPulse(
+					Vector(b.value("thermalEndpointX", x),
+						b.value("thermalEndpointY", y)),
+					b.value("thermalOriginalPlantID", NULL_PLANT_ID));
 			}
 		}
 	}

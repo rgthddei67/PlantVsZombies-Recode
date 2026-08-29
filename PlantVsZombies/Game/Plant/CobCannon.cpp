@@ -198,8 +198,10 @@ void CobCannon::LaunchCob()
 		GetVisualPosition() + kLaunchOffset, mPlantType);
 	if (!cob) return;
 	cob->SetBulletDamage(kCobDamage);
+	const bool polarGuided = mBoard->IsPolarWindDangerous()
+		&& mBoard->PreparePolarLobbedNavigation(this);
 	cob->ConfigureCobCannonMotion(
-		mPendingTarget, mPendingTargetRow, kCobFlightSeconds);
+		mPendingTarget, mPendingTargetRow, kCobFlightSeconds, polarGuided);
 }
 
 void CobCannon::Die()

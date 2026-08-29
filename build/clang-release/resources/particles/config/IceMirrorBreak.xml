@@ -1,0 +1,19 @@
+<Emitter>
+  <Name>IceMirrorBreak</Name>
+  <SpawnMinActive>[14 20]</SpawnMinActive>
+  <SpawnMaxLaunched>20</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 13]</EmitterRadius>
+  <ParticleDuration>[.38 .7]</ParticleDuration>
+  <ParticleAlpha>.92,72 0</ParticleAlpha>
+  <ParticleScale>[.3 .66] .08</ParticleScale>
+  <ParticleRed>.42</ParticleRed>
+  <ParticleGreen>.9</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <LaunchSpeed>[35 96]</LaunchSpeed>
+  <ParticleGravity>34</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-190 190]</ParticleSpinSpeed>
+  <SystemDuration>.74</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>

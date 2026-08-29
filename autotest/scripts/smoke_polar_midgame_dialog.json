@@ -1,0 +1,40 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 66, "resetTestState": true },
+    { "op": "show_crazy_dave_dialog" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "crazyDave.messageCount", "equals": 3 },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "如果三只表一起变红，白毛风就要来了！" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "北极星花蓄满以后，会在附近植物真正看不清、或者弹道要被吹偏时自动指路！" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "极光只照九格、只维持八秒，别把所有火力摊得太开。哇卜！" },
+    { "op": "skip_crazy_dave_dialog" },
+
+    { "op": "goto_level", "level": 68 },
+    { "op": "show_crazy_dave_dialog" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "crazyDave.messageCount", "equals": 2 },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "那些红眼睛的家伙能感觉到新种下的植物！" },
+    { "op": "screenshot", "name": "dave_8-5_thermal_sniper.png" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "先拿坚果挡住热脉冲，或者骗它开枪后趁装填赶快种！" },
+    { "op": "skip_crazy_dave_dialog" },
+
+    { "op": "goto_level", "level": 69 },
+    { "op": "show_crazy_dave_dialog" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "crazyDave.messageCount", "equals": 2 },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "冰镜草要先花时间凝出镜子，临时种可来不及！" },
+    { "op": "screenshot", "name": "dave_8-6_ice_mirror.png" },
+    { "op": "advance_crazy_dave_dialog" },
+    { "op": "assert_state", "path": "crazyDave.text", "equals": "一株能攒两面，每面只能挡住一发直线敌弹！" },
+    { "op": "skip_crazy_dave_dialog" },
+    { "op": "assert_state", "path": "crazyDaveTutorialsSeen", "equals": [66, 68, 69] },
+    { "op": "dump_state", "name": "polar_midgame_dialog_state.json" },
+    { "op": "quit" }
+  ]
+}

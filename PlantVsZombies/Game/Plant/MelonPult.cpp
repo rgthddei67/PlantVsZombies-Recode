@@ -136,8 +136,10 @@ void MelonPult::FireMelon()
 	Bullet* melon = mBoard->CreatePlantBullet(
 		bulletType, mRow, launchPosition, mPlantType);
 	if (!melon) return;
-	melon->ConfigureLobbedMotion(
-		landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
+	const bool polarGuided = mBoard->IsPolarWindDangerous()
+		&& mBoard->PreparePolarLobbedNavigation(this);
+	melon->ConfigureLobbedMotion(landingPosition, kFlightDuration,
+		kArcApexHeight, targetsIceWall, polarGuided);
 }
 
 BulletType MelonPult::GetMelonBulletType() const

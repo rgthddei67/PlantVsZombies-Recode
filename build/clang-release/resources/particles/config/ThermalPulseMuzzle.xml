@@ -1,0 +1,18 @@
+<Emitter>
+  <Name>ThermalPulseMuzzle</Name>
+  <SpawnMinActive>[12 18]</SpawnMinActive>
+  <SpawnMaxLaunched>18</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[1 8]</EmitterRadius>
+  <ParticleDuration>[.18 .38]</ParticleDuration>
+  <ParticleAlpha>1,62 0</ParticleAlpha>
+  <ParticleScale>[.16 .34] .04</ParticleScale>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.45</ParticleGreen>
+  <ParticleBlue>.04</ParticleBlue>
+  <LaunchSpeed>[50 125]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-320 320]</ParticleSpinSpeed>
+  <SystemDuration>.4</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

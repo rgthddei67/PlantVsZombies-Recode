@@ -61,6 +61,8 @@
 #include "AlarmBellFlower.h"
 #include "FurnaceCoreFlower.h"
 #include "ListeningGrass.h"
+#include "NorthStarFlower.h"
+#include "IceMirrorGrass.h"
 #include "KernelPult.h"
 #include "CobCannon.h"
 #include "CoffeeBean.h"
@@ -120,6 +122,7 @@
 #include "../Zombie/IceStatueExecutionerZombie.h"
 #include "../Zombie/SnowBurrowZombie.h"
 #include "../Zombie/AdaptiveHelmetZombie.h"
+#include "../Zombie/ThermalSniperZombie.h"
 
 namespace {
 	template<typename T>
@@ -427,6 +430,18 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_LISTENINGGRASS,
 		ResourceKeys::Reanimations::REANIM_LISTENINGGRASS,
 		&MakePlant<ListeningGrass>);
+
+	RegisterPlant(PlantType::PLANT_NORTHSTARFLOWER, "PLANT_NORTHSTARFLOWER",
+		ResourceKeys::Textures::IMAGE_NORTHSTARFLOWER,
+		AnimationType::ANIM_NORTHSTARFLOWER,
+		ResourceKeys::Reanimations::REANIM_NORTHSTARFLOWER,
+		&MakePlant<NorthStarFlower>);
+
+	RegisterPlant(PlantType::PLANT_ICEMIRRORGRASS, "PLANT_ICEMIRRORGRASS",
+		ResourceKeys::Textures::IMAGE_ICEMIRRORGRASS,
+		AnimationType::ANIM_ICEMIRRORGRASS,
+		ResourceKeys::Reanimations::REANIM_ICEMIRRORGRASS,
+		&MakePlant<IceMirrorGrass>);
 
 	RegisterPlant(PlantType::PLANT_KERNELPULT, "PLANT_KERNELPULT",
 		ResourceKeys::Textures::IMAGE_CORNPULT,
@@ -743,6 +758,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		&MakeZombie<AdaptiveHelmetZombie>);
+
+	// 热感狙击手复用普通僵尸完整时间线；装填和出膛由独立逻辑计时，不增加帧事件。
+	RegisterZombie(ZombieType::ZOMBIE_THERMAL_SNIPER, "ZOMBIE_THERMAL_SNIPER",
+		AnimationType::ANIM_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
+		&MakeZombie<ThermalSniperZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

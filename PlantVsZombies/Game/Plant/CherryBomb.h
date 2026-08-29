@@ -11,6 +11,9 @@ public:
 	void SetupPlant() override;
 
 	void TakeDamage(int damage, DamageSource source) override;
+	void TakeDeploymentInterceptionDamage(int damage, DamageSource source) override {
+		Plant::TakeDamage(damage, source);
+	}
 	/** 巨人锤击命中充能中的樱桃炸弹时立即爆炸，不生成压扁残影。 */
 	void ResolveGargantuarSmash() override;
 

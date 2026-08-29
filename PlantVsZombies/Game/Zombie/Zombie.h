@@ -209,6 +209,11 @@ public:
 	virtual float GetInterruptibleSpecialActionRemaining() const { return -1.0f; }
 	/** 打断当前尚未提交的特殊动作；已提交或没有动作时返回 false。 */
 	virtual bool InterruptUncommittedSpecialAction() { return false; }
+	/**
+	 * 玩家卡片成功部署植物后的同行通知；普通僵尸不响应。
+	 * baseMaxHealth 是部署类型的基础最大生命快照，不包含运行期强化。
+	 */
+	virtual void OnPlayerPlantDeployed(const Plant&, int /*baseMaxHealth*/) {}
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
 	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */

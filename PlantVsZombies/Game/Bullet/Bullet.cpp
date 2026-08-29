@@ -111,6 +111,7 @@ namespace {
 		{ BulletType::BULLET_MELT_SNOW,  BulletWindResponse::NONE },
 		{ BulletType::BULLET_SALT_CRYSTAL, BulletWindResponse::NONE },
 		{ BulletType::BULLET_AURORA_PEA,  BulletWindResponse::LIGHT_PROJECTILE },
+		{ BulletType::BULLET_THERMAL_PULSE, BulletWindResponse::NONE },
 	};
 
 	constexpr bool BulletWindProfilesCoverEveryType()
@@ -302,6 +303,10 @@ void Bullet::Reset(Board* board, int row,
 	mThreepeaterMotion = false;
 	mTargetsFlying = false;
 	mTrajectory = TrajectoryState{};
+	mThermalEndpointX = 0.0f;
+	mThermalEndpointY = 0.0f;
+	mThermalOriginalPlantID = NULL_PLANT_ID;
+	mThermalConfigured = false;
 	mHitTorchwoodColumn = -1;
 	mHitAuroraTorchwoodColumn = -1;
 	if (mSpikeState) mSpikeState->count = 0;
@@ -359,6 +364,74 @@ void Bullet::Update()
 	if (transform)
 	{
 		const Vector previousPosition = transform->GetPosition();
+		if (mBulletType == BulletType::BULLET_THERMAL_PULSE
+			&& mThermalConfigured) {
+			const float direction = mVelocityX >= 0.0f ? 1.0f : -1.0f;
+			const float rawNextX = previousPosition.x + mVelocityX * deltaTime;
+			const float nextX = direction > 0.0f
+				? std::min(rawNextX, mThermalEndpointX)
+				: std::max(rawNextX, mThermalEndpointX);
+			const bool reachedEndpoint = nextX == mThermalEndpointX;
+			const float nextY = reachedEndpoint
+				? mThermalEndpointY
+				: previousPosition.y + mVelocityY * deltaTime;
+			transform->SetPosition(Vector(nextX, nextY));
+
+			if (mBoard && mRow >= 0 && mRow < mBoard->mRows) {
+				for (int step = 0; step < mBoard->mColumns; ++step) {
+					const int column = direction > 0.0f
+						? step : mBoard->mColumns - 1 - step;
+					const Vector center = mBoard->GetCellCenterPosition(mRow, column);
+					const float left = center.x - CELL_COLLIDER_SIZE_X * 0.5f;
+					const float right = center.x + CELL_COLLIDER_SIZE_X * 0.5f;
+					if (std::max(previousPosition.x, nextX) < left
+						|| std::min(previousPosition.x, nextX) > right) continue;
+					Cell* cell = mBoard->GetCell(mRow, column);
+					if (!cell) continue;
+					Plant* normal = mBoard->mEntityRegistry.GetPlant(
+						cell->GetNormalPlantID());
+					const float segmentLength = nextX - previousPosition.x;
+					const float impactX = direction > 0.0f ? left : right;
+					const float segmentProgress = segmentLength == 0.0f ? 0.0f
+						: std::clamp((impactX - previousPosition.x) / segmentLength,
+							0.0f, 1.0f);
+					const Vector impact(impactX, previousPosition.y
+						+ (nextY - previousPosition.y) * segmentProgress);
+					if (normal && normal->TryInterceptHostileStraightProjectile(
+						mVelocityX, impact)) {
+						if (g_particleSystem) g_particleSystem->EmitEffect(
+							"ThermalPulseHit", impact);
+						Die();
+						return;
+					}
+					for (const int plantID : { cell->GetPumpkinPlantID(),
+						cell->GetNormalPlantID(), cell->GetUnderPlantID() }) {
+						Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
+						if (!plant || !plant->IsActive() || plant->IsSquished()) continue;
+						if (plant->mPlantID == mThermalOriginalPlantID
+							&& !reachedEndpoint) continue;
+						if (plant->mPlantID == mThermalOriginalPlantID) {
+							plant->TakeDeploymentInterceptionDamage(mDamage, DamageSource::ZOMBIE);
+						}
+						else {
+							plant->TakeDamage(mDamage, DamageSource::ZOMBIE);
+						}
+						if (g_particleSystem) g_particleSystem->EmitEffect(
+							"ThermalPulseHit", impact);
+						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BLEEP, 0.42f);
+						Die();
+						return;
+					}
+				}
+			}
+			if (reachedEndpoint) {
+				if (g_particleSystem) g_particleSystem->EmitEffect(
+						"ThermalPulseHit", Vector(nextX, nextY));
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BLEEP, 0.3f);
+				Die();
+			}
+			return;
+		}
 		mCheckPositionTimer += deltaTime;
 		if (mCheckPositionTimer >= 1.0f)
 		{
@@ -423,6 +496,22 @@ void Bullet::UpdateParallel(std::vector<DeferredEvent>& outBuf)
 
 void Bullet::Draw(Graphics* g)
 {
+	if (mBulletType == BulletType::BULLET_THERMAL_PULSE && g) {
+		const Vector position = GetPosition();
+		g->FillCircle(position.x, position.y, 13.0f,
+			glm::vec4(255.0f, 68.0f, 20.0f, 72.0f), 22);
+		if (mTexture) {
+			const float width = static_cast<float>(mTexture->width) * mScale;
+			const float height = static_cast<float>(mTexture->height) * mScale;
+			g->DrawTexture(mTexture, position.x - width * 0.5f,
+				position.y - height * 0.5f, width, height);
+		}
+		else {
+			g->FillCircle(position.x, position.y, 8.0f,
+				glm::vec4(255.0f, 236.0f, 120.0f, 250.0f), 18);
+		}
+		return;
+	}
 	if (mProjectileAnimator) {
 		const Vector position = GetPosition();
 		const float offsetX = mVelocityX < 0.0f
@@ -451,6 +540,23 @@ void Bullet::Draw(Graphics* g)
 		g->DrawTexture(mTexture, position.x, position.y,
 			drawWidth, drawHeight, mRotationDegrees);
 	}
+}
+
+void Bullet::ConfigureThermalPulse(const Vector& endpoint, int originalPlantID)
+{
+	mThermalEndpointX = endpoint.x;
+	mThermalEndpointY = endpoint.y;
+	mThermalOriginalPlantID = originalPlantID;
+	mThermalConfigured = mBulletType == BulletType::BULLET_THERMAL_PULSE;
+	if (mThermalConfigured && GetTransform() && mVelocityX != 0.0f) {
+		const Vector origin = GetTransform()->GetPosition();
+		const float travelSeconds = std::abs(
+			(mThermalEndpointX - origin.x) / mVelocityX);
+		mVelocityY = travelSeconds > 0.0f
+			? (mThermalEndpointY - origin.y) / travelSeconds : 0.0f;
+	}
+	if (mCollider) mCollider->mEnabled = false;
+	if (auto* shadow = GetShadow()) shadow->SetEnabled(false);
 }
 
 void Bullet::DrawShadow(Graphics* g)
@@ -845,6 +951,11 @@ void Bullet::ConfigurePresentation()
 		}
 		mScale = 1.0f;
 		break;
+	case BulletType::BULLET_THERMAL_PULSE:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILETHERMALPULSE);
+		mScale = 0.92f;
+		break;
 	case BulletType::BULLET_PUFF:
 		mTexture = resources.GetTexture("IMAGE_PUFFSHROOM_PUFF1");
 		mScale = 0.68f;
@@ -957,15 +1068,17 @@ void Bullet::ConfigurePresentation()
 
 void Bullet::ConfigureLobbedMotion(
 	const Vector& target, float durationSeconds, float apexHeight,
-	bool targetsIceWall)
+	bool targetsIceWall, bool polarGuided)
 {
 	if (!GetTransform()) return;
 	Vector adjustedTarget = target;
 	const int sourceRow = mRow;
 	int landingRow = sourceRow;
 	const bool landsOnBoard = !mBoard
-		|| mBoard->ApplyPolarLobbedWind(sourceRow, landingRow, adjustedTarget);
+		|| mBoard->ApplyPolarLobbedWind(sourceRow, landingRow, adjustedTarget,
+			polarGuided);
 	mTrajectory.kind = TrajectoryKind::LOBBED;
+	mTrajectory.polarGuided = polarGuided;
 	mTrajectory.polarWindMiss = !landsOnBoard;
 	mTrajectory.targetsIceWall = targetsIceWall && landingRow == sourceRow;
 	mTrajectory.start = GetTransform()->GetPosition();
@@ -982,14 +1095,16 @@ void Bullet::ConfigureLobbedMotion(
 }
 
 void Bullet::ConfigureCobCannonMotion(
-	const Vector& target, int targetRow, float durationSeconds)
+	const Vector& target, int targetRow, float durationSeconds, bool polarGuided)
 {
 	if (!GetTransform()) return;
 	Vector adjustedTarget = target;
 	int adjustedRow = targetRow;
 	const bool landsOnBoard = !mBoard
-		|| mBoard->ApplyPolarLobbedWind(targetRow, adjustedRow, adjustedTarget);
+		|| mBoard->ApplyPolarLobbedWind(targetRow, adjustedRow, adjustedTarget,
+			polarGuided);
 	mTrajectory.kind = TrajectoryKind::COB_CANNON;
+	mTrajectory.polarGuided = polarGuided;
 	mTrajectory.start = GetTransform()->GetPosition();
 	mTrajectory.target = adjustedTarget;
 	mTrajectory.elapsed = 0.0f;
@@ -1005,7 +1120,7 @@ void Bullet::ConfigureCobCannonMotion(
 
 void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
 	int targetRow, float elapsedSeconds, float durationSeconds,
-	bool polarWindMiss)
+	bool polarWindMiss, bool polarGuided)
 {
 	if (!GetTransform()) return;
 	mTrajectory.kind = TrajectoryKind::COB_CANNON;
@@ -1014,6 +1129,7 @@ void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
 	mTrajectory.targetRow = targetRow;
 	mTrajectory.targetsIceWall = false;
 	mTrajectory.polarWindMiss = polarWindMiss;
+	mTrajectory.polarGuided = polarGuided;
 	mTrajectory.duration = std::max(0.1f, durationSeconds);
 	mRotationDegrees = -90.0f;
 	if (mCollider) mCollider->mEnabled = false;
@@ -1081,11 +1197,12 @@ float Bullet::GetCobCannonShadowScale() const
 
 void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
 	float elapsedSeconds, float durationSeconds, float apexHeight,
-	bool targetsIceWall, bool polarWindMiss)
+	bool targetsIceWall, bool polarWindMiss, bool polarGuided)
 {
 	mTrajectory.kind = TrajectoryKind::LOBBED;
 	mTrajectory.targetsIceWall = targetsIceWall;
 	mTrajectory.polarWindMiss = polarWindMiss;
+	mTrajectory.polarGuided = polarGuided;
 	mTrajectory.start = start;
 	mTrajectory.target = target;
 	mTrajectory.duration = std::max(0.01f, durationSeconds);

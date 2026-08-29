@@ -162,8 +162,10 @@ void KernelPult::FireProjectile()
 		mRow, launchPosition, mPlantType);
 	if (projectile) {
 		projectile->SetBulletDamage(fireButter ? kButterDamage : kKernelDamage);
-		projectile->ConfigureLobbedMotion(
-			landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
+		const bool polarGuided = mBoard->IsPolarWindDangerous()
+			&& mBoard->PreparePolarLobbedNavigation(this);
+		projectile->ConfigureLobbedMotion(landingPosition, kFlightDuration,
+			kArcApexHeight, targetsIceWall, polarGuided);
 	}
 
 	// C# 在发射节点立即恢复手持玉米粒；即使对象池创建失败也不能把黄油留在植株上。

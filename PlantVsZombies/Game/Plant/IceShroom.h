@@ -14,6 +14,9 @@ public:
 	using Shroom::Shroom;
 
 	void TakeDamage(int damage, DamageSource source) override;
+	void TakeDeploymentInterceptionDamage(int damage, DamageSource source) override {
+		Plant::TakeDamage(damage, source);
+	}
 	/** 清醒引爆中的寒冰菇被巨人锤击时立即冻结全场；睡眠态仍走普通压扁。 */
 	void ResolveGargantuarSmash() override;
 

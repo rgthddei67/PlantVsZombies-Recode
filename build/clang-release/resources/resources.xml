@@ -35,6 +35,9 @@
     <Image>./resources/image/reanim/Zombie_insulator_armor3.png</Image>
     <Image>./resources/image/reanim/Zombie_adaptive_helmet.png</Image>
     <Image>./resources/image/reanim/Zombie_adaptive_badge.png</Image>
+    <Image>./resources/image/reanim/Zombie_thermal_goggles.png</Image>
+    <Image>./resources/image/reanim/Zombie_thermal_pack.png</Image>
+    <Image>./resources/image/reanim/Zombie_thermal_rifle.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone1.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone2.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone3.png</Image>
@@ -236,6 +239,43 @@
 	<Image>./resources/image/PlantImage/AlarmBellFlower.png</Image>
 	<Image>./resources/image/PlantImage/FurnaceCoreFlower.png</Image>
 	<Image>./resources/image/PlantImage/ListeningGrass.png</Image>
+	<Image>./resources/image/PlantImage/NorthStarFlower.png</Image>
+	<Image>./resources/image/PlantImage/IceMirrorGrass.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_backleaf.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_backleaf_lefttip.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_backleaf_righttip.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_stalk_bottom.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_stalk_top.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_frontleaf.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_frontleaf_lefttip.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_frontleaf_righttip.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_head.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal1.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal2.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal3.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal4.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal5.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal6.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal7.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_leftpetal8.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal1.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal2.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal3.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal4.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal5.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal6.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal7.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal8.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_rightpetal9.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_bottompetals.png</Image>
+	<Image>./resources/image/reanim/NorthStarFlower_toppetals.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_body.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_stem.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_leaf1.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_leaf2.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_leaf3.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_leaf4.png</Image>
+	<Image>./resources/image/reanim/IceMirrorGrass_leaf5.png</Image>
 	<Image>./resources/image/PlantImage/AuroraTorchwood.png</Image>
 	<Image>./resources/image/reanim/GatlingPea_barrel.png</Image>
 	<Image>./resources/image/reanim/GatlingPea_blink1.png</Image>
@@ -268,6 +308,7 @@
 	<Image>./resources/image/ProjectileAuroraPea.png</Image>
 	<Image>./resources/image/ProjectileAuroraSnowPea.png</Image>
 	<Image>./resources/image/ProjectileAuroraToxicPea.png</Image>
+	<Image>./resources/image/ProjectileThermalPulse.png</Image>
     <Image>./resources/image/Projectile_star.png</Image>
     <Image>./resources/image/PuffShroom_puff1.png</Image>
     <Image>./resources/image/PuffShroom_puff2.png</Image>
@@ -597,6 +638,9 @@
     <Reanimation name="Garlic">./resources/reanim/Garlic.reanim</Reanimation>
     <Reanimation name="Umbrellaleaf">./resources/reanim/Umbrellaleaf.reanim</Reanimation>
 	<Reanimation name="ListeningGrass">./resources/reanim/ListeningGrass.reanim</Reanimation>
+	<Reanimation name="NorthStarFlower">./resources/reanim/NorthStarFlower.reanim</Reanimation>
+	<Reanimation name="IceMirrorGrass">./resources/reanim/IceMirrorGrass.reanim</Reanimation>
+	<Reanimation name="ThermalSniperLauncher">./resources/reanim/ThermalSniperLauncher.reanim</Reanimation>
     <Reanimation name="Marigold">./resources/reanim/Marigold.reanim</Reanimation>
     <Reanimation name="Melonpult">./resources/reanim/Melonpult.reanim</Reanimation>
     <Reanimation name="WinterMelon">./resources/reanim/WinterMelon.reanim</Reanimation>

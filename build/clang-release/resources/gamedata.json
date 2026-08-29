@@ -57,7 +57,9 @@
     "PLANT_MELONPULT":       { "cost": 325, "cooldown": 10.0,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 40.0, "attackRowRadius": 1 } },
     "PLANT_WINTERMELON":     { "cost": 200, "cooldown": 50.0,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 33.33, "attackRowRadius": 1, "slowApplicationsPerSecond": 0.417, "slowDuration": 10.0 } },
     "PLANT_GLOOMSHROOM":     { "cost": 150, "cooldown": 50.0, "offset": [-40.0, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 40.0, "attackRowRadius": 1 } },
-    "PLANT_IMITATER":        { "cost": 0,   "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } }
+    "PLANT_IMITATER":        { "cost": 0,   "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
+    "PLANT_NORTHSTARFLOWER": { "cost": 125, "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
+    "PLANT_ICEMIRRORGRASS":  { "cost": 100, "cooldown": 20.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } }
   },
   "zombies": {
     "ZOMBIE_NORMAL":       { "weight": 1000, "appearWave": 1, "survivalRound": 1, "offset": [-50.0, -85.0], "scale": 1.0 },
@@ -108,6 +110,7 @@
     "ZOMBIE_WEATHER_JAMMER":      { "weight": 2600, "appearWave": 5,  "survivalRound": 13, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_ICE_STATUE_EXECUTIONER": { "weight": 3200, "appearWave": 5, "survivalRound": 14, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_SNOW_BURROW":           { "weight": 2200, "appearWave": 3, "survivalRound": 15, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_ADAPTIVE_HELMET":       { "weight": 2600, "appearWave": 4, "survivalRound": 16, "offset": [-50.0, -85.0], "scale": 1.0 }
+    "ZOMBIE_ADAPTIVE_HELMET":       { "weight": 2600, "appearWave": 4, "survivalRound": 16, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_THERMAL_SNIPER":        { "weight": 3000, "appearWave": 4, "survivalRound": 17, "offset": [-50.0, -85.0], "scale": 1.0 }
   }
 }

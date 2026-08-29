@@ -186,8 +186,10 @@ void MeltSnowPult::FireProjectile()
 		mRow, launchPosition, mPlantType);
 	if (projectile) {
 		projectile->SetBulletDamage(kProjectileDamage);
-		projectile->ConfigureLobbedMotion(
-			landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
+		const bool polarGuided = mBoard->IsPolarWindDangerous()
+			&& mBoard->PreparePolarLobbedNavigation(this);
+		projectile->ConfigureLobbedMotion(landingPosition, kFlightDuration,
+			kArcApexHeight, targetsIceWall, polarGuided);
 	}
 
 	// 发射节点立即恢复“下一发”手持表现；对象池失败也不能留下已消费的盐晶。

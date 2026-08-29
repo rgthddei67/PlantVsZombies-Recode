@@ -22,6 +22,9 @@ protected:
 public:
 	// 充能（引爆倒计时）期间无敌，参考樱桃炸弹；白天睡觉时仍正常掉血
 	void TakeDamage(int damage, DamageSource source) override;
+	void TakeDeploymentInterceptionDamage(int damage, DamageSource source) override {
+		Plant::TakeDamage(damage, source);
+	}
 	/** 清醒充能中的毁灭菇被巨人锤击时立即引爆；睡眠态仍走普通压扁。 */
 	void ResolveGargantuarSmash() override;
 

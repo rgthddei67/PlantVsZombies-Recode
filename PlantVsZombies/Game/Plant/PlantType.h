@@ -71,6 +71,8 @@ enum class PlantType
 	PLANT_FURNACECOREFLOWER,	// 炉芯花；7-7 奖励，温暖充能并阻止 3x3 内其他植物被建立冰像封存
 	PLANT_LISTENINGGRASS,	// 听雪草；8-1 奖励，迫出本行地下敌人并封闭雪穴
 	PLANT_AURORATORCHWOOD,	// 极光树桩；8-3 奖励，火炬树桩普通层紫卡升级
+	PLANT_NORTHSTARFLOWER,	// 北极星花；8-2 奖励，按需开启九格极夜导航领域
+	PLANT_ICEMIRRORGRASS,	// 冰镜草；8-5 奖励，逐面凝结并拦截敌方水平直射弹
 	NUM_PLANT_TYPES,
 };
 

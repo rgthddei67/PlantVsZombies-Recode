@@ -1,0 +1,32 @@
+<Emitter>
+  <Name>ThermalPulseHit</Name>
+  <SpawnMinActive>[16 22]</SpawnMinActive>
+  <SpawnMaxLaunched>22</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 14]</EmitterRadius>
+  <ParticleDuration>[.28 .58]</ParticleDuration>
+  <ParticleAlpha>1,68 0</ParticleAlpha>
+  <ParticleScale>[.18 .42] .05</ParticleScale>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.36</ParticleGreen>
+  <ParticleBlue>.03</ParticleBlue>
+  <LaunchSpeed>[45 135]</LaunchSpeed>
+  <ParticleGravity>24</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-300 300]</ParticleSpinSpeed>
+  <SystemDuration>.62</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>
+<Emitter>
+  <Name>ThermalPulseHitCore</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.24</ParticleDuration>
+  <ParticleAlpha>.95 0</ParticleAlpha>
+  <ParticleScale>.75 .2</ParticleScale>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.82</ParticleGreen>
+  <ParticleBlue>.18</ParticleBlue>
+  <SystemDuration>.26</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

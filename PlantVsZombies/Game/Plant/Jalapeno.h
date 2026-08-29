@@ -11,6 +11,9 @@ public:
 
 	/** 蓄力期间免疫啃食伤害，只保留受击闪光。 */
 	void TakeDamage(int damage, DamageSource source) override;
+	void TakeDeploymentInterceptionDamage(int damage, DamageSource source) override {
+		Plant::TakeDamage(damage, source);
+	}
 	/** 巨人锤击命中引爆中的辣椒时立即点燃整行，不生成压扁残影。 */
 	void ResolveGargantuarSmash() override;
 

@@ -133,8 +133,10 @@ void CabbagePult::FireCabbage()
 		BulletType::BULLET_CABBAGE, mRow, launchPosition, mPlantType);
 	if (!cabbage) return;
 	cabbage->SetBulletDamage(kCabbageDamage);
-	cabbage->ConfigureLobbedMotion(
-		landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
+	const bool polarGuided = mBoard->IsPolarWindDangerous()
+		&& mBoard->PreparePolarLobbedNavigation(this);
+	cabbage->ConfigureLobbedMotion(landingPosition, kFlightDuration,
+		kArcApexHeight, targetsIceWall, polarGuided);
 }
 
 void CabbagePult::SaveExtraData(nlohmann::json& j) const

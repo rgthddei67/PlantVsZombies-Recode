@@ -1,0 +1,32 @@
+<Emitter>
+  <Name>ThermalPulseTarget</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.48</ParticleDuration>
+  <ParticleAlpha>.98,55 .72,82 0</ParticleAlpha>
+  <ParticleScale>1.2 .46</ParticleScale>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.34</ParticleGreen>
+  <ParticleBlue>.08</ParticleBlue>
+  <ParticleSpinSpeed>260</ParticleSpinSpeed>
+  <SystemDuration>.5</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>
+<Emitter>
+  <Name>ThermalPulseTargetSparks</Name>
+  <SpawnMinActive>[9 13]</SpawnMinActive>
+  <SpawnMaxLaunched>13</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[3 12]</EmitterRadius>
+  <ParticleDuration>[.22 .42]</ParticleDuration>
+  <ParticleAlpha>.95,70 0</ParticleAlpha>
+  <ParticleScale>[.12 .25] .03</ParticleScale>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.62</ParticleGreen>
+  <ParticleBlue>.08</ParticleBlue>
+  <LaunchSpeed>[25 72]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-240 240]</ParticleSpinSpeed>
+  <SystemDuration>.44</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>
