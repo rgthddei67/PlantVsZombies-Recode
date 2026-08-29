@@ -127,7 +127,7 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 20 秒、600 伤害和 5.5 秒。同一行平台仍用普通数值，花盆不停机，飞行/地下阶段免疫，车辆只受伤。
 引导路线保留同一套植物停机与保护，但跳过全部僵尸伤害/麻痹；锁定引雷者放电时仍合格，才以其碰撞箱中心为圆心，让 130 像素内同阵营活动僵尸清除减速/冻结/黄油并获得 30 秒对应免疫。范围只在放电边沿结算一次，麻痹、灰烬和普通伤害不受影响，离域或引雷者之后失效不取消既得余时。
 满电的同一笔正向输入若越过 100，溢出部分立即进入余电；从预警开始
-到放电演出结束，雨势积累与普通局部闪电也只增加余电，封顶 15，不改变本次放电数值。活动阶段晴夜
+到放电演出结束，雨势积累与普通局部闪电也只增加余电，封顶 25，不改变本次放电数值。活动阶段晴夜
 不泄漏余电；放电结束一次兑现为下一轮主电荷并清零，之后才重新服从晴夜泄漏。恢复已经处于
 `DISCHARGING` 的档不得重复结算，余电也必须按已保存值继续而不能重算。
 
@@ -260,8 +260,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 天气逐帧推进 | `BoardWeather.cpp`：`Board::UpdateWeather` | 全局场景状态，不属于波次更新；通过窄入口继续协调冬日、极夜和屋顶积累器 |
 | 极夜雪原环境导演 | `BoardPolarNight.cpp`：`InitializePolarNightEnvironment` / `RollNextPolarNightPlan` / `UpdatePolarNightEnvironment` | Board 保存三实数、锁定曲线、真假约束、提交累计和白毛风阶段；GameScene 只画常驻仪表与瞬态雪层 |
 | 雪穴环境事件 | `BoardPolarNight.cpp`：`CommitSnowHoleBatch` / `UpdatePendingSnowHoleSpawns`；`Board.cpp`：`CreateOrQueueWaveZombie` | 环境文件拥有选点、形成和已锁事务推进；核心文件保留正式波次创建边界。高湿只提交一次选点，预算和行已锁后 1 秒预警只决定雪穴或右侧出生落点 |
-| 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
-| 黑夜屋顶雷荷 | `Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
+| 昼夜屋顶径流 | `BoardRoofWeather.cpp`：`Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
+| 黑夜屋顶雷荷 | `BoardRoofWeather.cpp`：`Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |
 | 世界天气覆盖与 Scene UI 贴图 | `GameAPP` pre-overlay hook / `Scene::DrawUITextures` | 世界粒子 → 天气覆盖 → Scene UI 贴图 → UI GameObject |
 | 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |

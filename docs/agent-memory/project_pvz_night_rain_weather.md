@@ -1,5 +1,11 @@
 # 黑夜随机雨势天气
 
+## 2026-08-29 BoardRoofWeather 翻译单元拆分
+
+昼夜屋顶径流、黑夜屋顶雷荷、路线推演与放电事务已迁入 `Game/BoardRoofWeather.cpp`；
+Board 仍是唯一状态权威，公共接口、字段布局和存档键未改变。正式波次创建、屋顶连续坡面几何与
+通用蒙特卡洛配置继续留在 `Board.cpp`。
+
 ## 2026-08-29 BoardFogWeather 翻译单元拆分
 
 独立雾势状态机/预报、台风驱散与漂移、逐格 alpha、资格门禁、路灯花照明形状、雾片稳定变体
@@ -17,7 +23,7 @@
 
 基础雨势、天气导演/预报、台风、4-9 暴风雨夜、天气栏目干扰及其测试入口已机械迁入
 `Game/BoardWeather.cpp`；该批次当时仍在核心文件的独立雾势现已继续迁入 `BoardFogWeather.cpp`，
-屋顶径流/雷荷、出怪变异与波次调度继续留在 `Board.cpp`。
+屋顶径流/雷荷现已迁入 `BoardRoofWeather.cpp`，出怪变异与波次调度继续留在 `Board.cpp`。
 Board 仍是唯一状态权威，公共接口、字段布局和存档键均未改变。`clang-release`、Win7 导入审计、
 CTest 3/3 以及可见的 `smoke_night_rain`、`smoke_weather_forecast`、`smoke_typhoon`、
 `smoke_stormy_night_4_9`、`smoke_roof_marshal_weather` 全部通过；后两份脚本分别补齐固定难度和

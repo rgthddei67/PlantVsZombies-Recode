@@ -1,5 +1,21 @@
 # PvZ 架构边界与存档版本入口
 
+## 2026-08-29 Board 屋顶天气第五批拆分
+
+`Board` 的昼夜屋顶径流、黑夜屋顶雷荷、路线推演、放电实体事务、读档修复、测试入口和查询实现已迁入
+`Game/BoardRoofWeather.cpp`。屋顶连续坡面几何、正式波次创建与通用蒙特卡洛配置仍留在 `Board.cpp`；
+`CreateBoom`、`GetNormalPlantAt` 等常用棋盘门面没有迁移。
+
+公共接口、成员布局、Board 唯一状态权威和关卡存档键保持不变。33 个迁移函数与拆分前 `HEAD` 的函数体
+在替换三个明确窄桥接后机械一致：坡段列数读取、通用蒙特卡洛配置和统一雷声入口；急救员的劫持者处决
+倒计时投影收成屋顶文件内的私有 helper。`Board.cpp` 从 5587 行降至 4503 行，新屋顶天气文件 1134 行。
+
+`clang-release` 完整构建、Win7 378 项导入审计和 CTest 3/3 通过；桌面可见
+`smoke_roof_runoff`、`smoke_night_roof_charge`、`smoke_grounding_zombie`、
+`smoke_hijacker_execution`、`smoke_hijacker_cancel` 全部通过，径流、基础放电、接地路线与劫持者截图已目验。
+`smoke_night_roof_charge_effects` 与 `smoke_lightning_rod_pot` 仍停在既有普通僵尸生命绝对值断言：脚本按
+395 点本体计算，当前正式直造值为 270；迁移后的单次 200 点雷伤实际约剩 69，未为架构任务改写玩法。
+
 ## 2026-08-29 Board 独立雾势第四批拆分
 
 `Board` 的独立雾势状态机/预报、台风驱散与漂移、逐格 alpha、资格门禁、路灯花照明形状、

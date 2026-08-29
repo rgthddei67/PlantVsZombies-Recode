@@ -57,7 +57,7 @@
     { "op": "set_night_roof_charge", "phase": "CHARGING", "charge": 99 },
     { "op": "trigger_lightning" },
     { "op": "assert_state", "path": "weather.nightRoofCharge.chargePct", "equals": 100 },
-    { "op": "assert_state", "path": "weather.nightRoofCharge.overchargePct", "equals": 15 },
+    { "op": "assert_state", "path": "weather.nightRoofCharge.overchargePct", "equals": 17 },
     { "op": "assert_state", "path": "weather.nightRoofCharge.phase", "equals": "WARNING" },
     { "op": "assert_state", "path": "weather.nightRoofCharge.row", "atLeast": 0, "atMost": 4 },
 

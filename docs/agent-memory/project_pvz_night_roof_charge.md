@@ -4,13 +4,15 @@ description: 黑夜屋顶雷荷的背景资格、积累状态机、放电实体�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-14
+  updated_at: 2026-08-29
 ---
 
 # 黑夜屋顶基础雷荷
 
 ## 场景与所有权
 
+- 状态仍由 `Board` 唯一持有，雷荷推进、路线推演、放电事务、读档修复、测试入口和查询实现集中在
+  `Game/BoardRoofWeather.cpp`；通用蒙特卡洛配置与正式波次生成边界继续留在 `Board.cpp`。
 - `Background::NIGHT_ROOF` 是唯一资格；不按冒险关卡号判断。正式 6-1～6-9（内部 46～54）均映射到该背景，5-9 保持白天 `ROOF`。
 - `Board` 唯一持有雷荷；它与 `RainIntensity`、昼夜屋顶径流相互独立。雷荷不新增雨势档位，也不替换黑夜屋顶的冲刷。
 - 预警转放电的唯一边沿会对锁定行形成一次稳定实体 ID 快照并结算基础玩法；绝缘僵尸通过通用提供者/目标虚接口加入承接与湿坡改写，劫持者在同一边沿先做全场处决快照，接地僵尸在满值边沿加入统一路线推演，避雷花盆通过 under 层语义接口加入同格保护和同排增伤；台风改向仍未实现。
@@ -20,7 +22,7 @@ metadata:
 - `CHARGING` 阶段范围为 0～100：晴夜每游戏秒减少 0.5，小/中/大雨每游戏秒增加 1/2/3；现有大雨局部闪电每次额外增加 18。
 - 场上至少一只有效劫持者时，任何雨档再固定增加 4.1 点/秒，多只不叠加；晴夜不增加并继续漏电。该压力源由 Board 从劫持者专用弱索引派生，不另存重复状态。
 - 达到 100 时把五条普通行与全部有效接地僵尸路线放进一次轻量蒙特卡洛：每候选 32 rollout、10 秒时域、0.25 秒步长，统一模拟植物停机、控制、僵尸友伤，以及接地路线按预计位置覆盖 130 像素同阵营僵尸的 30 秒减速/冻结/黄油免疫；关闭或失败时才消费正式 RNG 回退。结果锁定行、是否引导和稳定 guide ID，进入 4.0 游戏秒 `WARNING`；随后进入 0.65 游戏秒 `DISCHARGING`。劫持者仍可把同一预警延长到 7 秒。
-- 跨过 100 的同一笔正向输入会把溢出转入余电；预警和放电演出期间的雨势积累、普通局部闪电也只增加余电，封顶15，不改变本次放电数值。活动阶段晴夜不泄漏余电；放电结束将余电一次兑现为下一轮 `CHARGING` 初值并清零，之后重新服从每秒0.5漏电。
+- 跨过 100 的同一笔正向输入会把溢出转入余电；预警和放电演出期间的雨势积累、普通局部闪电也只增加余电，封顶25，不改变本次放电数值。活动阶段晴夜不泄漏余电；放电结束将余电一次兑现为下一轮 `CHARGING` 初值并清零，之后重新服从每秒0.5漏电。
 - 活动阶段的行、阶段、余时和余电是唯一未来事实；绘制不得重抽。`RestoreNightRoofChargeState` 会拒绝非黑夜屋顶、非法行、非法阶段、非有限数值和不完整活动组合。
 
 ## 放电实体效果与通用接口
@@ -51,7 +53,7 @@ metadata:
 - `set_night_roof_charge` 用 `phase=CHARGING/WARNING/DISCHARGING`、`charge`、活动阶段 `row` 和可选 `remaining/overcharge` 固定状态。
 - `dump_state.weather.nightRoofCharge` 导出 `supported/chargePct/overchargePct/phase/row/guided/guideID/guideCandidateCount/route*` 及阶段余时/进度。
 - 实体状态另导出植物 `shutdown/shutdownTimerMs` 与僵尸 `paralyzed/paralysisTimerMs/canBeParalyzed/groundHazardEligible`；`zombiesByType` 供异品种靶按语义稳定取证。
-- 2026-08-10 `clang-release` 配置、编译和 LTO 链接退出 0。主人当前桌面可见 `smoke_night_roof_charge.json` 已覆盖跨阈值溢出、15%封顶、活动期雨势积累、余电存读档和放电后兑现；`smoke_night_roof_charge_effects.json` 覆盖干瓦/湿坡、平台分区、花盆/飞行/地下/车辆边界、中立麻痹跨魅惑、普通小丑技能停表和放电中存读档防重入。
+- 2026-08-10 `clang-release` 配置、编译和 LTO 链接退出 0。主人当前桌面可见 `smoke_night_roof_charge.json` 已覆盖跨阈值余电转移、活动期雨势积累、余电存读档和放电后兑现；`smoke_night_roof_charge_effects.json` 覆盖干瓦/湿坡、平台分区、花盆/飞行/地下/车辆边界、中立麻痹跨魅惑、普通小丑技能停表和放电中存读档防重入。
 - 同步截图已目验 6-1 为正式黑夜屋顶，预警行节点稀疏可读，放电折线贴合锁定坡面；余电文案和满条右端亮紫段均在天气展板内清晰可见。
 
 ## 后续边界

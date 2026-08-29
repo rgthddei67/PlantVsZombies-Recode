@@ -8,8 +8,10 @@ metadata:
 
 # 昼夜屋顶坡面径流
 
-## 当前实现（2026-08-10）
+## 当前实现（2026-08-29）
 
+- 状态仍由 `Board` 唯一持有，径流推进、恢复、测试入口和查询实现集中在
+  `Game/BoardRoofWeather.cpp`；屋顶连续坡面几何与通用创建门面继续留在 `Board.cpp`。
 - `Background::ROOF` 与 `Background::NIGHT_ROOF` 共用径流；触发根因是屋顶斜坡与降雨，不按
   昼夜拆分。黑夜屋顶雷荷是独立叠加系统：径流继续冲刷，电荷另管导电瓦路和放电。
 - `Board` 唯一持有 0～100 积累、`IDLE/WARNING/FLOWING` 阶段、阶段余时和锁定行 bitmask。

@@ -44,7 +44,7 @@ enum class MowerType;
 enum class PlanternGear : int;
 enum class WinterGroundImpactKind;
 enum class ZombieJumpType;
-namespace PlantDefenseMonteCarlo { struct Snapshot; }
+namespace PlantDefenseMonteCarlo { struct Config; struct Snapshot; }
 
 struct MonteCarloTargetStats {
 	int rolloutCount = 0;
@@ -261,6 +261,16 @@ private:
 	bool BuildMonteCarloCombatSnapshot(
 		PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction,
 		bool includeNightRoofChargeDetails = false);
+	/** 用核心文件的通用调参填充蒙特卡洛战斗配置，供拆分后的环境决策复用。 */
+	void ConfigureMonteCarloCombatConfig(
+		PlantDefenseMonteCarlo::Config& config,
+		int rolloutCount, float horizonSeconds) const;
+	/** 返回屋顶坡段包含的逻辑列数；环境文件不得复制核心几何常量。 */
+	int GetRoofSlopeColumnCount() const;
+	/** 为急救员推演投影当前劫持者处决倒计时和生存模式生命线。 */
+	void PopulateNightRoofHijackerTreatmentForecast(
+		int lockedHijackerID, float& executionSeconds,
+		float& survivalExecutionLineCap) const;
 	int mMonteCarloHealerDecisionCooldownSteps = 0; // 下次急救员推演前需经过的固定逻辑步数，不入存档
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
@@ -349,7 +359,7 @@ private:
 	float mRoofRunoffPhaseTimer = 0.0f; // 当前预警或冲刷阶段剩余游戏秒
 	int mRoofRunoffRowMask = 0;         // 已锁定的冲刷行 bitmask；待机阶段为 0
 	float mNightRoofCharge = 0.0f;      // 黑夜屋顶独立雷荷积累值（0～100）
-	float mNightRoofOvercharge = 0.0f;  // 满电活动阶段截留、放电结束后兑现的余电（0～15）
+	float mNightRoofOvercharge = 0.0f;  // 满电活动阶段截留、放电结束后兑现的余电（0～25）
 	NightRoofChargePhase mNightRoofChargePhase = NightRoofChargePhase::CHARGING; // 当前积累、预警或放电阶段
 	float mNightRoofChargePhaseTimer = 0.0f; // 当前预警或放电阶段剩余游戏秒
 	int mNightRoofChargeRow = -1;       // 满电后一次锁定的导电瓦路行；积累阶段为 -1
