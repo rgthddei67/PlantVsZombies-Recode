@@ -27,9 +27,6 @@ struct PlantDamageOrigin {
 		// 否则会意外开放它们的覆盖种植资格。
 		if (baseType == PlantType::NUM_PLANT_TYPES) {
 			switch (type) {
-			case PlantType::PLANT_GATLINGPEA:
-				baseType = PlantType::PLANT_REPEATER;
-				break;
 			case PlantType::PLANT_CATTAIL:
 				baseType = PlantType::PLANT_LILYPAD;
 				break;

@@ -236,6 +236,20 @@
 	<Image>./resources/image/PlantImage/AlarmBellFlower.png</Image>
 	<Image>./resources/image/PlantImage/FurnaceCoreFlower.png</Image>
 	<Image>./resources/image/PlantImage/ListeningGrass.png</Image>
+	<Image>./resources/image/PlantImage/AuroraTorchwood.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_barrel.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_blink1.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_blink2.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_head.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_helmet.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_mouth.png</Image>
+	<Image>./resources/image/reanim/GatlingPea_mouth_overlay.png</Image>
+	<Image>./resources/image/reanim/AuroraTorchwood_body.png</Image>
+	<Image>./resources/image/reanim/AuroraTorchwood_mouth.png</Image>
+	<Image>./resources/image/reanim/AuroraTorchwood_prism1.png</Image>
+	<Image>./resources/image/reanim/AuroraTorchwood_prism2.png</Image>
+	<Image>./resources/image/reanim/AuroraTorchwood_prism3.png</Image>
+	<Image>./resources/image/reanim/AuroraTorchwood_spark.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_CHARM.png</Image>
 	<Image>./resources/image/reanim/REANIM_FURNACECOREFLOWER_CORE.png</Image>
 	<Image>./resources/image/reanim/Torchwood_fire1a.png</Image>
@@ -251,6 +265,9 @@
     <Image>./resources/image/ProjectilePea.png</Image>
     <Image>./resources/image/ProjectileSnowPea.png</Image>
     <Image>./resources/image/ProjectileToxicPea.png</Image>
+	<Image>./resources/image/ProjectileAuroraPea.png</Image>
+	<Image>./resources/image/ProjectileAuroraSnowPea.png</Image>
+	<Image>./resources/image/ProjectileAuroraToxicPea.png</Image>
     <Image>./resources/image/Projectile_star.png</Image>
     <Image>./resources/image/PuffShroom_puff1.png</Image>
     <Image>./resources/image/PuffShroom_puff2.png</Image>
@@ -555,6 +572,8 @@
     <Reanimation name="Jalapeno">./resources/reanim/Jalapeno.reanim</Reanimation>
     <Reanimation name="Caltrop">./resources/reanim/Caltrop.reanim</Reanimation>
     <Reanimation name="Torchwood">./resources/reanim/Torchwood.reanim</Reanimation>
+	<Reanimation name="GatlingPea">./resources/reanim/GatlingPea.reanim</Reanimation>
+	<Reanimation name="AuroraTorchwood">./resources/reanim/AuroraTorchwood.reanim</Reanimation>
     <Reanimation name="Tallnut">./resources/reanim/Tallnut.reanim</Reanimation>
     <Reanimation name="SeaShroom">./resources/reanim/SeaShroom.reanim</Reanimation>
     <Reanimation name="Plantern">./resources/reanim/Plantern.reanim</Reanimation>

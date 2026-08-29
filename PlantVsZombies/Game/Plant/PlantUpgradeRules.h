@@ -24,6 +24,10 @@ constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 		return PlantType::PLANT_MAGNETSHROOM;
 	case PlantType::PLANT_LIGHTNINGRODPOT:
 		return PlantType::PLANT_FLOWERPOT;
+	case PlantType::PLANT_GATLINGPEA:
+		return PlantType::PLANT_REPEATER;
+	case PlantType::PLANT_AURORATORCHWOOD:
+		return PlantType::PLANT_TORCHWOOD;
 	default:
 		return PlantType::NUM_PLANT_TYPES;
 	}
@@ -38,6 +42,8 @@ constexpr PlantUpgradeLayer GetUpgradePlantLayer(PlantType type)
 	case PlantType::PLANT_WINTERMELON:
 	case PlantType::PLANT_COBCANNON:
 	case PlantType::PLANT_GOLD_MAGNET:
+	case PlantType::PLANT_GATLINGPEA:
+	case PlantType::PLANT_AURORATORCHWOOD:
 		return PlantUpgradeLayer::NORMAL;
 	case PlantType::PLANT_LIGHTNINGRODPOT:
 		return PlantUpgradeLayer::UNDER;

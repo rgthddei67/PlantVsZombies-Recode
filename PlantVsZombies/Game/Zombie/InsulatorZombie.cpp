@@ -53,6 +53,7 @@ namespace {
 		case BulletType::BULLET_TOXICPEA:
 		case BulletType::BULLET_PUFF:
 		case BulletType::BULLET_STAR:
+		case BulletType::BULLET_AURORA_PEA:
 			return true;
 		default:
 			return false;

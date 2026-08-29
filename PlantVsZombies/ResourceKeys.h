@@ -282,6 +282,9 @@ namespace ResourceKeys
 		RKEY(IMAGE_PROJECTILEPEA);
 		RKEY(IMAGE_PROJECTILESNOWPEA);
 		RKEY(IMAGE_PROJECTILETOXICPEA);
+		RKEY(IMAGE_PROJECTILEAURORAPEA);
+		RKEY(IMAGE_PROJECTILEAURORASNOWPEA);
+		RKEY(IMAGE_PROJECTILEAURORATOXICPEA);
 		RKEY(IMAGE_PROJECTILE_STAR);
 		RKEY(IMAGE_REANIM_PEASHOOTER_FRONTLEAF);
 		RKEY(IMAGE_REANIM_PEASHOOTER_FRONTLEAF_LEFTTIP);
@@ -451,6 +454,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_JALAPENO);
 		RKEY(IMAGE_CALTROP);
 		RKEY(IMAGE_TORCHWOOD);
+		RKEY(IMAGE_GATLINGPEA);
+		RKEY(IMAGE_AURORATORCHWOOD);
 		RKEY(IMAGE_IMITATER);
 	}
 
@@ -728,6 +733,8 @@ namespace ResourceKeys
 		inline const std::string REANIM_JALAPENO_FIRE = "Fire";
 		inline const std::string REANIM_CALTROP = "Caltrop";
 		inline const std::string REANIM_TORCHWOOD = "Torchwood";
+		inline const std::string REANIM_GATLINGPEA = "GatlingPea";
+		inline const std::string REANIM_AURORATORCHWOOD = "AuroraTorchwood";
 		inline const std::string REANIM_FIREPEA = "FirePea";
 		inline const std::string REANIM_SEASHROOM = "SeaShroom";
 		inline const std::string REANIM_PLANTERN = "Plantern";

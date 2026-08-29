@@ -18,6 +18,7 @@ description: Use when adapting an existing PvZ reanim timeline to a new plant or
 - 新角色默认先完整保留语义相符的经典时间轴、核心身体分件和原版轮廓，再用确定性换色配合一两个小型 follower 或有限分件替换建立身份。AI 母图优先作为挂件、装备或单个局部分件来源；除非新轮廓确实需要并已按骨架拆件校准，否则不要用一张大型 AI 合成图覆盖头部、身体或整株，把原版动作变成“大图晃动”。
 - 保留连接身体的原版茎、关节或肢体轨。固定地面轨只承载真正固定的叶座、脚底或设备底座；把整段茎烘进固定底图会在上身摆动时产生断裂。
 - 附件选择稳定的语义父轨。只需与父件同缩放、旋转和位移的静态贴图使用命名 follower；只有需要独立播放头、clip 或帧事件时才使用子 Animator。不要挂到摆幅不相称的手、头或地面轨。
+- 子 Animator 使用整株绝对坐标的时间线时，`AttachAnimator` 只乘父轨当前姿态，必须在局部变换中再乘 `inverse(basePose)`；单位旋转/缩放可用父轨首帧的 `SetLocalPosition(-baseX, -baseY)` 抵消。时间线没有 `anim_stem`、只有身体包装轨时，可把独立头 Animator 挂在该身体轨，但不能用 `(0,0)` 直挂，否则首帧锚点会重复叠加；待机和动作中段都要截图校对连接点。
 - 当前 Animator 的 `SetTrackOffset` 是在轨道 transform 之后追加的未旋转平移，透明画布内的大额 padding 会在轨道缩放时放大轴心漂移。优先使用紧边界分件，或让附件偏移走父轨仿射变换；需要修改这个约定时先读 `Animator::Draw/DrawBuffered` 的两条路径。
 - 同一轨道可容纳多个命名 follower 槽，按插入顺序绘制。调用方必须使用稳定且唯一的槽名，只更新或移除自己的槽；不要用匿名覆盖，也不要为解决槽冲突把静态贴图升级成子 Animator。宿主若会在派生 `Setup` 之后继续配置 follower，专项要从完整出生入口验证同轨共存，而不能只直接调用派生配置函数。
 - 静态 follower 默认继承宿主 Animator 的 overlay 效果，装备会随减速、冻结等状态一起着色；黄油等必须保持原色的状态贴花在配置时显式传 `inheritOverlayEffect=false`。所有渲染路径都应保持每个 follower 的 base 后紧跟 overlay，内容验收在默认路径把继承者与退出者放在同一对象上截图。

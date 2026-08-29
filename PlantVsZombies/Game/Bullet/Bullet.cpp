@@ -26,9 +26,11 @@ namespace {
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
 	constexpr int kSaltCrystalCorrosion = 200;        // 盐晶弹对目标当前冰制层的独立腐蚀值；不得溢出本体
+	constexpr int kAuroraPeaDamage = 50;               // 极光豌豆对每只实际目标的基础伤害
 	constexpr int kCobCannonDamage = 1800;            // 原版 CobBig 爆炸伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
+	constexpr std::size_t kAuroraPierceLimit = 4;      // 极光豌豆命中第四只不同僵尸后碎裂回收
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
 	constexpr float kToxicFireballSplashWidth = 30.0f; // 毒素火球以更窄范围换取溅射目标同样叠毒，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
@@ -108,6 +110,7 @@ namespace {
 		{ BulletType::BULLET_TOXICFIREBALL, BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_MELT_SNOW,  BulletWindResponse::NONE },
 		{ BulletType::BULLET_SALT_CRYSTAL, BulletWindResponse::NONE },
+		{ BulletType::BULLET_AURORA_PEA,  BulletWindResponse::LIGHT_PROJECTILE },
 	};
 
 	constexpr bool BulletWindProfilesCoverEveryType()
@@ -145,6 +148,7 @@ namespace {
 		if (type == BulletType::BULLET_COBBIG) return kCobCannonDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
 		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
+		if (type == BulletType::BULLET_AURORA_PEA) return kAuroraPeaDamage;
 		return kPeaDamage;
 	}
 
@@ -227,6 +231,12 @@ struct Bullet::SpikeState {
 	std::size_t count = 0;
 };
 
+struct Bullet::AuroraState {
+	std::array<int, kAuroraPierceLimit> zombieIDs{};
+	std::size_t count = 0;
+	bool playedHitSound = false;
+};
+
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)
 {
@@ -293,7 +303,9 @@ void Bullet::Reset(Board* board, int row,
 	mTargetsFlying = false;
 	mTrajectory = TrajectoryState{};
 	mHitTorchwoodColumn = -1;
+	mHitAuroraTorchwoodColumn = -1;
 	if (mSpikeState) mSpikeState->count = 0;
+	mAuroraState.reset();
 	mAnimatorAdvancedInParallel = false;
 	ConfigurePresentation();
 	ConfigureCollisionTarget();
@@ -533,6 +545,7 @@ bool Bullet::HitsRoofTerrain(const Vector& position) const
 	case BulletType::BULLET_SPIKE:
 	case BulletType::BULLET_TOXICPEA:
 	case BulletType::BULLET_TOXICFIREBALL:
+	case BulletType::BULLET_AURORA_PEA:
 		minimumClearance = 28.0f;
 		break;
 	case BulletType::BULLET_PUFF:
@@ -553,7 +566,13 @@ void Bullet::HitRoofTerrain()
 	if (mHasHit) return;
 	mHasHit = true;
 	const Vector position = GetPosition();
-	if (mBulletType == BulletType::BULLET_FIREBALL
+	if (mBulletType == BulletType::BULLET_AURORA_PEA) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CERAMIC, 0.3f);
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("AuroraPeaBreak", position);
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_FIREBALL
 		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IGNITE, 0.35f);
 		const float impactOffsetX = mVelocityX < 0.0f
@@ -810,6 +829,21 @@ void Bullet::ConfigurePresentation()
 		break;
 	case BulletType::BULLET_TOXICPEA:
 		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILETOXICPEA);
+		break;
+	case BulletType::BULLET_AURORA_PEA:
+		if (mPlantDamageOrigin.lineage == PlantType::PLANT_SNOWPEA) {
+			mTexture = resources.GetTexture(
+				ResourceKeys::Textures::IMAGE_PROJECTILEAURORASNOWPEA);
+		}
+		else if (mPlantDamageOrigin.lineage == PlantType::PLANT_TOXICPEASHOOTER) {
+			mTexture = resources.GetTexture(
+				ResourceKeys::Textures::IMAGE_PROJECTILEAURORATOXICPEA);
+		}
+		else {
+			mTexture = resources.GetTexture(
+				ResourceKeys::Textures::IMAGE_PROJECTILEAURORAPEA);
+		}
+		mScale = 1.0f;
 		break;
 	case BulletType::BULLET_PUFF:
 		mTexture = resources.GetTexture("IMAGE_PUFFSHROOM_PUFF1");
@@ -1185,6 +1219,12 @@ bool Bullet::HitIceWallIfNeeded(float fromX, float toX)
 	const bool fireDamage = mBulletType == BulletType::BULLET_FIREBALL
 		|| mBulletType == BulletType::BULLET_TOXICFIREBALL;
 	wall->TakeProjectileDamage(GetWindAdjustedDamage(), fireDamage);
+	if (mBulletType == BulletType::BULLET_AURORA_PEA) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CERAMIC, 0.3f);
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("AuroraPeaBreak", GetPosition());
+		}
+	}
 	mHasHit = true;
 	if (mCollider) mCollider->mEnabled = false;
 	Die();
@@ -1284,6 +1324,11 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		|| !zombie->CanBeTargetedByProjectile(mTargetsFlying)) return;
 	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
 
+	if (mBulletType == BulletType::BULLET_AURORA_PEA) {
+		HandleAuroraContacts();
+		return;
+	}
+
 	if (mBulletType != BulletType::BULLET_SPIKE) {
 		if (mHasHit) return;
 		mHasHit = true;
@@ -1347,6 +1392,89 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 	}
 }
 
+void Bullet::HandleAuroraContacts()
+{
+	if (!mBoard || !IsActive() || mBulletType != BulletType::BULLET_AURORA_PEA) return;
+	const ColliderComponent* bulletCollider = GetColliderComponent();
+	if (!bulletCollider) return;
+	const SDL_FRect bulletBounds = bulletCollider->GetBoundingBox();
+
+	std::vector<Zombie*> targets;
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
+		if (!candidate || !candidate->IsActive() || candidate->IsDying()
+			|| !candidate->CanBeTargetedByProjectile(mTargetsFlying)) {
+			return;
+		}
+		const ColliderComponent* collider = candidate->GetColliderComponent();
+		if (!collider) return;
+		const SDL_FRect bounds = collider->GetBoundingBox();
+		const bool overlaps = bulletBounds.x < bounds.x + bounds.w
+			&& bulletBounds.x + bulletBounds.w > bounds.x
+			&& bulletBounds.y < bounds.y + bounds.h
+			&& bulletBounds.y + bulletBounds.h > bounds.y;
+		if (overlaps) targets.push_back(candidate);
+	});
+
+	const bool movingLeft = mVelocityX < 0.0f;
+	std::sort(targets.begin(), targets.end(), [movingLeft](const Zombie* lhs,
+		const Zombie* rhs) {
+		const float lhsX = lhs->GetPosition().x;
+		const float rhsX = rhs->GetPosition().x;
+		if (lhsX != rhsX) return movingLeft ? lhsX > rhsX : lhsX < rhsX;
+		return lhs->mZombieID < rhs->mZombieID;
+	});
+
+	for (Zombie* target : targets) {
+		if (!IsActive()) break;
+		HitAuroraZombie(target);
+	}
+}
+
+void Bullet::HitAuroraZombie(Zombie* zombie)
+{
+	if (!zombie || !zombie->IsActive()) return;
+	if (!mAuroraState) mAuroraState = std::make_unique<AuroraState>();
+	auto& aurora = *mAuroraState;
+	if (std::find(aurora.zombieIDs.begin(),
+		aurora.zombieIDs.begin() + aurora.count, zombie->mZombieID)
+		!= aurora.zombieIDs.begin() + aurora.count) {
+		return;
+	}
+	if (aurora.count >= kAuroraPierceLimit) return;
+
+	aurora.zombieIDs[aurora.count++] = zombie->mZombieID;
+	if (!aurora.playedHitSound) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES, 0.22f);
+		aurora.playedHitSound = true;
+	}
+
+	const bool canBeChilled = mPlantDamageOrigin.lineage == PlantType::PLANT_SNOWPEA
+		&& zombie->CanBeChilled();
+	zombie->TakeProjectileDamage(
+		zombie->ModifyProjectileDamage(GetWindAdjustedDamage(), mBulletType),
+		DamageSource::PLANT, mVelocityX,
+		/*penetrateShield=*/false, /*discardShieldOverflow=*/false,
+		/*requestsShieldBypass=*/false, mPlantDamageOrigin);
+	// 免疫只否决数值伤害；仍存活的实际目标继续获得原射手附带状态。
+	if (zombie->IsActive() && !zombie->IsDying()) {
+		if (canBeChilled) zombie->SetCooldown(7.5f, false);
+		if (mPlantDamageOrigin.lineage == PlantType::PLANT_TOXICPEASHOOTER) {
+			zombie->ApplyToxinStack();
+		}
+	}
+
+	const bool finalHit = aurora.count >= kAuroraPierceLimit;
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect(
+			finalHit ? "AuroraPeaBreak" : "AuroraPeaPass", GetPosition());
+	}
+	if (!finalHit) return;
+
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CERAMIC, 0.3f);
+	mHasHit = true;
+	Die();
+}
+
 void Bullet::SetVelocityX(float x)
 {
 	mVelocityX = x;
@@ -1358,12 +1486,14 @@ void Bullet::SetVelocityX(float x)
 void Bullet::ConvertToFireball(int torchwoodColumn)
 {
 	if ((mBulletType != BulletType::BULLET_PEA
-		&& mBulletType != BulletType::BULLET_TOXICPEA)
+		&& mBulletType != BulletType::BULLET_TOXICPEA
+		&& mBulletType != BulletType::BULLET_AURORA_PEA)
 		|| mHitTorchwoodColumn == torchwoodColumn) {
 		return;
 	}
 
-	mBulletType = mBulletType == BulletType::BULLET_TOXICPEA
+	mBulletType = (mBulletType == BulletType::BULLET_TOXICPEA
+		|| mPlantDamageOrigin.lineage == PlantType::PLANT_TOXICPEASHOOTER)
 		? BulletType::BULLET_TOXICFIREBALL
 		: BulletType::BULLET_FIREBALL;
 	mDamage = kFireballDamage;
@@ -1373,6 +1503,37 @@ void Bullet::ConvertToFireball(int torchwoodColumn)
 		UpdateShadowLayout(GetTransform()->GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIREPEA, 0.35f);
+}
+
+void Bullet::ConvertToAuroraPea(int auroraTorchwoodColumn)
+{
+	if (mHitAuroraTorchwoodColumn == auroraTorchwoodColumn
+		|| mPlantDamageOrigin.kind != PlantDamageOriginKind::PLANT_LINEAGE) {
+		return;
+	}
+
+	const PlantType lineage = mPlantDamageOrigin.lineage;
+	const bool eligibleLineage = lineage == PlantType::PLANT_PEASHOOTER
+		|| lineage == PlantType::PLANT_SNOWPEA
+		|| lineage == PlantType::PLANT_REPEATER
+		|| lineage == PlantType::PLANT_THREEPEATER
+		|| lineage == PlantType::PLANT_SPLITPEA
+		|| lineage == PlantType::PLANT_TOXICPEASHOOTER;
+	const bool eligibleCurrentType = mBulletType == BulletType::BULLET_PEA
+		|| mBulletType == BulletType::BULLET_SNOWPEA
+		|| mBulletType == BulletType::BULLET_TOXICPEA
+		|| mBulletType == BulletType::BULLET_FIREBALL
+		|| mBulletType == BulletType::BULLET_TOXICFIREBALL
+		|| mBulletType == BulletType::BULLET_AURORA_PEA;
+	if (!eligibleLineage || !eligibleCurrentType) return;
+
+	mBulletType = BulletType::BULLET_AURORA_PEA;
+	mDamage = kAuroraPeaDamage;
+	mHitAuroraTorchwoodColumn = auroraTorchwoodColumn;
+	if (!mAuroraState) mAuroraState = std::make_unique<AuroraState>();
+	ConfigurePresentation();
+	if (GetTransform()) UpdateShadowLayout(GetTransform()->GetPosition());
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES, 0.12f);
 }
 
 void Bullet::ConvertSnowPeaToPea(int torchwoodColumn)
@@ -1437,13 +1598,50 @@ void Bullet::PlayStandardImpactSound(
 	}
 }
 
-void Bullet::RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn)
+void Bullet::RestoreSavedPresentationState(BulletType currentType,
+	int hitTorchwoodColumn, int hitAuroraTorchwoodColumn)
 {
 	mBulletType = currentType;
 	mHitTorchwoodColumn = hitTorchwoodColumn;
+	mHitAuroraTorchwoodColumn = hitAuroraTorchwoodColumn;
 	ConfigurePresentation();
 	if (GetTransform()) {
 		UpdateShadowLayout(GetTransform()->GetPosition());
+	}
+}
+
+int Bullet::GetAuroraHitCount() const
+{
+	return mAuroraState ? static_cast<int>(mAuroraState->count) : 0;
+}
+
+std::vector<int> Bullet::GetAuroraHitZombieIDs() const
+{
+	if (!mAuroraState) return {};
+	return std::vector<int>(mAuroraState->zombieIDs.begin(),
+		mAuroraState->zombieIDs.begin() + mAuroraState->count);
+}
+
+bool Bullet::HasPlayedAuroraHitSound() const
+{
+	return mAuroraState && mAuroraState->playedHitSound;
+}
+
+void Bullet::RestoreAuroraState(
+	const std::vector<int>& zombieIDs, bool playedHitSound)
+{
+	mAuroraState.reset();
+	if (mBulletType != BulletType::BULLET_AURORA_PEA && zombieIDs.empty()) return;
+	mAuroraState = std::make_unique<AuroraState>();
+	mAuroraState->playedHitSound = playedHitSound;
+	for (const int id : zombieIDs) {
+		if (std::find(mAuroraState->zombieIDs.begin(),
+			mAuroraState->zombieIDs.begin() + mAuroraState->count, id)
+			!= mAuroraState->zombieIDs.begin() + mAuroraState->count) {
+			continue;
+		}
+		mAuroraState->zombieIDs[mAuroraState->count++] = id;
+		if (mAuroraState->count + 1 >= kAuroraPierceLimit) break;
 	}
 }
 

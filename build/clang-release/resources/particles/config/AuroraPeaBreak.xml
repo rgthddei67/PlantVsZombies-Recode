@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>AuroraPeaBreak</Name>
+  <SpawnMinActive>[10 14]</SpawnMinActive>
+  <SpawnMaxLaunched>14</SpawnMaxLaunched>
+  <ParticleDuration>0.65</ParticleDuration>
+  <ParticleAlpha>1 0</ParticleAlpha>
+  <ParticleScale>[0.65 1.05] 0.25</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 11]</EmitterRadius>
+  <LaunchSpeed>[70 115]</LaunchSpeed>
+  <ParticleGravity>9</ParticleGravity>
+  <SystemDuration>0.7</SystemDuration>
+  <Image>PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0,PARTICLE_SALT_CRYSTAL_PARTICLES_PART_1,PARTICLE_SALT_CRYSTAL_PARTICLES_PART_2</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-220 220]</ParticleSpinSpeed>
+</Emitter>

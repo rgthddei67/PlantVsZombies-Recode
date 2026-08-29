@@ -122,6 +122,8 @@ enum class AnimationType
 	ANIM_FURNACECOREFLOWER, // 炉芯花复用 SunFlower 时间轴并替换炉芯分件；追加在末尾避免旧动画枚举值错位
 	ANIM_SNOW_BURROW_ZOMBIE, // 潜雪僵尸独立雪地材质；复用经典矿工时间线
 	ANIM_LISTENINGGRASS, // 听雪草独立覆霜材质；复用经典叶子保护伞时间线
+	ANIM_GATLINGPEA, // 经典机枪射手独立时间线；追加在末尾避免旧动画枚举值错位
+	ANIM_AURORATORCHWOOD, // 极光树桩复用火炬树桩运动并替换晶化分件
 };
 
 #endif

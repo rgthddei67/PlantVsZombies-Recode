@@ -22,7 +22,8 @@ void Torchwood::PlantUpdate()
 		if (!bullet || !bullet->IsActive() || bullet->mRow != mRow) continue;
 		if (bullet->mBulletType != BulletType::BULLET_PEA
 			&& bullet->mBulletType != BulletType::BULLET_TOXICPEA
-			&& bullet->mBulletType != BulletType::BULLET_SNOWPEA) {
+			&& bullet->mBulletType != BulletType::BULLET_SNOWPEA
+			&& bullet->mBulletType != BulletType::BULLET_AURORA_PEA) {
 			continue;
 		}
 
@@ -34,7 +35,8 @@ void Torchwood::PlantUpdate()
 		if (overlap < kMinimumOverlap) continue;
 
 		if (bullet->mBulletType == BulletType::BULLET_PEA
-			|| bullet->mBulletType == BulletType::BULLET_TOXICPEA) {
+			|| bullet->mBulletType == BulletType::BULLET_TOXICPEA
+			|| bullet->mBulletType == BulletType::BULLET_AURORA_PEA) {
 			bullet->ConvertToFireball(mColumn);
 		}
 		else {

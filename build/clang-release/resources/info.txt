@@ -34,6 +34,10 @@
 双发射手
 [PLANT_REPEATER_DESCRIPTION]
 双发射手很凶悍，他是在街头混大的。他不在乎任何人的看法，无论是植物还是僵尸，他打出豌豆，是为了让别人离他远点。其实呢，双发射手一直暗暗地渴望着爱情。
+[PLANT_GATLINGPEA]
+机枪射手
+[PLANT_GATLINGPEA_DESCRIPTION]
+机枪射手必须种在双发射手上，每轮依次射出四颗豌豆。头盔不是为了挡子弹，而是提醒大家：连续开火时，安全规范也得连续执行。
 [PLANT_PUFFSHROOM]
 小喷菇
 [PLANT_PUFFSHROOM_DESCRIPTION]
@@ -109,6 +113,10 @@
 火炬树桩
 [PLANT_TORCHWOOD_DESCRIPTION]
 火炬树桩会把穿过它的普通豌豆变成伤害翻倍的火球；火球还会对附近同排僵尸造成溅射伤害。寒冰豌豆经过时会融化成普通豌豆。“我很诚实，也很忠诚，”火炬树桩说，“只是一直没学会认字。”
+[PLANT_AURORATORCHWOOD]
+极光树桩
+[PLANT_AURORATORCHWOOD_DESCRIPTION]
+极光树桩必须种在火炬树桩上。指定射手家族的豌豆穿过棱晶冠后会变成50伤害的极光豌豆，依次穿透最多四只不同僵尸，并保留寒冰或毒素来源效果。火炬与极光以最后经过者为准。“光不需要拐弯，”它说，“只需要找到下一块棱面。”
 
 [PLANT_TALLNUT]
 高坚果

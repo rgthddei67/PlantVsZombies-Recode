@@ -23,6 +23,7 @@
 #include "SnowPeaShooter.h"
 #include "Chomper.h"
 #include "Repeater.h"
+#include "GatlingPea.h"
 #include "PuffShroom.h"
 #include "SunShroom.h"
 #include "FumeShroom.h"
@@ -40,6 +41,7 @@
 #include "Jalapeno.h"
 #include "Caltrop.h"
 #include "Torchwood.h"
+#include "AuroraTorchwood.h"
 #include "TallNut.h"
 #include "SeaShroom.h"
 #include "Plantern.h"
@@ -232,6 +234,11 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_REPEAT,
 		"Repeater", &MakePlant<Repeater>);
 
+	RegisterPlant(PlantType::PLANT_GATLINGPEA, "PLANT_GATLINGPEA",
+		ResourceKeys::Textures::IMAGE_GATLINGPEA,
+		AnimationType::ANIM_GATLINGPEA,
+		ResourceKeys::Reanimations::REANIM_GATLINGPEA, &MakePlant<GatlingPea>);
+
 	RegisterPlant(PlantType::PLANT_PUFFSHROOM, "PLANT_PUFFSHROOM",
 		ResourceKeys::Textures::IMAGE_PUFFSHROOM,
 		AnimationType::ANIM_PUFFSHROOM,
@@ -312,6 +319,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_TORCHWOOD,
 		AnimationType::ANIM_TORCHWOOD,
 		ResourceKeys::Reanimations::REANIM_TORCHWOOD, &MakePlant<Torchwood>);
+
+	RegisterPlant(PlantType::PLANT_AURORATORCHWOOD, "PLANT_AURORATORCHWOOD",
+		ResourceKeys::Textures::IMAGE_AURORATORCHWOOD,
+		AnimationType::ANIM_AURORATORCHWOOD,
+		ResourceKeys::Reanimations::REANIM_AURORATORCHWOOD,
+		&MakePlant<AuroraTorchwood>);
 
 	RegisterPlant(PlantType::PLANT_TALLNUT, "PLANT_TALLNUT",
 		ResourceKeys::Textures::IMAGE_TALLNUT,

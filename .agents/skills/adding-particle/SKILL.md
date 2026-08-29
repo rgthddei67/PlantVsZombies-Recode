@@ -21,7 +21,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 ## 心智模型
 
 - **一个 XML 文件 = 一个特效**，可含多个 `<Emitter>`（同时全部点燃，如 PeaBulletHit=飞溅+碎屑两发射器）。
-- **特效名 = 第一个 `<Emitter>` 的 `<Name>`，不是文件名**（文件名只是惯例上取一致）。
+- **特效名 = 第一个 `<Emitter>` 的 `<Name>`，不是文件名**（文件名只是惯例上取一致）。后续 Emitter 的 `<Name>` 不会注册为独立 `EmitEffect` 键；需要两个可单独触发的名称时，必须拆成两个 XML 文件。
 - 目录：权威资源 `build/clang-release/resources/particles/config/`，启动时全目录加载；其他 preset 通过 Junction 共享，纯数据改配置**不用重编译，但要重启游戏**。
 - 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`；完整可选参数依次为 `renderOrder, durationOverride, clipRightX`。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
 - 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`）；**没有独立粒子贴图格式**，任何在发射前已经加载的纹理都能当粒子。
@@ -127,7 +127,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 17. **原版定向 `LaunchAngle` 不能直接移植**：本引擎没有该标签，`RandomLaunchSpin` 又只能在固定向右和 360° 随机间选择。单颗反弹飞行物需要稳定方向与弧线时，使用 `FieldType=Position` 的 X/Y 关键帧直接描述相对发射点的完整轨迹，再用 `ParticleRotation/ParticleSpinSpeed` 单独处理贴图朝向；发射点取实际飞行物中心，并用同步截图和 `originToRenderCenter*`/`nearestPlant.row,col` 验证方向与锚点。
 
 18. **经典变体先找原版专属素材再考虑程序染色**：搜索 C# 资源包及现有权威资源中的同名 PNG/XML；若原版已有独立帧条或碎屑图集，按原布局和哈希导入并只做当前引擎必需的时间、名称与注册适配，禁止重新生成或用基础粒子乘色冒充。只有确认没有专属素材且乘法染色能够保留目标通道时，才选择染色变体。
-19. **多 Emitter 仍只有首个 Name 是特效实例名**：第二个及后续 Emitter 会与首个一起生成粒子并增加实际 quad 数，但不会在 `particleEffectNameCounts` / `particleEffectsByName` 下形成独立效果键。负例零键只为真正独立调用的效果名预置；验证光环、芯层等附加发射器时，断言首个 Name 的实例数、总 quad 数与同步截图，不要伪造第二个 Emitter 的零键。
+19. **多 Emitter 仍只有首个 Name 是特效实例名**：第二个及后续 Emitter 会与首个一起生成粒子并增加实际 quad 数，但不会在 `particleEffectNameCounts` / `particleEffectsByName` 下形成独立效果键，也不能被 `EmitEffect("第二个Name")` 调用。两种需要在不同时机单独触发的反馈必须拆成两个 XML；负例零键只为真正独立调用的效果名预置。验证光环、芯层等同时附加发射器时，断言首个 Name 的实例数、总 quad 数与同步截图，不要伪造第二个 Emitter 的零键。
 20. **原版 `Circle`/`Away` 不是坐标轴场**：两者分别绕系统中心沿切线、径向直接推进位置；禁止为了通过现有解析器把它们改写成 `Position`/`Acceleration`，否则 `Circle X=[-140 -70]` 会被误画成左移 70～140px 的脱体烟团。未知 `FieldType` 必须告警并按 INVALID 忽略，不能静默降级成 Position。
 21. **全屏降水要按实际场景高度验位移**：发射器放在屏幕上沿时，`Position Y` 的寿命末位移必须覆盖 600px 战场并留出出生框余量；只增加粒子数而位移不足，会让雨雪长期挤在顶边。天气由另一环境维度切换雨/雪时，触发端先停止旧效果、再用同一雨势的持续时长重建新效果；地面水花、雷电和环境音由各自系统显式门禁，不能指望粒子 XML 一并关闭。
 22. **同轨迹的语义变体仍使用独立图集键和首个效果名**：普通弹与特殊弹可以复用分片列数、寿命和 Field 几何，但可复现脚本应生成不同文件名的图集，分别登记 `<ParticleTextures>` 并让两份 XML 的首个 `Name`/`<Image>` 全部独立；否则运行时换色或后续调参会串改另一弹型。AutoTest 同时断言两组关键分片加载、普通/特殊命中计数互斥，并在同步截图确认颜色与目标锚点。

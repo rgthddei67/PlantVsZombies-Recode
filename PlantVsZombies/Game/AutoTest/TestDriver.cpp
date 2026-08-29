@@ -372,6 +372,7 @@ namespace {
 		PT(PLANT_ALARMBELLFLOWER),
 		PT(PLANT_FURNACECOREFLOWER),
 		PT(PLANT_LISTENINGGRASS),
+		PT(PLANT_AURORATORCHWOOD),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -380,6 +381,7 @@ namespace {
 		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_BASKETBALL), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
 		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 		BT(BULLET_MELT_SNOW), BT(BULLET_SALT_CRYSTAL),
+		BT(BULLET_AURORA_PEA),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -4483,6 +4485,32 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Particles::PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0, false) != nullptr },
 	};
+	out["gatlingPeaResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GATLINGPEA) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GATLINGPEA, false) != nullptr },
+		{ "barrelLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_GATLINGPEA_BARREL", false) != nullptr },
+	};
+	out["auroraTorchwoodResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_AURORATORCHWOOD) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_AURORATORCHWOOD, false) != nullptr },
+		{ "bodyLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_AURORATORCHWOOD_BODY", false) != nullptr },
+		{ "mouthLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_AURORATORCHWOOD_MOUTH", false) != nullptr },
+		{ "prismLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_AURORATORCHWOOD_PRISM1", false) != nullptr },
+		{ "projectileLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILEAURORAPEA, false) != nullptr },
+		{ "snowProjectileLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILEAURORASNOWPEA, false) != nullptr },
+		{ "toxicProjectileLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILEAURORATOXICPEA, false) != nullptr },
+	};
 	out["snowBurrowResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_SNOW_BURROW_ZOMBIE) },
@@ -7841,6 +7869,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int fireballBulletCount = 0;
 	int toxicFireballBulletCount = 0;
 	int toxicPeaBulletCount = 0;
+	int auroraPeaBulletCount = 0;
 	int spikeBulletCount = 0;
 	int starBulletCount = 0;
 	int starLeftBulletCount = 0;
@@ -7888,6 +7917,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			++toxicFireballBulletCount;
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_TOXICPEA) ++toxicPeaBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_AURORA_PEA) ++auroraPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_STAR) {
 			++starBulletCount;
 			if (bullet->GetRotationSpeedDegrees() != 0.0f) {
@@ -7971,6 +8001,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
 			{ "targetsFlying", bullet->TargetsFlying() },
 			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },
+			{ "hitAuroraTorchwoodColumn", bullet->GetHitAuroraTorchwoodColumn() },
+			{ "auroraHitCount", bullet->GetAuroraHitCount() },
+			{ "auroraHitZombieIDs", bullet->GetAuroraHitZombieIDs() },
+			{ "auroraPlayedHitSound", bullet->HasPlayedAuroraHitSound() },
 			{ "piercedZombieCount", bullet->GetPiercedZombieCount() },
 			{ "piercedZombieIDs", bullet->GetPiercedZombieIDs() },
 			{ "spikeDamageRemainders", bullet->GetSpikeDamageRemainders() },
@@ -8028,6 +8062,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["fireballBulletCount"] = fireballBulletCount;
 	out["toxicFireballBulletCount"] = toxicFireballBulletCount;
 	out["toxicPeaBulletCount"] = toxicPeaBulletCount;
+	out["auroraPeaBulletCount"] = auroraPeaBulletCount;
 	out["spikeBulletCount"] = spikeBulletCount;
 	out["starBulletCount"] = starBulletCount;
 	out["starLeftBulletCount"] = starLeftBulletCount;

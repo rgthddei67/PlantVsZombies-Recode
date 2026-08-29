@@ -1,0 +1,19 @@
+<Emitter>
+  <Name>AuroraPeaPass</Name>
+  <SpawnMinActive>[3 5]</SpawnMinActive>
+  <SpawnMaxLaunched>5</SpawnMaxLaunched>
+  <ParticleDuration>0.35</ParticleDuration>
+  <ParticleAlpha>0.8 0</ParticleAlpha>
+  <ParticleScale>[0.35 0.6] 0.15</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 8]</EmitterRadius>
+  <LaunchSpeed>[45 75]</LaunchSpeed>
+  <SystemDuration>0.4</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+  <Field>
+    <FieldType>Acceleration</FieldType>
+    <X>35</X>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-180 180]</ParticleSpinSpeed>
+</Emitter>

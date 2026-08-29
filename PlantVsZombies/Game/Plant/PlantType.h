@@ -70,6 +70,7 @@ enum class PlantType
 	PLANT_ALARMBELLFLOWER,	// 警铃草；7-6 奖励，中断本行最接近提交的一项特殊动作
 	PLANT_FURNACECOREFLOWER,	// 炉芯花；7-7 奖励，温暖充能并阻止 3x3 内其他植物被建立冰像封存
 	PLANT_LISTENINGGRASS,	// 听雪草；8-1 奖励，迫出本行地下敌人并封闭雪穴
+	PLANT_AURORATORCHWOOD,	// 极光树桩；8-3 奖励，火炬树桩普通层紫卡升级
 	NUM_PLANT_TYPES,
 };
 

@@ -635,6 +635,9 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		b["rotationDegrees"] = bullet->GetRotationDegrees();
 		b["rotationSpeedDegrees"] = bullet->GetRotationSpeedDegrees();
 		b["hitTorchwoodColumn"] = bullet->GetHitTorchwoodColumn();
+		b["hitAuroraTorchwoodColumn"] = bullet->GetHitAuroraTorchwoodColumn();
+		b["auroraHitZombieIDs"] = bullet->GetAuroraHitZombieIDs();
+		b["auroraPlayedHitSound"] = bullet->HasPlayedAuroraHitSound();
 		b["piercedZombieIDs"] = bullet->GetPiercedZombieIDs();
 		b["spikeDamageRemainders"] = bullet->GetSpikeDamageRemainders();
 		b["threepeaterMotion"] = bullet->IsThreepeaterMotion();
@@ -1553,7 +1556,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				static_cast<int>(PlantType::NUM_PLANT_TYPES)));
 			bullet->SetPlantDamageOrigin(savedOrigin.IsValid() ? savedOrigin : PlantDamageOrigin{});
 			bullet->RestoreSavedPresentationState(
-				type, b.value("hitTorchwoodColumn", -1));
+				type, b.value("hitTorchwoodColumn", -1),
+				b.value("hitAuroraTorchwoodColumn", -1));
 			bullet->SetBulletDamage(b["damage"].get<int>());
 			bullet->SetVelocityX(b["velocityX"].get<float>());
 			bullet->SetVelocityY(b["velocityY"].get<float>());
@@ -1564,6 +1568,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			bullet->RestorePiercedZombieState(
 				b.value("piercedZombieIDs", std::vector<int>{}),
 				b.value("spikeDamageRemainders", std::vector<float>{}));
+			bullet->RestoreAuroraState(
+				b.value("auroraHitZombieIDs", std::vector<int>{}),
+				b.value("auroraPlayedHitSound", false));
 			if (b.value("threepeaterMotion", false)) {
 				// 先恢复运动类型以重建阴影布局，再用存档速度覆盖初始值继续衰减。
 				const float savedVelocityY = bullet->GetVelocityY();

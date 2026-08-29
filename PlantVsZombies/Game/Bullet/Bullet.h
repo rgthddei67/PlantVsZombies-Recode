@@ -51,6 +51,7 @@ private:
 	};
 
 	struct SpikeState;
+	struct AuroraState;
 
 public:
 	BulletType mBulletType = BulletType::NUM_BULLETS;
@@ -75,7 +76,9 @@ protected:
 	TrajectoryState mTrajectory; // 轨迹类型与互斥参数；对象池复用必须整体重置
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
+	int mHitAuroraTorchwoodColumn = -1; // 最近处理过本子弹的极光树桩列
 	std::unique_ptr<SpikeState> mSpikeState; // 仅尖刺首次接触目标时分配，固定四槽且随池槽复用
+	std::unique_ptr<AuroraState> mAuroraState; // 首次变为极光弹时分配，保存四目标历史与单次音效状态
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
 
@@ -85,6 +88,10 @@ protected:
 	 * 处理一次子弹与僵尸的碰撞帧；普通弹只消费首次 Enter，尖刺在 Enter/Stay 均结算。
 	 */
 	void HandleZombieContact(ColliderComponent* other);
+	/** 对当前重叠的极光弹目标按飞行方向稳定排序，并依次消费未命中过的目标。 */
+	void HandleAuroraContacts();
+	/** 结算一只极光弹目标的伤害、来源状态与分段反馈。 */
+	void HitAuroraZombie(Zombie* zombie);
 	/** 处理投篮车篮球与植物的下降末段碰撞，并按格内投篮层级重定向目标。 */
 	void HandlePlantContact(ColliderComponent* other);
 	/** 按对象池固定弹型恢复碰撞阵营与回调，避免篮球槽位复用后沿用僵尸掩码。 */
@@ -173,12 +180,21 @@ public:
 	void ConvertToFireball(int torchwoodColumn);
 	/** 寒冰豌豆穿过火炬树桩后退化为普通豌豆；同列不会再被点燃。 */
 	void ConvertSnowPeaToPea(int torchwoodColumn);
+	/** 把合资格射手谱系的当前豌豆形态改为极光弹，保留原发射来源与命中历史。 */
+	void ConvertToAuroraPea(int auroraTorchwoodColumn);
 	/**
 	 * @brief 按存档恢复可变子弹类型与火炬树桩防重状态，不改变对象池槽位类型。
 	 */
-	void RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn);
+	void RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn,
+		int hitAuroraTorchwoodColumn = -1);
 	int GetHitTorchwoodColumn() const { return mHitTorchwoodColumn; }
 	void SetHitTorchwoodColumn(int column) { mHitTorchwoodColumn = column; }
+	int GetHitAuroraTorchwoodColumn() const { return mHitAuroraTorchwoodColumn; }
+	int GetAuroraHitCount() const;
+	std::vector<int> GetAuroraHitZombieIDs() const;
+	bool HasPlayedAuroraHitSound() const;
+	/** 按存档恢复极光弹的终身目标历史；会去重并截断到四目标上限。 */
+	void RestoreAuroraState(const std::vector<int>& zombieIDs, bool playedHitSound);
 	/** 返回当前类型是否为独立的紫焰毒火豆。 */
 	bool IsToxicFireball() const {
 		return mBulletType == BulletType::BULLET_TOXICFIREBALL;
