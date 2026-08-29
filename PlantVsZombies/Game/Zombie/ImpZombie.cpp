@@ -26,9 +26,9 @@ namespace {
 	constexpr float kInitialAltitude = 112.0f;               // 小鬼脱手高度；按主人目验在原版 88px 基础上上抬 24px
 	constexpr float kLimbVolume = 0.25f;                     // 小鬼断肢断头音量
 	constexpr float kColliderWidth = 40.0f;                  // 小鬼碰撞框宽度，单位 px
-	constexpr float kColliderHeight = 70.0f;                 // 小鬼碰撞框高度，单位 px
+	constexpr float kColliderHeight = 80.0f;                 // 小鬼碰撞框高度，单位 px
 	constexpr float kColliderOffsetX = -15.0f;                // 原版碰撞框左缘相对逻辑原点 X，单位 px
-	constexpr float kColliderOffsetY = -20.0f;                // 原版碰撞框上缘相对逻辑原点 Y，单位 px
+	constexpr float kColliderOffsetY = -35.0f;                // 原版碰撞框上缘相对逻辑原点 Y，单位 px
 }
 
 void ImpZombie::SetupZombie()
