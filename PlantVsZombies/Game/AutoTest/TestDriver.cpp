@@ -6257,6 +6257,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["clockFollowersConfigured"] = clock->HasFinaleFollowersConfigured();
 			zombieState["clockDiskTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Textures::IMAGE_ZOMBIE_POLAR_CLOCK_DISK, false) != nullptr;
+			zombieState["clockFaceTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_TEMPORALCLOCKFACE, false) != nullptr;
+			zombieState["clockHourHandTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_TEMPORALCLOCKHOURHAND, false) != nullptr;
+			zombieState["clockMinuteHandTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_TEMPORALCLOCKMINUTEHAND, false) != nullptr;
 		}
 		if (auto* elite = dynamic_cast<EliteDancerZombie*>(z)) {
 			zombieState["eliteBackupCount"] = elite->GetActiveBackupCount();

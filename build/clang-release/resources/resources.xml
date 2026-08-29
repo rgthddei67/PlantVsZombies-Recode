@@ -376,6 +376,9 @@
 	<Texture>./resources/particles/AlarmBellRowPulse.png</Texture>
 	<Texture>./resources/particles/AuroraRift.png</Texture>
 	<Texture>./resources/particles/TemporalGear.png</Texture>
+	<Texture>./resources/particles/TemporalClockFace.png</Texture>
+	<Texture>./resources/particles/TemporalClockHourHand.png</Texture>
+	<Texture>./resources/particles/TemporalClockMinuteHand.png</Texture>
 	<Texture>./resources/particles/BoundaryShard.png</Texture>
 	<Texture>./resources/particles/DawnFlare.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesSmall.png</Texture>
