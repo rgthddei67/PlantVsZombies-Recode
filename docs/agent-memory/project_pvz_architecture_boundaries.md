@@ -1,5 +1,20 @@
 # PvZ 架构边界与存档版本入口
 
+## 2026-08-29 Board 冬日气候首批拆分
+
+`Board` 的公共接口、成员布局、唯一玩法权威和关卡 JSON 键保持不变；寒潮初始化与推进、
+冻融资格、冬季测试入口和霜线绘制实现从 `Board.cpp` 机械迁入
+`Game/BoardWinterClimate.cpp`。冬日温区、寒潮权重和阶段时长常量也随唯一消费域迁移，
+基础雨势代码通过 `GetWinterFreezingTemperatureC()` 读取冰点，不复制调参值。
+
+这一步只拆翻译单元，不引入第二份天气状态、不改变 `GameInfoSaver`、不提升 schema，
+也不把 `CreateBoom`、`GetNormalPlantAt` 等棋盘核心门面移出 `Board`。后续环境子域继续采用
+“先保持 `Board::` 接口机械拆文件，再单独评估状态封装”的顺序，禁止一次提交同时改玩法语义。
+
+验证使用当前 `clang-release`：完整构建和 Win7 378 项导入审计通过，CTest 3/3；
+桌面可见 `smoke_winter_garden` 143/143、`smoke_winter_opening_cold_wave` 68/68，
+退出码、`status.json`、`run.log` 和冬季截图均已核对。
+
 ## 2026-07-29 渐进式解耦
 
 `GameScene` 继续用 `unique_ptr` 独占 `Board`，但 `Board` 不再包含或暴露

@@ -249,7 +249,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 
 | 目的 | 当前位置 / 搜索词 | 约束 |
 |---|---|---|
-| 权重、持续时间、倍率 | `Board.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释 |
+| 基础雨势权重、持续时间、倍率 | `Board.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释 |
+| 冬日寒潮温区、权重与时长 | `BoardWinterClimate.cpp` 匿名命名空间 `k*ColdWave*` / `kWinter*` | Board 接口和状态布局不变；调参常量同行中文注释 |
 | 随机下一天气 | `Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
 | 整栏预报干扰 | `BeginWeatherPanelInterference` / `UpdateWeatherPanelInterference` / `DisruptWeatherForecastPanel` | Board 持可叠加时限窗口并截获期间新广播；只改可见性，不改锁定实况 |
