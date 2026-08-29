@@ -192,6 +192,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 **每次完成并验证任何植物新增或实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、交互契约、foot-gun 或验证手法浓缩进相关章节；已有规则则合并强化，不堆一次性日志。任务同时修改粒子、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 
+**最终视觉占位符审计（提交前必做）**：逐项列出本次新增或实质修改植物的卡图、reanim 分件、运行时 `Draw*` 图形、子弹、粒子、状态标志、范围框和阶段反馈，并主动搜索相关 `DrawCircle` / `FillCircle` / `DrawRect` / `DrawLine` 调用及临时资源键。简单图元可以作为完整设计的构成元素，但若单个圆圈、十字、单条斜线、单像素边框、纯色矩形、默认贴图或未细化复用图单独承担机制身份，就视为尚未完成的占位符。每个关键完整状态都要保留实机尺度同步截图，不能只截破损、消失或被其他效果遮住后的残片；在目标关卡背景、血量文字、粒子和相邻单位叠加下检查轮廓、材质层次、锚点与可读性。发现简单占位符必须先完善再交付，并在完工汇报中明确说明审计范围和结果。
+
 ## 关联记忆
 
 `[[project_pvz_gamedata_json]]`（权威单份资源）、`[[project_pvz_autotest_suite]]`、`[[reference_pvz_assets_worktree_autotest_gotchas]]`。
