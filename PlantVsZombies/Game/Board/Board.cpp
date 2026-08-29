@@ -297,11 +297,6 @@ void Board::CompleteLoadRestore()
 	}
 }
 
-
-
-
-
-
 /** 夹紧并恢复当前波已经成功生成的精英舞王数量。 */
 void Board::RestoreEliteDancerWaveSpawnCount(int count)
 {
@@ -478,7 +473,6 @@ void Board::RestoreThermalSniperSpawnState(int waveCount, bool tutorialSpawned)
 			|| mLevel == kThermalSniperCompositeLevel)
 		&& tutorialSpawned;
 }
-
 
 /**
  * 将正式波次选中的普通舞王按当前黑夜强天气变异为精英舞王。
@@ -680,8 +674,6 @@ Zombie* Board::CreateResolvedWaveZombie(ZombieType actualType, int row, float x)
 	return zombie;
 }
 
-
-
 void Board::FinalizeIceStatueExecutionerLoad()
 {
 	std::vector<int> zombieIDs = mEntityRegistry.GetAllZombieIDs();
@@ -708,7 +700,6 @@ void Board::FinalizeIceStatueExecutionerLoad()
 		}
 	}
 }
-
 
 /**
  * 正式波次只在活动雪穴处建立延迟事务；预算与行选择已经由调用方提交，
@@ -745,7 +736,6 @@ bool Board::CreateOrQueueWaveZombie(ZombieType actualType, int row, float rightE
 	return true;
 }
 
-
 void Board::TrySpawnAdaptiveHelmetTutorialWave()
 {
 	if (mIsSurvival || mLevel != kAdaptiveHelmetTutorialLevel
@@ -769,10 +759,6 @@ void Board::TrySpawnAdaptiveHelmetTutorialWave()
 	mAdaptiveHelmetTutorialWaveSpawned = true;
 	UpdateZombieMetrics();
 }
-
-
-
-
 
 bool Board::IsPoolBackground() const
 {
@@ -815,9 +801,6 @@ float Board::GetMowerTerrainY(int row, float worldX) const
 	if (centerY < 0.0f) return centerY;
 	return centerY + (IsRoofBackground() ? kRoofMowerTerrainOffsetY : -3.0f);
 }
-
-
-
 
 bool Board::TryPreventIceExecutionSeal(Plant& target) const
 {
@@ -1279,8 +1262,6 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 	RemoveLaddersInBlastSquare(position, plantRow, 1);
 }
 
-
-
 void Board::CreateDoomBoom(const Vector& position, int plantRow, int damage)
 {
 	g_particleSystem->EmitEffect("Doom", position);
@@ -1589,7 +1570,6 @@ void Board::CreateTrophy(const Vector& position)
 	mTrophy = trophy;
 }
 
-
 void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int damage)
 {
 	constexpr float kCobBlastRadius = 115.0f; // 原版 CobBig 爆心半径，单位：px
@@ -1626,7 +1606,6 @@ void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int 
 	// 原版玉米炮与樱桃炸弹相同：扶梯按爆心格周围 3x3 方形范围清除。
 	RemoveLaddersInBlastSquare(position, targetRow, 1);
 }
-
 
 bool Board::IsValidCobCannonAnchor(int row, int anchorColumn) const
 {
@@ -1790,7 +1769,6 @@ bool Board::HasPlantingQuota(PlantType type) const
 	return type != PlantType::PLANT_ELITE_SCAREDYSHROOM
 		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
 }
-
 
 bool Board::BeginCobCannonTargeting(int row, int col)
 {
