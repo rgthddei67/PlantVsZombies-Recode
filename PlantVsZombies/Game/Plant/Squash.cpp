@@ -301,13 +301,19 @@ void Squash::ApplySquashDamage()
 			if (zombie->mZombieType == ZombieType::ZOMBIE_REINFORCED_DOOR)
 			{
 				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH,
-					false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
+					true, false, false, PlantDamageOrigin::Ash());
 				return;
 			}
 			else if (zombie->mZombieType == ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER)
 			{
 				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH,
-					false, false, false, PlantDamageOrigin::FromPlant(mPlantType));
+					true, false, false, PlantDamageOrigin::Ash());
+				return;
+			}
+			else if (zombie->mZombieType == ZombieType::ZOMBIE_ADAPTIVE_HELMET)
+			{
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH,
+					true, false, false, PlantDamageOrigin::Ash());
 				return;
 			}
 
@@ -319,8 +325,8 @@ void Squash::ApplySquashDamage()
 			}
 			else 
 			{
-				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT, true,
-					false, false, PlantDamageOrigin::FromPlant(mPlantType));
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH, true,
+					false, false, PlantDamageOrigin::Ash());
 			}
 		}
 	});
