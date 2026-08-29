@@ -1,5 +1,5 @@
 #include "Crater.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "Cell.h"
 #include "GameObjectManager.h"
 #include "../GameApp.h"

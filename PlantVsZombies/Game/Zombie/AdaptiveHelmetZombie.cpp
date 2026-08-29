@@ -1,6 +1,6 @@
 #include "AdaptiveHelmetZombie.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../../ResourceKeys.h"
 #include "../../ResourceManager.h"
 

@@ -1,6 +1,6 @@
 #include "EliteDancerZombie.h"
 #include "BackupDancerZombie.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 #include <algorithm>
 

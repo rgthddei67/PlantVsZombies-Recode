@@ -1,8 +1,8 @@
 #include "Plantern.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
-#include "../BoardPresentation.h"
+#include "Game/Board/Board.h"
+#include "Game/Board/BoardPresentation.h"
 #include "../ShadowComponent.h"
 #include "../../ResourceKeys.h"
 #include "../../DeltaTime.h"

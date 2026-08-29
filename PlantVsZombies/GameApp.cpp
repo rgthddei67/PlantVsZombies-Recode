@@ -28,7 +28,7 @@
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/Plant/Plant.h"
 
-#include "./Game/Board.h"
+#include "Game/Board/Board.h"
 #include "./Game/AdventureProgression.h"
 
 #include "./Profiler.h"

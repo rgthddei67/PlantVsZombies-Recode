@@ -1,6 +1,6 @@
 #include "FumeShroom.h"
 #include "../../ParticleSystem/ParticleSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include <algorithm>
 #include <vector>
 

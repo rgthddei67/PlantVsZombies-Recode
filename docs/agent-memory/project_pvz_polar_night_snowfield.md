@@ -38,7 +38,7 @@ Board 实际世界 Cell 边界 x=242..962、y=88..588 做分段校准；运行�
 直接运行完整导演；8-9 大波警告从当前实数平滑补齐三红，已有白毛风只延长、不重启。
 
 2026-08-29 的架构拆分把上述导演、雪穴状态推进、强风偏行、地面绘制和测试入口机械迁入
-`Game/BoardPolarNight.cpp`；`Board.h` 的公共接口、成员布局和存档键均不变。`Board.cpp`
+`Game/Board/BoardPolarNight.cpp`；`Board/Board.h` 的公共接口、成员布局和存档键均不变。`Board/Board.cpp`
 继续保留 `CreateOrQueueWaveZombie`、`SummonNextWave`、通用索敌等核心集成点，并通过窄入口
 衔接 8-9 最终波，避免环境拆分重写正式波次边界。
 

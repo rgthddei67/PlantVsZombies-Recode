@@ -1,6 +1,6 @@
 #include "Ladder.h"
 
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "Cell.h"
 #include "GameObjectManager.h"
 #include "Plant/Plant.h"

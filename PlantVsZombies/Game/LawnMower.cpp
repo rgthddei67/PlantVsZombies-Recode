@@ -1,5 +1,5 @@
 #include "LawnMower.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "Zombie/Zombie.h"
 #include "GameObjectManager.h"
 #include "ShadowComponent.h"

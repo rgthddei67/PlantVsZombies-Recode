@@ -1,6 +1,6 @@
 #include "StarFruit.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Bullet/Bullet.h"
 #include "../ShadowComponent.h"
 #include "../Zombie/Zombie.h"

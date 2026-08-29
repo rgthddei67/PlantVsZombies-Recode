@@ -1,5 +1,5 @@
 #include "Coin.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "../DeltaTime.h"
 
 Coin::Coin(Board* board, AnimationType animType, const Vector& position,

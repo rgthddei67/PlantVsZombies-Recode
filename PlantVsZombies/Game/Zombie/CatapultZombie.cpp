@@ -2,7 +2,7 @@
 
 #include "CatapultCharred.h"
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Bullet/Bullet.h"
 #include "../GameObjectManager.h"
 #include "../Plant/Caltrop.h"

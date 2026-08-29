@@ -1,7 +1,7 @@
 #include "GloomShroom.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Zombie/Zombie.h"
 #include "../../ResourceKeys.h"
 

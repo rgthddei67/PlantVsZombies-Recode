@@ -2,8 +2,8 @@
 #ifndef _GAMESCENE_H
 #define _GAMESCENE_H
 #include "Scene.h"
-#include "BoardPresentation.h"
-#include "../Game/Board.h"
+#include "Game/Board/BoardPresentation.h"
+#include "Game/Board/Board.h"
 #include "Perk/PerkType.h"
 #include <cstdint>
 #include <unordered_map>

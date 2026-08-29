@@ -1,5 +1,5 @@
 #include "Shovel.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "Cell.h"
 #include "../UI/InputHandler.h"
 #include "GameObjectManager.h"

@@ -3,7 +3,7 @@
 #define _H_PUFFSHROOM_H
 
 #include "Shroom.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 class PuffShroom : public Shroom
 {

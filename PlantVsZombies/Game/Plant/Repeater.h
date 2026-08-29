@@ -3,7 +3,7 @@
 #define _REPEATER_H
 
 #include "Shooter.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 class Repeater : public Shooter {
 public:

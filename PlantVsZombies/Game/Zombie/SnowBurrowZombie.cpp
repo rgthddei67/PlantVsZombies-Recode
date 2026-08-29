@@ -1,7 +1,7 @@
 #include "SnowBurrowZombie.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Cell.h"
 #include "../Plant/Plant.h"
 #include "../ShadowComponent.h"

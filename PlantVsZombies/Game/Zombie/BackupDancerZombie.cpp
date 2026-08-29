@@ -1,6 +1,6 @@
 #include "BackupDancerZombie.h"
 #include "../../GameApp.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 

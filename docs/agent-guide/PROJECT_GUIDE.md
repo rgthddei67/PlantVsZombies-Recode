@@ -189,8 +189,8 @@ Clickable 也由 `GameObject` 用 `unique_ptr<ClickableComponent>` 显式可选�
 
 | 类 | 文件 | 职责 |
 |---|---|---|
-| `Board` | `Game/Board.h`、`Game/Board*.cpp` | 关卡玩法权威：天气、僵尸波次、阳光生成、胜负逻辑；大型环境子域按实现文件拆分，公共门面与状态权威仍属于 Board |
-| `BoardPresentation` | `Game/BoardPresentation.h` | `Board` 到宿主场景的窄展示端口：提示、进度条及 UI 瞬态存取 |
+| `Board` | `Game/Board/Board.h`、`Game/Board/Board*.cpp` | 关卡玩法权威：天气、僵尸波次、阳光生成、胜负逻辑；大型环境和战术决策子域按实现文件拆分，公共门面与状态权威仍属于 Board |
+| `BoardPresentation` | `Game/Board/BoardPresentation.h` | `Board` 到宿主场景的窄展示端口：提示、进度条及 UI 瞬态存取 |
 | `GameObjectManager` | `Game/GameObjectManager` | 创建/销毁对象、渲染顺序、线程池 |
 | `CollisionSystem` | `Game/CollisionSystem` | 每帧碰撞检测与回调 |
 | `EntityRegistry` | `Game/EntityRegistry` | 按 ID 跟踪实体（存档系统使用） |

@@ -6,8 +6,8 @@
 #include <cstddef>
 #include <filesystem>
 #include "GameApp.h"
-#include "./Game/Board.h"
-#include "./Game/BoardPresentation.h"
+#include "Game/Board/Board.h"
+#include "Game/Board/BoardPresentation.h"
 #include "./Game/AudioSystem.h"
 #include "./Game/Bullet/Bullet.h"
 #include "./Game/Plant/Plant.h"

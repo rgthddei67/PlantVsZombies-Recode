@@ -1,7 +1,7 @@
 #include "Caltrop.h"
 
 #include "../../ResourceKeys.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../Zombie/Zombie.h"
 

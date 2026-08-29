@@ -4,7 +4,7 @@
 #include "../../GameApp.h"
 #include "../../ResourceKeys.h"
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../Zombie/Zombie.h"
 

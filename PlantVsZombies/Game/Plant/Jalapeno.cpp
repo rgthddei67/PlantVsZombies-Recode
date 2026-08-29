@@ -4,7 +4,7 @@
 #include "../../ResourceKeys.h"
 #include "../AnimatedObject.h"
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../GameObjectManager.h"
 #include "../Zombie/Zombie.h"
 

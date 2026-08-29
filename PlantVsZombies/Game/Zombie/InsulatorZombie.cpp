@@ -1,7 +1,7 @@
 #include "InsulatorZombie.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../../DeltaTime.h"
 #include "../../ResourceKeys.h"
 #include "../../ResourceManager.h"

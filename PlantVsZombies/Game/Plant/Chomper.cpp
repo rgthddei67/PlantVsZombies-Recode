@@ -1,5 +1,5 @@
 #include "Chomper.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Zombie/Zombie.h"
 #include <cfloat>
 

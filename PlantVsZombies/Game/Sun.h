@@ -6,7 +6,7 @@
 #include "../GameRandom.h"
 #include "../GameApp.h"
 #include "Coin.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 
 class Sun : public Coin {
 protected:

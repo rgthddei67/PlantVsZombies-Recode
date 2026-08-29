@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Zombie.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 #include <algorithm>
 

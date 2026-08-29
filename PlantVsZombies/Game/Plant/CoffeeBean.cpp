@@ -1,6 +1,6 @@
 #include "CoffeeBean.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../../DeltaTime.h"
 #include "../../ResourceKeys.h"

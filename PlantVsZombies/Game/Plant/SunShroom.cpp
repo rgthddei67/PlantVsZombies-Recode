@@ -1,5 +1,5 @@
 #include "SunShroom.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 
 void SunShroom::SetupPlant()

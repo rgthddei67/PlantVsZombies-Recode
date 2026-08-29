@@ -1,8 +1,8 @@
-#include "Board.h"
-#include "BoardPresentation.h"
-#include "AdventureProgression.h"
-#include "./Plant/Plantern.h"
-#include "../GameRandom.h"
+#include "Game/Board/Board.h"
+#include "Game/Board/BoardPresentation.h"
+#include "Game/AdventureProgression.h"
+#include "Game/Plant/Plantern.h"
+#include "GameRandom.h"
 
 #include <algorithm>
 #include <cmath>

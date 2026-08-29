@@ -2,7 +2,7 @@
 
 #include "AdventureProgression.h"
 #include "AudioSystem.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "SceneManager.h"
 #include "../GameApp.h"
 

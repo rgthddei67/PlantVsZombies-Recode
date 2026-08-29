@@ -1,6 +1,6 @@
 #include "WeatherJammerZombie.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../../DeltaTime.h"
 #include "../../Reanimation/Animator.h"
 #include "../../ResourceKeys.h"

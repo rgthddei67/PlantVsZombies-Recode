@@ -1,6 +1,6 @@
 #include "FlowerPot.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 
 #include <algorithm>

@@ -1,7 +1,7 @@
 #include "Blover.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Zombie/BalloonZombie.h"
 
 #include <algorithm>

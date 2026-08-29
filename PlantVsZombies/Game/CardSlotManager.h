@@ -4,7 +4,7 @@
 
 #include "Card.h"
 #include "./Plant/PlantType.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "Cell.h"
 #include <vector>
 #include <memory>

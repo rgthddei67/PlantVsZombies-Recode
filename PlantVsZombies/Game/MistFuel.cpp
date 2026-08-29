@@ -1,6 +1,6 @@
 #include "MistFuel.h"
 
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "GameObjectManager.h"
 #include "Plant/Plantern.h"
 #include "../DeltaTime.h"

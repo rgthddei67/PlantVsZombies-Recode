@@ -1,6 +1,6 @@
 #include "AuroraTorchwood.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Bullet/Bullet.h"
 
 #include <algorithm>

@@ -1,5 +1,5 @@
 #include "ShovelBank.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "Shovel.h"
 #include "ClickableComponent.h"
 #include "Transform.h"

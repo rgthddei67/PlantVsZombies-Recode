@@ -1,5 +1,5 @@
 #include "CherryBomb.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 void CherryBomb::SetupPlant()
 {

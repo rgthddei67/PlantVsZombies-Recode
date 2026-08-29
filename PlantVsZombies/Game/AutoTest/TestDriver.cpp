@@ -19,7 +19,7 @@
 #include "../MainMenuScene.h"
 #include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Ladder.h"
 #include "../IceWall.h"
 #include "../GroundRift.h"

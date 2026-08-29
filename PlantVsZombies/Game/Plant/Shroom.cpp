@@ -1,6 +1,6 @@
 #include "Shroom.h"
 #include "../../GameApp.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 void Shroom::SetupPlant()
 {

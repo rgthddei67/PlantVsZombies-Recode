@@ -5,7 +5,7 @@
 #include "../../ResourceManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
 #include "../Plant/Caltrop.h"

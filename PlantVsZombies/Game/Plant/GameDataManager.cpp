@@ -10,7 +10,7 @@
 
 #include "../GameObjectManager.h"
 #include "../RenderOrder.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 #include "PeaShooter.h"
 #include "ToxicPeaShooter.h"

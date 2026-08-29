@@ -4,7 +4,7 @@
 #include "../Plant/Plant.h"
 #include "../Plant/HypnoShroom.h"
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../GameObjectManager.h"
 #include "../Plant/GameDataManager.h"

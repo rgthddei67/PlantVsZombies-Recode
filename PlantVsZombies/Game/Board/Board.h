@@ -1,17 +1,17 @@
 #pragma once
 #ifndef _BOARD_H
 #define _BOARD_H
-#include "Cell.h"
-#include "GameObject.h"
-#include "GameObjectManager.h"
-#include "Ladder.h"
-#include "./Plant/PlantType.h"
-#include "./Zombie/ZombieType.h"
-#include "./Bullet/BulletType.h"
-#include "EntityRegistry.h"
-#include "CursorObjectManager.h"
-#include "Perk/SurvivalPerkManager.h"
-#include "WeatherTypes.h"
+#include "Game/Cell.h"
+#include "Game/GameObject.h"
+#include "Game/GameObjectManager.h"
+#include "Game/Ladder.h"
+#include "Game/Plant/PlantType.h"
+#include "Game/Zombie/ZombieType.h"
+#include "Game/Bullet/BulletType.h"
+#include "Game/EntityRegistry.h"
+#include "Game/CursorObjectManager.h"
+#include "Game/Perk/SurvivalPerkManager.h"
+#include "Game/WeatherTypes.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -265,6 +265,11 @@ private:
 	void ConfigureMonteCarloCombatConfig(
 		PlantDefenseMonteCarlo::Config& config,
 		int rolloutCount, float horizonSeconds) const;
+	/** 追加植物范围冲击配置，并复用核心南瓜保护参数。 */
+	void ConfigureMonteCarloPlantImpactConfig(
+		PlantDefenseMonteCarlo::Config& config,
+		int rolloutCount, float horizonSeconds,
+		int damage, float radius) const;
 	/** 返回屋顶坡段包含的逻辑列数；环境文件不得复制核心几何常量。 */
 	int GetRoofSlopeColumnCount() const;
 	/** 为急救员推演投影当前劫持者处决倒计时和生存模式生命线。 */

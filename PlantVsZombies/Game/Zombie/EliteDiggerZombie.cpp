@@ -1,7 +1,7 @@
 #include "EliteDiggerZombie.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Plant/Plant.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../ResourceKeys.h"

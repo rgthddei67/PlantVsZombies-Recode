@@ -1,6 +1,6 @@
 #include "GatlingPea.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../../GameApp.h"
 
 namespace {

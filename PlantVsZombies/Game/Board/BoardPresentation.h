@@ -1,7 +1,7 @@
 #pragma once
 
-#include "WeatherTypes.h"
-#include "Plant/PlantType.h"
+#include "Game/WeatherTypes.h"
+#include "Game/Plant/PlantType.h"
 #include <string>
 #include <unordered_map>
 #include <utility>

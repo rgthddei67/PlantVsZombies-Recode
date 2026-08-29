@@ -1,6 +1,6 @@
 #include "BulletPool.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../GameObjectManager.h"
 #include "../../Logger.h"
 

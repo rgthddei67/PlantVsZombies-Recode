@@ -1,7 +1,7 @@
 #include "EliteJackInTheBoxZombie.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Plant/GameDataManager.h"
 #include "../Plant/Plant.h"
 #include "../../DeltaTime.h"

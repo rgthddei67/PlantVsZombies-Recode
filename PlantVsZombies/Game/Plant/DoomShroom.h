@@ -3,7 +3,7 @@
 #define _H_DOOMSHROOM_H
 
 #include "Shroom.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 // 毁灭菇：夜晚种下立即充能（anim_explode 全局 19..51 帧、按原版 23fps 播放），
 // 第 51 帧（主人指定）引爆——半径 250 圆形全场结算、清除同格其他植物并原地留弹坑 180s，

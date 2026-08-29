@@ -1,6 +1,6 @@
 #include "SnowAnchorNut.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 namespace {
 	constexpr int kSnowAnchorNutHealth = 3000; // 雪锚果基础生命值；存活期间可持续承担冻土冲击

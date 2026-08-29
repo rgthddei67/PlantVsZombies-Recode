@@ -1,6 +1,6 @@
 #include "Squash.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../Zombie/FootballZombie.h"
 #include "../Zombie/Polevaulter.h"

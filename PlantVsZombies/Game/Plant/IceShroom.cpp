@@ -1,5 +1,5 @@
 #include "IceShroom.h"
-#include "../BoardPresentation.h"
+#include "Game/Board/BoardPresentation.h"
 #include "../AudioSystem.h"
 #include "../ShadowComponent.h"
 #include "../Zombie/Zombie.h"

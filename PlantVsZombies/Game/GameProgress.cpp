@@ -1,5 +1,5 @@
 #include "GameProgress.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "SceneManager.h"
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"

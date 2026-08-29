@@ -1,6 +1,6 @@
 #include "LightningRodPot.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "PlantFootprint.h"
 
 namespace {

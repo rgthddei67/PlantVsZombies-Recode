@@ -1,6 +1,6 @@
 #include "IceCrackDrillZombie.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../GroundRift.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../Reanimation/Animator.h"

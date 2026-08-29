@@ -1,6 +1,6 @@
 #include "Polevaulter.h"
 #include "../../ParticleSystem/ParticleSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../ShadowComponent.h"
 #include "../Plant/Plant.h"
 

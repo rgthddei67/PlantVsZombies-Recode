@@ -34,7 +34,7 @@
 
 暂停时天气过渡和阶段计时冻结；倍速时按游戏时间等比推进。天气 UI 的滑入、5 秒当前天气牌和失败提示另用未缩放时间。
 
-无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival` 与通用雨势资格消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。无尽模式不再因模式本身禁用台风：前六种背景在玩家总开关开启时允许，雪原仍因 `WINTER_GARDEN` 背景拒绝。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
+无尽模式由 `Game/Board/Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival` 与通用雨势资格消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。无尽模式不再因模式本身禁用台风：前六种背景在玩家总开关开启时允许，雪原仍因 `WINTER_GARDEN` 背景拒绝。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
 
 提前 5 游戏秒的大雨分级文字警报只由玩家可见的公开预报驱动：公开预报为 `HEAVY` 就显示，
 否则即使真实下一天气为大雨也隐藏，弹窗有无不得成为判断预报真假的旁路。公开误报大雨时也须
@@ -249,19 +249,19 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 
 | 目的 | 当前位置 / 搜索词 | 约束 |
 |---|---|---|
-| 基础雨势权重、持续时间、倍率 | `BoardWeather.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释；不混入独立雾势或屋顶积累器 |
-| 独立雾势、驱散与逐格 alpha | `BoardFogWeather.cpp`：`Board::UpdateFog*` / `GetFogCellAlpha` | Board 持状态；雾势常量与路灯花照明形状集中在同一翻译单元 |
-| 冬日寒潮温区、权重与时长 | `BoardWinterClimate.cpp` 匿名命名空间 `k*ColdWave*` / `kWinter*` | Board 接口和状态布局不变；调参常量同行中文注释 |
-| 随机下一天气 | `BoardWeather.cpp`：`Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
+| 基础雨势权重、持续时间、倍率 | `Game/Board/BoardWeather.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释；不混入独立雾势或屋顶积累器 |
+| 独立雾势、驱散与逐格 alpha | `Game/Board/BoardFogWeather.cpp`：`Board::UpdateFog*` / `GetFogCellAlpha` | Board 持状态；雾势常量与路灯花照明形状集中在同一翻译单元 |
+| 冬日寒潮温区、权重与时长 | `Game/Board/BoardWinterClimate.cpp` 匿名命名空间 `k*ColdWave*` / `kWinter*` | Board 接口和状态布局不变；调参常量同行中文注释 |
+| 随机下一天气 | `Game/Board/BoardWeather.cpp`：`Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
 | 整栏预报干扰 | `BeginWeatherPanelInterference` / `UpdateWeatherPanelInterference` / `DisruptWeatherForecastPanel` | Board 持可叠加时限窗口并截获期间新广播；只改可见性，不改锁定实况 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
-| 天气逐帧推进 | `BoardWeather.cpp`：`Board::UpdateWeather` | 全局场景状态，不属于波次更新；通过窄入口继续协调冬日、极夜和屋顶积累器 |
-| 极夜雪原环境导演 | `BoardPolarNight.cpp`：`InitializePolarNightEnvironment` / `RollNextPolarNightPlan` / `UpdatePolarNightEnvironment` | Board 保存三实数、锁定曲线、真假约束、提交累计和白毛风阶段；GameScene 只画常驻仪表与瞬态雪层 |
-| 雪穴环境事件 | `BoardPolarNight.cpp`：`CommitSnowHoleBatch` / `UpdatePendingSnowHoleSpawns`；`Board.cpp`：`CreateOrQueueWaveZombie` | 环境文件拥有选点、形成和已锁事务推进；核心文件保留正式波次创建边界。高湿只提交一次选点，预算和行已锁后 1 秒预警只决定雪穴或右侧出生落点 |
-| 昼夜屋顶径流 | `BoardRoofWeather.cpp`：`Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
-| 黑夜屋顶雷荷 | `BoardRoofWeather.cpp`：`Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
+| 天气逐帧推进 | `Game/Board/BoardWeather.cpp`：`Board::UpdateWeather` | 全局场景状态，不属于波次更新；通过窄入口继续协调冬日、极夜和屋顶积累器 |
+| 极夜雪原环境导演 | `Game/Board/BoardPolarNight.cpp`：`InitializePolarNightEnvironment` / `RollNextPolarNightPlan` / `UpdatePolarNightEnvironment` | Board 保存三实数、锁定曲线、真假约束、提交累计和白毛风阶段；GameScene 只画常驻仪表与瞬态雪层 |
+| 雪穴环境事件 | `Game/Board/BoardPolarNight.cpp`：`CommitSnowHoleBatch` / `UpdatePendingSnowHoleSpawns`；`Game/Board/Board.cpp`：`CreateOrQueueWaveZombie` | 环境文件拥有选点、形成和已锁事务推进；核心文件保留正式波次创建边界。高湿只提交一次选点，预算和行已锁后 1 秒预警只决定雪穴或右侧出生落点 |
+| 昼夜屋顶径流 | `Game/Board/BoardRoofWeather.cpp`：`Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
+| 黑夜屋顶雷荷 | `Game/Board/BoardRoofWeather.cpp`：`Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |
 | 世界天气覆盖与 Scene UI 贴图 | `GameAPP` pre-overlay hook / `Scene::DrawUITextures` | 世界粒子 → 天气覆盖 → Scene UI 贴图 → UI GameObject |
 | 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |
@@ -271,12 +271,12 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 读档创建 | `Board::CreateZombieWithID` | 只还原已保存类型，永不重 roll |
 | 预览僵尸 | `Board::CreatePreviewZombies` | 使用基础出怪表，默认不展示临时天气变异 |
 | 天气玩法存档 | `GameInfoSaver.cpp` 搜索 `rainIntensity` | `Board` 天气先恢复，再加载实体 |
-| 天气 UI 请求 | `BoardPresentation.h` / `GameScene` 实现 | `Board` 不包含具体 `GameScene`，也不持有 UI 计时 |
+| 天气 UI 请求 | `Game/Board/BoardPresentation.h` / `GameScene` 实现 | `Board` 不包含具体 `GameScene`，也不持有 UI 计时 |
 | 天气 UI 存档 | `CaptureWeatherPresentationState` / `RestoreWeatherPresentationState` | 经展示端口保存可重建的视觉瞬态，不得影响玩法 |
 | 天气面板上方交互浮层 | `GameScene::BuildDrawCommands` / `PlanternGearMenu` | `GameObjects` 命令整体早于天气面板；需另注册更晚的 UI 绘制命令，不能只提高组件所属对象层级 |
 | 存档版本升级 | `SaveSchema::UpgradeLevelDocument` | 升级成功后才允许修改 `Board` 或实体 |
 | 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X，雷声暴露资源加载与播放请求次数 |
-| 雾势玩法与绘制 | `BoardFogWeather.cpp`：`Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |
+| 雾势玩法与绘制 | `Game/Board/BoardFogWeather.cpp`：`Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |
 | 路灯花照明/雾中索敌 | `GetPlanternIllumination` / `CanPlantAcquireZombie` | 同一逐格 alpha 同时服务视觉和远程索敌；近身例外只在统一入口 |
 | 雾势 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["fog"]` / `out["plantern"]` | 断言覆盖逐格 alpha、照明矩阵、驱散、燃料、挡位和资源 |
 

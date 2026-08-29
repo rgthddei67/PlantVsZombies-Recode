@@ -1,7 +1,7 @@
 #include "HealerZombie.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Plant/Plant.h"
 #include "../../DeltaTime.h"
 #include "../../GameApp.h"

@@ -3,7 +3,7 @@
 #define _H_SCAREDYSHROOM_H
 
 #include "Shroom.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 // 胆小菇：夜间廉价射手。僵尸靠近（圆半径120，覆盖本行±1行、含身后）时
 // 吓得缩进土里停火，走开后重新升起。行为镜像原版 Plant::UpdateScaredyShroom。

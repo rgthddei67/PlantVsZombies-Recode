@@ -6,7 +6,7 @@
 #include "../../ResourceManager.h"
 #include "../../Reanimation/Animator.h"
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Bullet/Bullet.h"
 #include "../Plant/Plant.h"
 

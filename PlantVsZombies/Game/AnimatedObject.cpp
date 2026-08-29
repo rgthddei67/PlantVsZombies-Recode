@@ -1,5 +1,5 @@
 #include "AnimatedObject.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
 #include "../GameApp.h"

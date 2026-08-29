@@ -1,5 +1,5 @@
 #include "IceFumeShroom.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 
 namespace {
 	// 减速时长 2.0 < 攻击间隔 2.5：刻意留 0.3s 恢复空窗，

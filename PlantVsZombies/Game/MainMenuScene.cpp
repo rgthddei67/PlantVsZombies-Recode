@@ -4,7 +4,7 @@
 #include "AudioSystem.h"
 #include "../ResourceKeys.h"
 #include "../UI/GameMessageBox.h"
-#include "Board.h"
+#include "Game/Board/Board.h"
 #include "AdventureProgression.h"
 #include "../Logger.h"
 

@@ -2,7 +2,7 @@
 #include "../../GameApp.h"
 #include "../../ResourceManager.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/Zombie.h"
 #include "../IceWall.h"

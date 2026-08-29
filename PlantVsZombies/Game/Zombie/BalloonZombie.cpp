@@ -2,7 +2,7 @@
 #include "../../GameApp.h"
 
 #include "../AudioSystem.h"
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../ResourceManager.h"
 

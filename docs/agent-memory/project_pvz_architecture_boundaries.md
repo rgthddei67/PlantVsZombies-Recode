@@ -1,9 +1,25 @@
 # PvZ 架构边界与存档版本入口
 
+## 2026-08-29 Board 文件族归档与战术 AI 第六批拆分
+
+全部 `Board*` 源文件和展示端口已归档到 `Game/Board/`；植物、僵尸、子弹与硬币仍保持并列实体子系统，
+不因运行时归 Board 管理而并入该目录。冰像处刑者选点、植物爆破/移除短视推演、急救员协调槽位与治疗
+推演已迁入 `Game/Board/BoardTacticalAI.cpp`，通用蒙特卡洛配置仍由 Board 核心提供窄 helper。
+
+`Board` 公共接口、成员布局、唯一状态权威、存档键和常用门面保持不变；`CreateBoom`、
+`GetNormalPlantAt`、正式创建与波次入口继续留在 `Game/Board/Board.cpp`。该批次把核心文件从
+4503 行降至 3727 行，战术文件为 800 行；除配置复用 helper 外，迁移函数保持原有决策顺序与稳定 ID
+择优规则。
+
+`clang-release` 完整构建、Win7 378 项导入审计和 CTest 3/3 通过；桌面可见
+`smoke_ice_executioner_cob_monte_carlo`、`smoke_healer_monte_carlo_wait`、
+`smoke_healer_coordination` 全部通过并目验截图。精英小丑两项与支援层压缩专项仍停在既有
+rollout 断言漂移：脚本期待 64，拆分前后源码和运行态均为 48；本次架构提交不改平衡或旧脚本。
+
 ## 2026-08-29 Board 屋顶天气第五批拆分
 
 `Board` 的昼夜屋顶径流、黑夜屋顶雷荷、路线推演、放电实体事务、读档修复、测试入口和查询实现已迁入
-`Game/BoardRoofWeather.cpp`。屋顶连续坡面几何、正式波次创建与通用蒙特卡洛配置仍留在 `Board.cpp`；
+`Game/Board/BoardRoofWeather.cpp`。屋顶连续坡面几何、正式波次创建与通用蒙特卡洛配置仍留在 `Board.cpp`；
 `CreateBoom`、`GetNormalPlantAt` 等常用棋盘门面没有迁移。
 
 公共接口、成员布局、Board 唯一状态权威和关卡存档键保持不变。33 个迁移函数与拆分前 `HEAD` 的函数体
@@ -19,7 +35,7 @@
 ## 2026-08-29 Board 独立雾势第四批拆分
 
 `Board` 的独立雾势状态机/预报、台风驱散与漂移、逐格 alpha、资格门禁、路灯花照明形状、
-雾片稳定变体及测试入口已机械迁入 `Game/BoardFogWeather.cpp`。路灯花燃料经济、产光倍率、
+雾片稳定变体及测试入口已机械迁入 `Game/Board/BoardFogWeather.cpp`。路灯花燃料经济、产光倍率、
 雾中通用索敌门面、出怪与屋顶系统仍留在 `Board.cpp`；`GameScene::DrawFog` 继续只消费 Board getter。
 
 公共接口、成员布局、Board 唯一天气权威和关卡 JSON 键保持不变，30 个迁移函数与拆分前
@@ -32,7 +48,7 @@
 ## 2026-08-29 Board 基础天气第三批拆分
 
 `Board` 的基础雨势、天气导演/预报、台风、4-9 暴风雨夜、天气栏目干扰及其测试入口已机械迁入
-`Game/BoardWeather.cpp`。独立雾势、昼夜屋顶径流/雷荷、出怪变异、波次点数与普通出波调度仍留
+`Game/Board/BoardWeather.cpp`。独立雾势、昼夜屋顶径流/雷荷、出怪变异、波次点数与普通出波调度仍留
 `Board.cpp`；`BoardWeather.cpp` 只通过两个私有窄入口复用核心持有的暴风雨夜出波上限和统一雷声音量。
 
 公共接口、成员布局、Board 唯一天气权威和关卡 JSON 键保持不变；`CreateBoom`、
@@ -43,7 +59,7 @@
 ## 2026-08-29 Board 极夜环境第二批拆分
 
 `Board` 的极夜三仪表导演、真假计划、白毛风阶段、雪穴状态与延迟事务推进、强风偏行、
-极夜地面绘制和测试入口已机械迁入 `Game/BoardPolarNight.cpp`。公共接口、成员布局、
+极夜地面绘制和测试入口已机械迁入 `Game/Board/BoardPolarNight.cpp`。公共接口、成员布局、
 Board 唯一玩法权威和关卡 JSON 键保持不变；`CreateOrQueueWaveZombie`、`SummonNextWave`
 和通用索敌仍在 `Board.cpp`，分别保留正式波次创建、全局波次推进与跨地图目标查询边界。
 
@@ -55,7 +71,7 @@ CTest 3/3，以及桌面可见极夜 core 84、dynamics 59、navigation 65、UI 
 
 `Board` 的公共接口、成员布局、唯一玩法权威和关卡 JSON 键保持不变；寒潮初始化与推进、
 冻融资格、冬季测试入口和霜线绘制实现从 `Board.cpp` 机械迁入
-`Game/BoardWinterClimate.cpp`。冬日温区、寒潮权重和阶段时长常量也随唯一消费域迁移，
+`Game/Board/BoardWinterClimate.cpp`。冬日温区、寒潮权重和阶段时长常量也随唯一消费域迁移，
 基础雨势代码通过 `GetWinterFreezingTemperatureC()` 读取冰点，不复制调参值。
 
 这一步只拆翻译单元，不引入第二份天气状态、不改变 `GameInfoSaver`、不提升 schema，

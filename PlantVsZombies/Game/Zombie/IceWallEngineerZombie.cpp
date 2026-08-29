@@ -1,6 +1,6 @@
 #include "IceWallEngineerZombie.h"
 
-#include "../Board.h"
+#include "Game/Board/Board.h"
 #include "../IceWall.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../ResourceKeys.h"
