@@ -73,6 +73,8 @@ enum class PlantType
 	PLANT_AURORATORCHWOOD,	// 极光树桩；8-3 奖励，火炬树桩普通层紫卡升级
 	PLANT_NORTHSTARFLOWER,	// 北极星花；8-2 奖励，按需开启九格极夜导航领域
 	PLANT_ICEMIRRORGRASS,	// 冰镜草；8-5 奖励，逐面凝结并拦截敌方水平直射弹
+	PLANT_BOUNDARYFLOWER,	// 界碑花；8-7 奖励，以可充能碎片拒绝九格内非连续敌方入场
+	PLANT_DAWNLOTUS,	// 曙光莲；8-8 奖励，满能量后按当前红色极夜仪表人工点亮黎明
 	NUM_PLANT_TYPES,
 };
 

@@ -188,6 +188,10 @@ public:
 	virtual bool TryPreventIceExecutionSealFor(Plant*) { return false; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
+	/** 界碑领域查询；普通植物不覆盖任何非连续入场终点。 */
+	virtual bool CoversBoundaryEntryCell(int, int) const { return false; }
+	/** 原子消费一枚界碑碎片；停机、无碎片或非界碑植物均返回 false。 */
+	virtual bool TryConsumeBoundaryShard() { return false; }
 	/** 立即退出更新、碰撞与绘制，并登记到下一帧安全销毁。 */
 	virtual void Die();
 	/**

@@ -255,6 +255,48 @@ private:
 		bool tutorialSnowBurrow = false;
 	};
 
+	/** 极光祭司提交后独立存在的裂隙出生事务。 */
+	struct PendingAuroraRift {
+		ZombieType type = ZombieType::NUM_ZOMBIE_TYPES;
+		int row = -1;
+		int column = -1;
+		int spawnWave = 0;
+		float timer = 0.0f;
+		int transactionID = 0;
+		int ownerZombieID = -1;
+	};
+
+	/** 时间锚对单只僵尸保存的可回溯核心状态。 */
+	struct TemporalTargetSnapshot {
+		int zombieID = -1;
+		ZombieType type = ZombieType::NUM_ZOMBIE_TYPES;
+		int row = -1;
+		float x = 0.0f;
+		int bodyHealth = 0;
+		HelmType helmType = HelmType::HELMTYPE_NONE;
+		int helmHealth = 0;
+		ShieldType shieldType = ShieldType::SHIELDTYPE_NONE;
+		int shieldHealth = 0;
+		float slowTimer = 0.0f;
+		float frozenTimer = 0.0f;
+		float butterTimer = 0.0f;
+		float paralysisTimer = 0.0f;
+		bool hasHead = true;
+		bool hasArm = true;
+		bool irreversible = false;
+		bool restoreHelm = true;
+		bool restoreShield = true;
+		bool specialActionSubmitted = false;
+	};
+
+	/** 钟匠提交后与来源生命周期解耦的六秒时间锚。 */
+	struct TemporalAnchor {
+		int ownerZombieID = -1;
+		float timer = 0.0f;
+		float visualPulseTimer = 0.0f; // 仅驱动时间锚可读性，不参与存档与回溯语义
+		std::vector<TemporalTargetSnapshot> targets;
+	};
+
 	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
 	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 的场景控制器绑定
 	/** 采集推演共用的植物、僵尸、卡槽和格子纯数值快照。 */
@@ -358,6 +400,14 @@ private:
 	std::array<SnowHoleState, 5> mSnowHoles{}; // 五行雪穴槽；每行最多一个
 	int mLastSnowHoleBatchCreated = 0; // 最近一批实际形成数量，仅供观测与测试
 	std::vector<PendingSnowHoleSpawn> mPendingSnowHoleSpawns; // 已扣波次预算、等待雪雾预警结束的出生事务
+	std::vector<PendingAuroraRift> mPendingAuroraRifts; // 已提交、等待展开的裂隙出生事务
+	std::vector<TemporalAnchor> mTemporalAnchors; // 已提交、等待回溯的独立时间锚
+	int mNextDiscontinuousTransactionID = 1; // 非连续入场事务稳定排序 ID
+	int mAuroraPriestsSpawnedThisWave = 0; // 本波累计创建的敌对极光祭司
+	int mClockmakersSpawnedThisWave = 0; // 本波累计创建的敌对极夜钟匠
+	bool mAuroraPriestGuaranteeConsumed = false; // 8-7 第三波保底已提交
+	bool mClockmakerGuaranteeConsumed = false; // 8-8 第二波保底已提交
+	float mDawnNavigationTimer = 0.0f; // 曙光莲强风模块全场导航剩余游戏秒
 	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
 	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
 	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
@@ -852,6 +902,33 @@ public:
 	/** 发射时锁定垂直风切变；返回 false 表示越界落空。 */
 	bool ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target,
 		bool guided = false) const;
+	/** 极光祭司提交固定终点与召唤类型；裂隙随后独立展开。 */
+	void CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whiteout);
+	/** 极夜钟匠提交本行及相邻行的六秒可回溯快照。 */
+	void CommitPolarClockAnchor(int ownerZombieID, int sourceRow);
+	/** 推进裂隙、时间锚与曙光导航；游戏暂停时由 deltaTime=0 自然冻结。 */
+	void UpdatePolarFinaleRituals(float deltaTime);
+	/** 选择唯一界碑提供者并原子消费碎片；true 表示终点被拒绝。 */
+	bool TryRejectDiscontinuousZombieEntry(int row, int column);
+	/** 把指定时间锚目标标为不可逆，魅惑、小推车与成功吞食统一调用。 */
+	void MarkTemporalTargetIrreversible(int zombieID);
+	/** 磁力抽取后禁止时间锚恢复相应装备生命层。 */
+	void MarkTemporalTargetEquipmentExtracted(int zombieID, bool shieldLayer);
+	/** 点击满能曙光莲后按锁定三红位提交组合效果。 */
+	bool ActivateDawnLotus(int sourcePlantID, int dangerMask);
+	/** 无选卡点击格子的交互入口；只有该格满能曙光莲会消费点击。 */
+	bool ActivateDawnLotusAt(int row, int column);
+	float GetDawnNavigationTimer() const { return mDawnNavigationTimer; }
+	int GetPendingAuroraRiftCount() const {
+		return static_cast<int>(mPendingAuroraRifts.size());
+	}
+	int GetTemporalAnchorCount() const {
+		return static_cast<int>(mTemporalAnchors.size());
+	}
+	int GetAuroraPriestsSpawnedThisWave() const { return mAuroraPriestsSpawnedThisWave; }
+	int GetClockmakersSpawnedThisWave() const { return mClockmakersSpawnedThisWave; }
+	bool HasConsumedAuroraPriestGuarantee() const { return mAuroraPriestGuaranteeConsumed; }
+	bool HasConsumedClockmakerGuarantee() const { return mClockmakerGuaranteeConsumed; }
 	/** 为一次即将提交的抛射动作取得现有领域或按稳定规则消费最近就绪北极星花。 */
 	bool PreparePolarLobbedNavigation(const Plant* plant);
 	/** AutoTest 固定三仪表和风向；生产逻辑只走已锁环境计划。 */

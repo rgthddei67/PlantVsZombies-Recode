@@ -227,6 +227,19 @@ namespace {
 				version = 9;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 9:
+				if (kind == DocumentKind::Level) {
+					// 关卡 v10 新增 8-7/8-8 独立裂隙、时间锚与曙光导航；旧档从单位元恢复。
+					if (!upgraded.contains("pendingAuroraRifts"))
+						upgraded["pendingAuroraRifts"] = nlohmann::json::array();
+					if (!upgraded.contains("temporalAnchors"))
+						upgraded["temporalAnchors"] = nlohmann::json::array();
+					if (!upgraded.contains("dawnNavigationTimer"))
+						upgraded["dawnNavigationTimer"] = 0.0f;
+				}
+				version = 10;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

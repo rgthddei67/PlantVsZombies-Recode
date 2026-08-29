@@ -59,6 +59,8 @@
 #include "MeltSnowPult.h"
 #include "FrostMine.h"
 #include "AlarmBellFlower.h"
+#include "BoundaryFlower.h"
+#include "DawnLotus.h"
 #include "FurnaceCoreFlower.h"
 #include "ListeningGrass.h"
 #include "NorthStarFlower.h"
@@ -123,6 +125,8 @@
 #include "../Zombie/SnowBurrowZombie.h"
 #include "../Zombie/AdaptiveHelmetZombie.h"
 #include "../Zombie/ThermalSniperZombie.h"
+#include "../Zombie/AuroraPriestZombie.h"
+#include "../Zombie/PolarClockmakerZombie.h"
 
 namespace {
 	template<typename T>
@@ -418,6 +422,18 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ALARMBELLFLOWER,
 		ResourceKeys::Reanimations::REANIM_ALARMBELLFLOWER,
 		&MakePlant<AlarmBellFlower>);
+
+	RegisterPlant(PlantType::PLANT_BOUNDARYFLOWER, "PLANT_BOUNDARYFLOWER",
+		ResourceKeys::Textures::IMAGE_BOUNDARYFLOWER,
+		AnimationType::ANIM_BOUNDARYFLOWER,
+		ResourceKeys::Reanimations::REANIM_BOUNDARYFLOWER,
+		&MakePlant<BoundaryFlower>);
+
+	RegisterPlant(PlantType::PLANT_DAWNLOTUS, "PLANT_DAWNLOTUS",
+		ResourceKeys::Textures::IMAGE_DAWNLOTUS,
+		AnimationType::ANIM_DAWNLOTUS,
+		ResourceKeys::Reanimations::REANIM_DAWNLOTUS,
+		&MakePlant<DawnLotus>);
 
 	RegisterPlant(PlantType::PLANT_FURNACECOREFLOWER, "PLANT_FURNACECOREFLOWER",
 		ResourceKeys::Textures::IMAGE_FURNACECOREFLOWER,
@@ -764,6 +780,17 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		&MakeZombie<ThermalSniperZombie>);
+
+	// 两类终章僵尸完整复用普通僵尸时间轴；身份件与提交演出均为命名 follower/粒子。
+	RegisterZombie(ZombieType::ZOMBIE_AURORA_PRIEST, "ZOMBIE_AURORA_PRIEST",
+		AnimationType::ANIM_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
+		&MakeZombie<AuroraPriestZombie>);
+
+	RegisterZombie(ZombieType::ZOMBIE_POLAR_CLOCKMAKER, "ZOMBIE_POLAR_CLOCKMAKER",
+		AnimationType::ANIM_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
+		&MakeZombie<PolarClockmakerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

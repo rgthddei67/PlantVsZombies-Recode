@@ -237,6 +237,14 @@
 	<Image>./resources/image/reanim/REANIM_FROSTMINE_CALIBRATED.png</Image>
 	<Image>./resources/image/reanim/REANIM_FROSTMINE_ARMED.png</Image>
 	<Image>./resources/image/PlantImage/AlarmBellFlower.png</Image>
+	<Image>./resources/image/PlantImage/BoundaryFlower.png</Image>
+	<Image>./resources/image/PlantImage/DawnLotus.png</Image>
+	<Image>./resources/image/reanim/REANIM_BOUNDARYFLOWER_MONUMENT.png</Image>
+	<Image>./resources/image/reanim/REANIM_DAWNLOTUS_CROWN.png</Image>
+	<Image>./resources/image/reanim/Zombie_aurora_device.png</Image>
+	<Image>./resources/image/reanim/Zombie_aurora_prism.png</Image>
+	<Image>./resources/image/reanim/Zombie_polar_clock_disk.png</Image>
+	<Image>./resources/image/reanim/Zombie_polar_pendulum.png</Image>
 	<Image>./resources/image/PlantImage/FurnaceCoreFlower.png</Image>
 	<Image>./resources/image/PlantImage/ListeningGrass.png</Image>
 	<Image>./resources/image/PlantImage/NorthStarFlower.png</Image>
@@ -366,6 +374,10 @@
 	<Texture Column="4" Row="1">./resources/particles/FrostMineShards.png</Texture>
 	<Texture>./resources/particles/FrostMinePulse.png</Texture>
 	<Texture>./resources/particles/AlarmBellRowPulse.png</Texture>
+	<Texture>./resources/particles/AuroraRift.png</Texture>
+	<Texture>./resources/particles/TemporalGear.png</Texture>
+	<Texture>./resources/particles/BoundaryShard.png</Texture>
+	<Texture>./resources/particles/DawnFlare.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesSmall.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesLarge.png</Texture>
     <Texture>./resources/particles/Star40.png</Texture>
@@ -632,6 +644,8 @@
 	<Reanimation name="MeltSnowPult">./resources/reanim/MeltSnowPult.reanim</Reanimation>
 	<Reanimation name="FrostMine">./resources/reanim/FrostMine.reanim</Reanimation>
 	<Reanimation name="AlarmBellFlower">./resources/reanim/AlarmBellFlower.reanim</Reanimation>
+	<Reanimation name="BoundaryFlower">./resources/reanim/Marigold.reanim</Reanimation>
+	<Reanimation name="DawnLotus">./resources/reanim/LilyPad.reanim</Reanimation>
 	<Reanimation name="FurnaceCoreFlower">./resources/reanim/SunFlower.reanim</Reanimation>
     <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>
     <Reanimation name="Coffeebean">./resources/reanim/Coffeebean.reanim</Reanimation>

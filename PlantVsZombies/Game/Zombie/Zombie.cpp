@@ -514,6 +514,7 @@ void Zombie::TakePlantAshDamage(int damage)
 
 bool Zombie::TakePlantInstantKill()
 {
+	if (mBoard) mBoard->MarkTemporalTargetIrreversible(mZombieID);
 	Die();
 	return true;
 }
@@ -1834,6 +1835,7 @@ void Zombie::PlayWalkAnimation(float blendTime)
 void Zombie::StartMindControlled()
 {
 	if (mIsMindControlled || mIsDying || !CanBeCharmed()) return;
+	if (mBoard) mBoard->MarkTemporalTargetIrreversible(mZombieID);
 
 	// 正在啃植物：先解除（平衡 mEaterCount）。掩码换掉后与植物不再成对，onTriggerExit 不会补触发。
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
@@ -1876,6 +1878,36 @@ void Zombie::StartMindControlled()
 	// 天气等中立来源的麻痹可跨阵营保留；麻痹紫色在持续期间优先于魅惑红色。
 	UpdateStatusOverlay();
 	if (!mIsDead) OnMindControlled();
+}
+
+void Zombie::RestoreTemporalCoreState(int row, float x, int bodyHealth,
+	HelmType helmType, int helmHealth, ShieldType shieldType, int shieldHealth,
+	bool hasHead, bool hasArm,
+	float slowTimer, float frozenTimer, float butterTimer,
+	float paralysisTimer, bool restorePosition)
+{
+	if (restorePosition) {
+		CommitRow(row);
+		SetPosition(Vector(x, mBoard ? mBoard->GetZombieSpawnY(row, x)
+			: GetPosition().y));
+	}
+	mBodyHealth = std::clamp(bodyHealth, 1, mBodyMaxHealth);
+	mHelmType = helmType;
+	mHelmHealth = std::clamp(helmHealth, 0, mHelmMaxHealth);
+	mShieldType = shieldType;
+	mShieldHealth = std::clamp(shieldHealth, 0, mShieldMaxHealth);
+	mHasHead = hasHead;
+	mHasArm = hasArm;
+	mCooldownTimer = std::max(0.0f, slowTimer);
+	mFrozenTimer = std::max(0.0f, frozenTimer);
+	mButterTimer = std::max(0.0f, butterTimer);
+	mParalysisTimer = std::max(0.0f, paralysisTimer);
+	if (mHelmHealth <= 0) HelmDrop();
+	if (mShieldHealth <= 0) ShieldDrop();
+	ZombieItemUpdate();
+	OnTemporalCoreStateRestored();
+	UpdateAnimSpeed();
+	UpdateStatusOverlay();
 }
 
 int Zombie::TakeShieldDamage(int damage)

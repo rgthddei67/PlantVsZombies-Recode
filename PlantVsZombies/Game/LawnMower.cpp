@@ -85,6 +85,7 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 		}
 		// 先完成正常启动与消耗；首领可拒绝处决，让清洁车从其身上驶过而不造成伤害。
 		if (zombie->CanBeKilledByMower()) {
+			if (mBoard) mBoard->MarkTemporalTargetIrreversible(zombie->mZombieID);
 			zombie->TakeDamage(INT32_MAX, DamageSource::OTHER);
 		}
 

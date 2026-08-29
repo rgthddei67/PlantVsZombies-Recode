@@ -271,10 +271,13 @@ void Board::UpdatePendingSnowHoleSpawns(float deltaTime)
 			continue;
 		}
 
-		const bool useHole = it->row >= 0
+		bool useHole = it->row >= 0
 			&& it->row < static_cast<int>(mSnowHoles.size())
 			&& mSnowHoles[it->row].phase == SnowHolePhase::ACTIVE
 			&& mSnowHoles[it->row].column == it->holeColumn;
+		if (useHole && TryRejectDiscontinuousZombieEntry(it->row, it->holeColumn)) {
+			useHole = false;
+		}
 		const float spawnX = useHole
 			? GetCellCenterPosition(it->row, it->holeColumn).x
 			: static_cast<float>(SCENE_WIDTH) + 40.0f;
@@ -578,7 +581,8 @@ bool Board::SealSnowHole(int row)
 bool Board::ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target,
 	bool guided) const
 {
-	if (guided || !SupportsPolarNightEnvironment() || !IsPolarWindDangerous()
+	if (guided || mDawnNavigationTimer > 0.0f
+		|| !SupportsPolarNightEnvironment() || !IsPolarWindDangerous()
 		|| mPolarVerticalWindDirection == VerticalWindDirection::NONE) {
 		landingRow = sourceRow;
 		return true;

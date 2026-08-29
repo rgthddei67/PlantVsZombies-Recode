@@ -127,6 +127,7 @@ bool MagnetShroom::TryStartMagnetizing()
 
 	MagneticItem item;
 	if (nearest) {
+		const MagneticSimulationLayer extractedLayer = nearest->GetMagneticSimulationLayer();
 		const int targetRow = nearest->mRow;
 		const ColliderComponent* collider = nearest->GetColliderComponent();
 		Vector targetCenter = nearest->GetPosition();
@@ -137,6 +138,8 @@ bool MagnetShroom::TryStartMagnetizing()
 				targetBounds.y + targetBounds.h * 0.5f);
 		}
 		if (nearest->ExtractMagneticItem(item)) {
+			mBoard->MarkTemporalTargetEquipmentExtracted(nearest->mZombieID,
+				extractedLayer == MagneticSimulationLayer::SHIELD);
 			const int backlashDamage = item.extractorSelfDamage;
 			BeginMagnetizing(std::move(item));
 			OnZombieMagneticItemExtracted(mCapturedItem, targetCenter, targetRow);

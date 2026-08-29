@@ -404,6 +404,40 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			{ "tutorialSnowBurrow", pending.tutorialSnowBurrow },
 		});
 	}
+	j["pendingAuroraRifts"] = nlohmann::json::array();
+	for (const Board::PendingAuroraRift& rift : board->mPendingAuroraRifts) {
+		j["pendingAuroraRifts"].push_back({
+			{ "type", static_cast<int>(rift.type) }, { "row", rift.row },
+			{ "column", rift.column }, { "spawnWave", rift.spawnWave },
+			{ "timer", rift.timer }, { "transactionID", rift.transactionID },
+			{ "ownerZombieID", rift.ownerZombieID },
+		});
+	}
+	j["temporalAnchors"] = nlohmann::json::array();
+	for (const Board::TemporalAnchor& anchor : board->mTemporalAnchors) {
+		nlohmann::json targets = nlohmann::json::array();
+		for (const Board::TemporalTargetSnapshot& target : anchor.targets) {
+			targets.push_back({
+				{ "zombieID", target.zombieID }, { "type", static_cast<int>(target.type) },
+				{ "row", target.row }, { "x", target.x },
+				{ "bodyHealth", target.bodyHealth }, { "helmType", static_cast<int>(target.helmType) },
+				{ "helmHealth", target.helmHealth }, { "shieldType", static_cast<int>(target.shieldType) },
+				{ "shieldHealth", target.shieldHealth }, { "slowTimer", target.slowTimer },
+				{ "frozenTimer", target.frozenTimer }, { "butterTimer", target.butterTimer },
+				{ "paralysisTimer", target.paralysisTimer }, { "hasHead", target.hasHead },
+				{ "hasArm", target.hasArm }, { "irreversible", target.irreversible },
+				{ "restoreHelm", target.restoreHelm },
+				{ "restoreShield", target.restoreShield },
+				{ "specialActionSubmitted", target.specialActionSubmitted },
+			});
+		}
+		j["temporalAnchors"].push_back({
+			{ "ownerZombieID", anchor.ownerZombieID },
+			{ "timer", anchor.timer }, { "targets", std::move(targets) },
+		});
+	}
+	j["nextDiscontinuousTransactionID"] = board->mNextDiscontinuousTransactionID;
+	j["dawnNavigationTimer"] = board->mDawnNavigationTimer;
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
 	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
 	j["stormyNightFlashTimer"] = board->mStormyNightFlashTimer;
@@ -491,6 +525,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		board->mAdaptiveHelmetTutorialWaveSpawned;
 	j["thermalSnipersSpawnedThisWave"] = board->mThermalSnipersSpawnedThisWave;
 	j["thermalSniperTutorialSpawned"] = board->mThermalSniperTutorialSpawned;
+	j["auroraPriestsSpawnedThisWave"] = board->mAuroraPriestsSpawnedThisWave;
+	j["clockmakersSpawnedThisWave"] = board->mClockmakersSpawnedThisWave;
+	j["auroraPriestGuaranteeConsumed"] = board->mAuroraPriestGuaranteeConsumed;
+	j["clockmakerGuaranteeConsumed"] = board->mClockmakerGuaranteeConsumed;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -1127,6 +1165,71 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		board->mPolarFluctuationTimer = 0.0f;
 		board->mPolarFluctuationDuration = 0.0f;
 	}
+	board->mPendingAuroraRifts.clear();
+	board->mTemporalAnchors.clear();
+	board->mNextDiscontinuousTransactionID = std::max(1,
+		j.value("nextDiscontinuousTransactionID", 1));
+	board->mDawnNavigationTimer = board->SupportsPolarNightEnvironment()
+		? std::clamp(j.value("dawnNavigationTimer", 0.0f), 0.0f, 8.0f) : 0.0f;
+	if (board->SupportsPolarNightEnvironment()) {
+		for (const auto& saved : j.value("pendingAuroraRifts", nlohmann::json::array())) {
+			if (!saved.is_object()) continue;
+			const int type = saved.value("type", -1);
+			const int row = saved.value("row", -1);
+			const int column = saved.value("column", -1);
+			if (type < 0 || type >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)
+				|| row < 0 || row >= board->mRows || column < 2 || column > 6) continue;
+			board->mPendingAuroraRifts.push_back({ static_cast<ZombieType>(type),
+				row, column, std::max(0, saved.value("spawnWave", 0)),
+				std::clamp(saved.value("timer", 0.0f), 0.0f, 0.8f),
+				std::max(1, saved.value("transactionID", 1)),
+				saved.value("ownerZombieID", -1) });
+		}
+		for (const auto& savedAnchor : j.value("temporalAnchors", nlohmann::json::array())) {
+			if (!savedAnchor.is_object() || board->mTemporalAnchors.size() >= 2) continue;
+			Board::TemporalAnchor anchor;
+			anchor.ownerZombieID = savedAnchor.value("ownerZombieID", -1);
+			anchor.timer = std::clamp(savedAnchor.value("timer", 0.0f), 0.0f, 6.0f);
+			for (const auto& savedTarget : savedAnchor.value(
+				"targets", nlohmann::json::array())) {
+				if (!savedTarget.is_object() || anchor.targets.size() >= 12) break;
+				const int type = savedTarget.value("type", -1);
+				const int row = savedTarget.value("row", -1);
+				const int id = savedTarget.value("zombieID", -1);
+				if (type < 0 || type >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)
+					|| row < 0 || row >= board->mRows || id <= 0) continue;
+				Board::TemporalTargetSnapshot target;
+				target.zombieID = id;
+				target.type = static_cast<ZombieType>(type);
+				target.row = row;
+				target.x = std::clamp(savedTarget.value("x", 1100.0f), -200.0f, 1800.0f);
+				target.bodyHealth = std::max(1, savedTarget.value("bodyHealth", 1));
+				target.helmType = static_cast<HelmType>(std::clamp(savedTarget.value(
+					"helmType", static_cast<int>(HelmType::HELMTYPE_NONE)),
+					static_cast<int>(HelmType::HELMTYPE_NONE),
+					static_cast<int>(HelmType::HELMTYPE_CLOCK_DISK)));
+				target.helmHealth = std::max(0, savedTarget.value("helmHealth", 0));
+				target.shieldType = static_cast<ShieldType>(std::clamp(savedTarget.value(
+					"shieldType", static_cast<int>(ShieldType::SHIELDTYPE_NONE)),
+					static_cast<int>(ShieldType::SHIELDTYPE_NONE),
+					static_cast<int>(ShieldType::SHIELDTYPE_LADDER)));
+				target.shieldHealth = std::max(0, savedTarget.value("shieldHealth", 0));
+				target.slowTimer = std::max(0.0f, savedTarget.value("slowTimer", 0.0f));
+				target.frozenTimer = std::max(0.0f, savedTarget.value("frozenTimer", 0.0f));
+				target.butterTimer = std::max(0.0f, savedTarget.value("butterTimer", 0.0f));
+				target.paralysisTimer = std::max(0.0f, savedTarget.value("paralysisTimer", 0.0f));
+				target.hasHead = savedTarget.value("hasHead", true);
+				target.hasArm = savedTarget.value("hasArm", true);
+				target.irreversible = savedTarget.value("irreversible", false);
+				target.restoreHelm = savedTarget.value("restoreHelm", true);
+				target.restoreShield = savedTarget.value("restoreShield", true);
+				target.specialActionSubmitted = savedTarget.value(
+					"specialActionSubmitted", false);
+				anchor.targets.push_back(target);
+			}
+			if (!anchor.targets.empty()) board->mTemporalAnchors.push_back(std::move(anchor));
+		}
+	}
 	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
 		const int failedForecastRainValue = j.value("failedForecastRainIntensity",
@@ -1370,6 +1473,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->RestoreThermalSniperSpawnState(
 		j.value("thermalSnipersSpawnedThisWave", 0),
 		j.value("thermalSniperTutorialSpawned", false));
+	board->mAuroraPriestsSpawnedThisWave = std::clamp(
+		j.value("auroraPriestsSpawnedThisWave", 0), 0, 3);
+	board->mClockmakersSpawnedThisWave = std::clamp(
+		j.value("clockmakersSpawnedThisWave", 0), 0, 2);
+	board->mAuroraPriestGuaranteeConsumed =
+		j.value("auroraPriestGuaranteeConsumed", false);
+	board->mClockmakerGuaranteeConsumed =
+		j.value("clockmakerGuaranteeConsumed", false);
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

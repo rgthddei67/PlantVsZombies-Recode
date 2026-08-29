@@ -156,6 +156,14 @@ namespace {
 	constexpr int kThermalSniperCompositeWave = 2;        // 8-6 组合教学的额外保底波次
 	constexpr int kThermalSniperTutorialMaxPerWave = 3;   // 8-5 每波最多三只
 	constexpr int kThermalSniperCompositeMaxPerWave = 4;  // 8-6 每波最多四只
+	constexpr int kAuroraPriestLevel = 70;                 // 内部 70 即 8-7
+	constexpr int kAuroraPriestGuaranteeWave = 3;         // 8-7 第三波额外保底
+	constexpr int kAuroraPriestMaxPerWave = 3;             // 极光祭司每波累计上限
+	constexpr int kAuroraPriestMaxActive = 3;              // 敌对同时上限
+	constexpr int kPolarClockmakerLevel = 71;              // 内部 71 即 8-8
+	constexpr int kPolarClockmakerGuaranteeWave = 2;       // 8-8 第二波额外保底
+	constexpr int kPolarClockmakerMaxPerWave = 2;          // 极夜钟匠每波累计上限
+	constexpr int kPolarClockmakerMaxActive = 2;           // 敌对同时上限
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -644,6 +652,20 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 		}
 		++mThermalSnipersSpawnedThisWave;
 	}
+	if (selected == ZombieType::ZOMBIE_AURORA_PRIEST) {
+		if (mAuroraPriestsSpawnedThisWave >= kAuroraPriestMaxPerWave
+			|| CountActiveOrPendingZombieType(selected) >= kAuroraPriestMaxActive) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mAuroraPriestsSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_POLAR_CLOCKMAKER) {
+		if (mClockmakersSpawnedThisWave >= kPolarClockmakerMaxPerWave
+			|| CountActiveOrPendingZombieType(selected) >= kPolarClockmakerMaxActive) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mClockmakersSpawnedThisWave;
+	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
 
@@ -833,7 +855,7 @@ bool Board::IsZombieObscuredByFog(const Zombie* zombie) const
 bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie)
 {
 	if (!plant || !zombie || !plant->CanAcquireZombie(zombie)) return false;
-	if (IsPolarSnowBlindActive()) {
+	if (IsPolarSnowBlindActive() && mDawnNavigationTimer <= 0.0f) {
 		auto centerOf = [](const GameObject* object,
 			const ColliderComponent* collider) {
 			if (!object) return Vector::zero();
@@ -1762,6 +1784,14 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 
 bool Board::HasPlantingQuota(PlantType type) const
 {
+	if (type == PlantType::PLANT_DAWNLOTUS) {
+		for (int plantID : mEntityRegistry.GetAllPlantIDs()) {
+			const Plant* plant = mEntityRegistry.GetPlant(plantID);
+			if (plant && plant->IsActive()
+				&& plant->GetPlacementType() == PlantType::PLANT_DAWNLOTUS) return false;
+		}
+		return true;
+	}
 	if (type == PlantType::PLANT_PLANTERN) {
 		// 模仿者占位虽然还不是 Plantern 实例，也必须预留唯一名额。
 		return mActivePlanternID == NULL_PLANT_ID;
@@ -2551,6 +2581,8 @@ void Board::SummonNextWave()
 	mSnowBurrowsSpawnedThisWave = 0;
 	mAdaptiveHelmetsSpawnedThisWave = 0;
 	mThermalSnipersSpawnedThisWave = 0;
+	mAuroraPriestsSpawnedThisWave = 0;
+	mClockmakersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -2964,6 +2996,31 @@ inline void Board::TrySummonZombie()
 			}
 		}
 	}
+	// 8-7/8-8 保底属于额外正式实体，不消耗正常波次预算，但仍消费品种波次与同时名额。
+	if (!mIsSurvival && mLevel == kAuroraPriestLevel
+		&& mCurrentWave == kAuroraPriestGuaranteeWave
+		&& !mAuroraPriestGuaranteeConsumed) {
+		const ZombieType actualType = ResolveWaveZombieType(
+			ZombieType::ZOMBIE_AURORA_PRIEST);
+		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+			const int row = SelectSpawnRow(actualType);
+			if (row >= 0 && CreateResolvedWaveZombie(actualType, row, x)) {
+				mAuroraPriestGuaranteeConsumed = true;
+			}
+		}
+	}
+	if (!mIsSurvival && mLevel == kPolarClockmakerLevel
+		&& mCurrentWave == kPolarClockmakerGuaranteeWave
+		&& !mClockmakerGuaranteeConsumed) {
+		const ZombieType actualType = ResolveWaveZombieType(
+			ZombieType::ZOMBIE_POLAR_CLOCKMAKER);
+		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+			const int row = SelectSpawnRow(actualType);
+			if (row >= 0 && CreateResolvedWaveZombie(actualType, row, x)) {
+				mClockmakerGuaranteeConsumed = true;
+			}
+		}
+	}
 
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
@@ -3158,6 +3215,7 @@ void Board::Update()
 	UpdateFog(DeltaTime::GetDeltaTime());
 	UpdateWeatherPanelInterference(DeltaTime::GetDeltaTime());
 	UpdateIceTrails(DeltaTime::GetDeltaTime());
+	UpdatePolarFinaleRituals(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
 	mUpdateZombieMetricsTimer += DeltaTime::GetDeltaTime();
 	if (mUpdateZombieMetricsTimer >= 0.5f)

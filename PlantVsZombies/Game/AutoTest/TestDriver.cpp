@@ -61,6 +61,8 @@
 #include "../Plant/ListeningGrass.h"
 #include "../Plant/NorthStarFlower.h"
 #include "../Plant/IceMirrorGrass.h"
+#include "../Plant/BoundaryFlower.h"
+#include "../Plant/DawnLotus.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -83,6 +85,8 @@
 #include "../Zombie/SnowBurrowZombie.h"
 #include "../Zombie/AdaptiveHelmetZombie.h"
 #include "../Zombie/ThermalSniperZombie.h"
+#include "../Zombie/AuroraPriestZombie.h"
+#include "../Zombie/PolarClockmakerZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -310,6 +314,8 @@ namespace {
 		case HelmType::HELMTYPE_TALLNUT: return "HELMTYPE_TALLNUT";
 		case HelmType::HELMTYPE_INSULATOR: return "HELMTYPE_INSULATOR";
 		case HelmType::HELMTYPE_ADAPTIVE: return "HELMTYPE_ADAPTIVE";
+		case HelmType::HELMTYPE_AURORA_DEVICE: return "HELMTYPE_AURORA_DEVICE";
+		case HelmType::HELMTYPE_CLOCK_DISK: return "HELMTYPE_CLOCK_DISK";
 		default: return "UNKNOWN";
 		}
 	}
@@ -377,6 +383,7 @@ namespace {
 		PT(PLANT_LISTENINGGRASS),
 		PT(PLANT_AURORATORCHWOOD),
 		PT(PLANT_NORTHSTARFLOWER), PT(PLANT_ICEMIRRORGRASS),
+		PT(PLANT_BOUNDARYFLOWER), PT(PLANT_DAWNLOTUS),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -411,6 +418,7 @@ namespace {
 		ZT(ZOMBIE_SNOW_BURROW),
 		ZT(ZOMBIE_ADAPTIVE_HELMET),
 		ZT(ZOMBIE_THERMAL_SNIPER),
+		ZT(ZOMBIE_AURORA_PRIEST), ZT(ZOMBIE_POLAR_CLOCKMAKER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1197,6 +1205,20 @@ bool TestDriver::ExecuteCurrent() {
 				cmd.value("wind", 8.0f), directionIt->second, phaseIt->second,
 				cmd.value("remaining", -1.0f))) {
 			Fail("set_polar_environment: 仅极夜雪原可用；phase 或 direction 无效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "activate_dawn_lotus") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("activate_dawn_lotus: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		// 直接走 Board 的正式格子点击入口，避免测试脚本硬编码极夜地图像素坐标。
+		if (!gs->GetBoard()->ActivateDawnLotusAt(
+			cmd.value("row", -1), cmd.value("col", -1))) {
+			Fail("activate_dawn_lotus: 指定格没有已充满且当前可释放的曙光莲");
 			return false;
 		}
 		return true;
@@ -4592,6 +4614,36 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ALARMBELLROWPULSE, false) != nullptr },
 	};
+	out["area8FinaleResources"] = {
+		{ "boundaryReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_BOUNDARYFLOWER) },
+		{ "dawnReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_DAWNLOTUS) },
+		{ "plantCardsLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BOUNDARYFLOWER, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_DAWNLOTUS, false) != nullptr },
+		{ "plantFollowersLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_BOUNDARYFLOWER_MONUMENT, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_DAWNLOTUS_CROWN, false) != nullptr },
+		{ "zombieFollowersLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_AURORA_DEVICE, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_AURORA_PRISM, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_POLAR_CLOCK_DISK, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_POLAR_PENDULUM, false) != nullptr },
+		{ "particleTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_AURORARIFT, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_TEMPORALGEAR, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_BOUNDARYSHARD, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_DAWNFLARE, false) != nullptr },
+	};
 	out["furnaceCoreFlowerResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_FURNACECOREFLOWER) },
@@ -5365,6 +5417,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetThermalSnipersSpawnedThisWave() },
 			{ "thermalSniperTutorialSpawned",
 				board->HasSpawnedThermalSniperTutorial() },
+			{ "auroraPriestsSpawnedThisWave",
+				board->GetAuroraPriestsSpawnedThisWave() },
+			{ "clockmakersSpawnedThisWave",
+				board->GetClockmakersSpawnedThisWave() },
+			{ "auroraPriestGuaranteeConsumed",
+				board->HasConsumedAuroraPriestGuarantee() },
+			{ "clockmakerGuaranteeConsumed",
+				board->HasConsumedClockmakerGuarantee() },
+			{ "pendingAuroraRiftCount", board->GetPendingAuroraRiftCount() },
+			{ "temporalAnchorCount", board->GetTemporalAnchorCount() },
+			{ "dawnNavigationRemainingMs", static_cast<int>(std::lround(
+				board->GetDawnNavigationTimer() * 1000.0f)) },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -5894,8 +5958,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int diggerZombieCount = 0;
 	int eliteDiggerZombieCount = 0;
 	int snowBurrowZombieCount = 0;
+	int normalZombieCount = 0;
 	int adaptiveHelmetZombieCount = 0;
 	int thermalSniperZombieCount = 0;
+	int auroraPriestZombieCount = 0;
+	int polarClockmakerZombieCount = 0;
 	int adaptedHelmetZombieCount = 0;
 	int elitePogoZombieCount = 0;
 	int eliteLadderZombieCount = 0;
@@ -5955,12 +6022,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (z->mZombieType == ZombieType::ZOMBIE_SNOW_BURROW) {
 			++snowBurrowZombieCount;
 		}
+		if (z->mZombieType == ZombieType::ZOMBIE_NORMAL) ++normalZombieCount;
 		if (z->mZombieType == ZombieType::ZOMBIE_ADAPTIVE_HELMET) {
 			++adaptiveHelmetZombieCount;
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_THERMAL_SNIPER) {
 			++thermalSniperZombieCount;
 		}
+		if (z->mZombieType == ZombieType::ZOMBIE_AURORA_PRIEST) ++auroraPriestZombieCount;
+		if (z->mZombieType == ZombieType::ZOMBIE_POLAR_CLOCKMAKER) ++polarClockmakerZombieCount;
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_CATAPULT) {
 			++eliteCatapultZombieCount;
 		}
@@ -6170,6 +6240,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["thermalAimRemainingMs"] = static_cast<int>(std::lround(
 				thermal->GetAimRemaining() * 1000.0f));
 			zombieState["thermalLockedPlantID"] = thermal->GetLockedPlantID();
+		}
+		if (auto* priest = dynamic_cast<AuroraPriestZombie*>(z)) {
+			zombieState["auroraRitualPhase"] = static_cast<int>(priest->GetRitualPhase());
+			zombieState["auroraRitualRemainingMs"] = static_cast<int>(std::lround(
+				priest->GetRitualRemaining() * 1000.0f));
+			zombieState["auroraOverloaded"] = priest->IsOverloaded();
+			zombieState["auroraFollowersConfigured"] = priest->HasFinaleFollowersConfigured();
+			zombieState["auroraDeviceTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_AURORA_DEVICE, false) != nullptr;
+		}
+		if (auto* clock = dynamic_cast<PolarClockmakerZombie*>(z)) {
+			zombieState["clockPhase"] = static_cast<int>(clock->GetClockPhase());
+			zombieState["clockRemainingMs"] = static_cast<int>(std::lround(
+				clock->GetClockRemaining() * 1000.0f));
+			zombieState["clockFollowersConfigured"] = clock->HasFinaleFollowersConfigured();
+			zombieState["clockDiskTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_POLAR_CLOCK_DISK, false) != nullptr;
 		}
 		if (auto* elite = dynamic_cast<EliteDancerZombie*>(z)) {
 			zombieState["eliteBackupCount"] = elite->GetActiveBackupCount();
@@ -6995,8 +7082,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["diggerZombieCount"] = diggerZombieCount;
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
 	out["snowBurrowZombieCount"] = snowBurrowZombieCount;
+	out["normalZombieCount"] = normalZombieCount;
 	out["adaptiveHelmetZombieCount"] = adaptiveHelmetZombieCount;
 	out["thermalSniperZombieCount"] = thermalSniperZombieCount;
+	out["auroraPriestZombieCount"] = auroraPriestZombieCount;
+	out["polarClockmakerZombieCount"] = polarClockmakerZombieCount;
 	out["adaptedHelmetZombieCount"] = adaptedHelmetZombieCount;
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
@@ -7494,6 +7584,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["cobTrackColorA"] = static_cast<int>(cobTrackColor.a);
 			plantState["cobTrackColorEqualRGB"] = cobTrackColor.r == cobTrackColor.g
 				&& cobTrackColor.g == cobTrackColor.b;
+		}
+		if (auto* boundary = dynamic_cast<BoundaryFlower*>(p)) {
+			plantState["boundaryShardCount"] = boundary->GetShardCount();
+			plantState["boundaryShardChargeMs"] = static_cast<int>(std::lround(
+				boundary->GetShardCharge() * 1000.0f));
+			plantState["boundaryTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_BOUNDARYFLOWER_MONUMENT, false) != nullptr;
+		}
+		if (auto* dawn = dynamic_cast<DawnLotus*>(p)) {
+			plantState["dawnEnergyOn1000"] = static_cast<int>(std::lround(
+				dawn->GetEnergy() * 1000.0f));
+			plantState["dawnFullyCharged"] = dawn->IsFullyCharged();
+			plantState["dawnTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_DAWNLOTUS_CROWN, false) != nullptr;
 		}
 		// 同一实体可占多个格；逐 footprint 查询公共 Board getter，能同时验证所有别名
 		// 都返回同一 Plant*，又保持 plants 实体数组只导出一次。

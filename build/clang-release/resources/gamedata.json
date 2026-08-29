@@ -46,6 +46,8 @@
     "PLANT_MELTSNOWPULT":    { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 6.67 } },
     "PLANT_FROSTMINE":       { "cost": 50,  "cooldown": 30.0, "offset": [-42.0, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_ALARMBELLFLOWER": { "cost": 25,  "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
+    "PLANT_BOUNDARYFLOWER":  { "cost": 200, "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 450 } },
+    "PLANT_DAWNLOTUS":       { "cost": 250, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 500 } },
     "PLANT_FURNACECOREFLOWER": { "cost": 175, "cooldown": 20.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
     "PLANT_LISTENINGGRASS":  { "cost": 75,  "cooldown": 20.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
     "PLANT_KERNELPULT":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 8.33, "butterApplicationsPerSecond": 0.0833, "butterDuration": 4.0 } },
@@ -111,6 +113,8 @@
     "ZOMBIE_ICE_STATUE_EXECUTIONER": { "weight": 3200, "appearWave": 5, "survivalRound": 14, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_SNOW_BURROW":           { "weight": 2200, "appearWave": 3, "survivalRound": 15, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_ADAPTIVE_HELMET":       { "weight": 2600, "appearWave": 4, "survivalRound": 16, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_THERMAL_SNIPER":        { "weight": 3000, "appearWave": 4, "survivalRound": 17, "offset": [-50.0, -85.0], "scale": 1.0 }
+    "ZOMBIE_THERMAL_SNIPER":        { "weight": 3000, "appearWave": 4, "survivalRound": 17, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_AURORA_PRIEST":         { "weight": 4000, "appearWave": 4, "survivalRound": 20, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_POLAR_CLOCKMAKER":      { "weight": 4500, "appearWave": 3, "survivalRound": 22, "offset": [-50.0, -85.0], "scale": 1.0 }
   }
 }

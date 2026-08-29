@@ -606,6 +606,8 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 	}
 	if (!selectedCard) {
 		if (mBoard->mCursorObjectManager.GetActiveType() == CursorObjectType::NONE
+			&& mBoard->ActivateDawnLotusAt(row, col)) return;
+		if (mBoard->mCursorObjectManager.GetActiveType() == CursorObjectType::NONE
 			&& HasInteractablePlanternAt(row, col)) {
 			TogglePlanternGearMenu();
 			return;

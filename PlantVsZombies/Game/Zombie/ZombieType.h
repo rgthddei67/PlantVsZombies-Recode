@@ -14,7 +14,9 @@ enum class HelmType {
 	HELMTYPE_WALLNUT,		//坚果
 	HELMTYPE_TALLNUT,		//高坚果
 	HELMTYPE_INSULATOR,		//绝缘僵尸的陶瓷胸甲；一个完整的一类防具生命池
-	HELMTYPE_ADAPTIVE		//适应头盔僵尸的一次性来源记录头盔
+	HELMTYPE_ADAPTIVE,		//适应头盔僵尸的一次性来源记录头盔
+	HELMTYPE_AURORA_DEVICE,	//极光祭司的非磁性仪器；破坏后永久取消未提交仪式
+	HELMTYPE_CLOCK_DISK		//极夜钟匠的非磁性星盘；破坏后永久取消未提交时间锚
 };
 
 enum class ShieldType {
@@ -82,6 +84,8 @@ enum class ZombieType {
 	ZOMBIE_SNOW_BURROW, // 潜雪僵尸：出生潜雪，并在半血前摇后提交第二次短潜雪
 	ZOMBIE_ADAPTIVE_HELMET, // 适应头盔僵尸：头盔被击穿时免疫原植物谱系或全部灰烬
 	ZOMBIE_THERMAL_SNIPER, // 热感狙击僵尸：玩家部署植物时向原位置发射热脉冲
+	ZOMBIE_AURORA_PRIEST, // 极光祭司僵尸：在植物阵线内部提交三至四个独立出生裂隙
+	ZOMBIE_POLAR_CLOCKMAKER, // 极夜钟匠僵尸：记录相邻三行并在六秒后回溯目标
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

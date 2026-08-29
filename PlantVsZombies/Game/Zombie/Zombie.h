@@ -209,6 +209,12 @@ public:
 	virtual float GetInterruptibleSpecialActionRemaining() const { return -1.0f; }
 	/** 打断当前尚未提交的特殊动作；已提交或没有动作时返回 false。 */
 	virtual bool InterruptUncommittedSpecialAction() { return false; }
+	/** 时间锚只持久保留已提交的一次性能力；普通僵尸没有该状态。 */
+	virtual bool HasCommittedIrreversibleSpecialAction() const { return false; }
+	/** 复活后重建已提交的一次性能力状态，但不重复创建外部对象。 */
+	virtual void RestoreCommittedIrreversibleSpecialAction(bool) {}
+	/** 时间锚恢复核心数值后，同步品种自身派生状态；不得回滚 Animator 或动作相位。 */
+	virtual void OnTemporalCoreStateRestored() {}
 	/**
 	 * 玩家卡片成功部署植物后的同行通知；普通僵尸不响应。
 	 * baseMaxHealth 是部署类型的基础最大生命快照，不包含运行期强化。
@@ -281,6 +287,15 @@ public:
 	virtual float GetIceTrapScaleMultiplier() const { return 1.0f; }
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
+	/**
+	 * 时间锚只恢复稳定数值和可选位置，不回滚 Animator 或当前动作相位。
+	 * 新复活实体由调用方创建后同样走此入口，再进入安全行走态。
+	 */
+	void RestoreTemporalCoreState(int row, float x, int bodyHealth,
+		HelmType helmType, int helmHealth, ShieldType shieldType, int shieldHealth,
+		bool hasHead, bool hasArm,
+		float slowTimer, float frozenTimer, float butterTimer,
+		float paralysisTimer, bool restorePosition);
 	/** 返回当前动画片段的平均根运动速度，并折算减速、冻结、天气和场地状态，单位：像素/游戏秒。 */
 	virtual float GetCurrentHorizontalMoveSpeed() const;
 	/** 轻量推演使用的未受减速或硬控影响水平速度；品种、天气和场地倍率仍保留。 */

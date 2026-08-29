@@ -126,6 +126,8 @@ enum class AnimationType
 	ANIM_AURORATORCHWOOD, // 极光树桩复用火炬树桩运动并替换晶化分件
 	ANIM_NORTHSTARFLOWER, // 北极星花复用向日葵摇摆时间线并替换极夜分件
 	ANIM_ICEMIRRORGRASS, // 冰镜草复用路灯花呼吸时间线并替换冰晶分件
+	ANIM_BOUNDARYFLOWER, // 界碑花复用金盏花完整摇摆时间线并附加星石界碑
+	ANIM_DAWNLOTUS, // 曙光莲复用睡莲完整浮动时间线并附加多层晨曦花冠
 };
 
 #endif
