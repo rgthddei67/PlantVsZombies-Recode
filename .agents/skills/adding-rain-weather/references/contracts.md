@@ -257,8 +257,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
-| 极夜雪原环境导演 | `InitializePolarNightEnvironment` / `RollNextPolarNightPlan` / `UpdatePolarNightEnvironment` | Board 保存三实数、锁定曲线、真假约束、提交累计和白毛风阶段；GameScene 只画常驻仪表与瞬态雪层 |
-| 雪穴环境事件 | `CommitSnowHoleBatch` / `CreateOrQueueWaveZombie` / `UpdatePendingSnowHoleSpawns` | 高湿只提交一次选点；正式波次预算和行已锁，1 秒预警后仅决定雪穴或右侧出生落点 |
+| 极夜雪原环境导演 | `BoardPolarNight.cpp`：`InitializePolarNightEnvironment` / `RollNextPolarNightPlan` / `UpdatePolarNightEnvironment` | Board 保存三实数、锁定曲线、真假约束、提交累计和白毛风阶段；GameScene 只画常驻仪表与瞬态雪层 |
+| 雪穴环境事件 | `BoardPolarNight.cpp`：`CommitSnowHoleBatch` / `UpdatePendingSnowHoleSpawns`；`Board.cpp`：`CreateOrQueueWaveZombie` | 环境文件拥有选点、形成和已锁事务推进；核心文件保留正式波次创建边界。高湿只提交一次选点，预算和行已锁后 1 秒预警只决定雪穴或右侧出生落点 |
 | 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
 | 黑夜屋顶雷荷 | `Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |

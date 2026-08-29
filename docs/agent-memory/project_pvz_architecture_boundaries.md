@@ -1,5 +1,16 @@
 # PvZ 架构边界与存档版本入口
 
+## 2026-08-29 Board 极夜环境第二批拆分
+
+`Board` 的极夜三仪表导演、真假计划、白毛风阶段、雪穴状态与延迟事务推进、强风偏行、
+极夜地面绘制和测试入口已机械迁入 `Game/BoardPolarNight.cpp`。公共接口、成员布局、
+Board 唯一玩法权威和关卡 JSON 键保持不变；`CreateOrQueueWaveZombie`、`SummonNextWave`
+和通用索敌仍在 `Board.cpp`，分别保留正式波次创建、全局波次推进与跨地图目标查询边界。
+
+开发者直调最终波的即时白毛风初始化收敛为私有窄入口，正常 8-9 大波警告仍走原平滑预热；
+没有新增状态或 schema。验证使用当前 `clang-release`：完整构建、Win7 378 项导入审计、
+CTest 3/3，以及桌面可见极夜 core 84、dynamics 59、navigation 65、UI 24 条命令均通过。
+
 ## 2026-08-29 Board 冬日气候首批拆分
 
 `Board` 的公共接口、成员布局、唯一玩法权威和关卡 JSON 键保持不变；寒潮初始化与推进、

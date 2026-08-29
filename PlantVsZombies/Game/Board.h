@@ -496,6 +496,8 @@ private:
 	int CountActiveOrPendingZombieType(ZombieType type) const;
 	/** 最终波警告开始时从当前实数平滑补齐三项危险，不重新触发已有白毛风。 */
 	void BeginPolarFinalWavePrelude();
+	/** 开发者直调跳过最终波警告时，立即提交 8-9 最终白毛风。 */
+	void ActivatePolarFinalWaveImmediately();
 	void UpdateWeatherPanelInterference(float deltaTime);
 	/** 初始化并推进冬日花园独立寒潮；雨势和台风不得改写温度。 */
 	void InitializeWinterTemperature();

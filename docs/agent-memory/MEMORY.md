@@ -4,7 +4,7 @@
 
 - [AutoTest 套件与验证矩阵](project_pvz_autotest_suite.md) — 2026-08-27 验证按实际改动面分流：新植物、新僵尸、新粒子或纯出怪/逻辑本身只跑默认 `clang-release` 可见专项；只有改动渲染后端、后端兼容路径或跨后端提交实现时才加跑 `-NoInstance` 和强制 OpenGL
 
-- [第八大关极夜雪原核心环境](project_pvz_polar_night_snowfield.md) — 2026-08-28 新 `POLAR_NIGHT_SNOWFIELD` 背景、Board 权威三仪表隐藏导演、5 秒三红提交白毛风、45/60 秒三格雪盲、强风抛射偏行、持续雪穴与正式波次 1 秒出生改道均已实现；实玩反馈后补齐 12m/s 起风效淡入、两红/三红不跨阈值微波动和白毛风结束 5 秒实数回落；背景按真实 Cell 几何校准，关卡 schema v9、戴夫 8-1～8-3 提示、资源与可见专项闭环；8-1/8-2 已接潜雪僵尸，8-3/8-4 已接适应头盔僵尸与初版出怪表，8-5～8-9 最终出怪表留待后续
+- [第八大关极夜雪原核心环境](project_pvz_polar_night_snowfield.md) — 2026-08-29 极夜导演、雪穴状态/延迟事务、强风偏行与绘制实现已迁入 `BoardPolarNight.cpp`，正式波次创建仍留 `Board.cpp`；既有三仪表、5 秒三红、45/60 秒雪盲、12m/s 风效淡入、持续雪穴和 1 秒出生改道契约不变，clang-release core/dynamics/navigation/UI 可见回归闭环；8-5～8-9 最终出怪表仍待后续
 - [第八大关潜雪僵尸](project_pvz_snow_burrow_zombie.md) — 2026-08-28 `ZOMBIE_SNOW_BURROW` 为 700 本体/50 啃咬、无防具；出生两格潜雪与半血 0.8 秒可中断前摇后一格潜雪最多各一次，自然出雪只伤战斗顶层 150，地面能力经目标接口强制出雪并取消冲击；8-1 每波/同时限一且雪穴保底，8-2 每波/同时限二，阶段、延迟出生与计数均入档
 - [第八大关听雪草](project_pvz_listening_grass.md) — 2026-08-28 `PLANT_LISTENINGGRASS` 为 8-1 奖励，75 阳光/20 秒卡冷/300 生命；本行优先按最靠近房屋、稳定 ID 迫出一个敌对地下目标，否则封闭一个形成中或活动雪穴，两种成功响应共享 6 秒内部冷却并入档；运行时完整复用经典叶子保护伞时间轴与哈希锁定染色分件
 - [第八大关适应头盔僵尸与植物伤害来源](project_pvz_adaptive_helmet_zombie.md) — 2026-08-28 `ZOMBIE_ADAPTIVE_HELMET` 为 800 本体/100 头盔；击穿整击无溢出并永久免疫原植物谱系或统一灰烬数值伤害，附带状态保留、毒伤归毒囊射手；`PlantDamageOrigin` 锁定原发射者且跨火炬/对象池/存档；8-3 白毛风后保底，8-3/8-4与后续生存池每波4且无同时或累计上限
@@ -51,7 +51,7 @@
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-23 普通卡继续保存稳定枚举名；模仿者以 `PLANT_IMITATER:PLANT_TARGET` 保存代理身份与目标，恢复时重新验证目标资格并复用飞入动画
 - [疯狂戴夫关卡闲聊与隐性机制提示](project_pvz_crazy_dave_tutorial_dialog.md) — 2026-08-26 2-1、4-1、4-2、4-9、5-1、6-1、6-9、7-1、7-8、7-9 以原版风格闲聊含蓄提示天气、雾、燃料、屋顶、雷荷与寒潮；7-8/7-9 在选卡前提示开局强寒潮并说明回暖后恢复随机，完成/跳过一次记录，玩家 schema v5、原版 JPG 灰度 alpha 遮罩、原版 12 段短/长/超长/疯狂语音及切页停声；1-1、3-1不出现
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-29 首批把寒潮、冻融和霜线实现机械迁入 `BoardWinterClimate.cpp`，`Board` 公共门面、状态权威、字段布局和存档键不变；此前 `BoardPresentation`/单活动场景/schema 事务迁移边界继续有效；每次任务提交前审计相关 skills
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-29 已分两批把寒潮/冻融/霜线迁入 `BoardWinterClimate.cpp`，把极夜导演/雪穴状态/强风偏行迁入 `BoardPolarNight.cpp`；`Board` 公共门面、状态权威、字段布局和存档键不变，核心创建与波次入口继续留在 `Board.cpp`；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环

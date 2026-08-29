@@ -37,6 +37,11 @@ Board 实际世界 Cell 边界 x=242..962、y=88..588 做分段校准；运行�
 8-1 只教学高湿且全关只提交一批雪穴；8-2 只教学强风；8-3 第一轮保证白毛风；8-4～8-8
 直接运行完整导演；8-9 大波警告从当前实数平滑补齐三红，已有白毛风只延长、不重启。
 
+2026-08-29 的架构拆分把上述导演、雪穴状态推进、强风偏行、地面绘制和测试入口机械迁入
+`Game/BoardPolarNight.cpp`；`Board.h` 的公共接口、成员布局和存档键均不变。`Board.cpp`
+继续保留 `CreateOrQueueWaveZombie`、`SummonNextWave`、通用索敌等核心集成点，并通过窄入口
+衔接 8-9 最终波，避免环境拆分重写正式波次边界。
+
 ## 雪穴与出生事务
 
 每个高湿段只提交一次、选择两个不同候选行的第 5～7 列空格；2 秒形成期从首帧占格，形成后持续到
@@ -65,3 +70,8 @@ Vulkan `smoke_polar_night_core` 共 84 条命令 exit 0，覆盖资源、分层�
 主人实玩反馈后的 `smoke_polar_night_dynamics` 59 条命令 exit 0，覆盖风效淡入强度、两红安全侧波动、
 三红白毛风红区波动、两类波动快照以及白毛风结束后 5 秒连续回落；原 core 84 条、UI 24 条和
 CTest 3/3 同步回归通过。
+
+2026-08-29 拆分后重新配置并完整构建 `clang-release`，Win7 378 项导入审计与 CTest 3/3 通过；
+桌面可见 `smoke_polar_night_core` 84、`smoke_polar_night_dynamics` 59、
+`smoke_polar_navigation_contract` 65、`smoke_polar_night_ui` 24 条命令均 exit 0，
+状态、日志以及白毛风/雪穴/仪表截图已核对。
