@@ -8,6 +8,14 @@ metadata:
 
 # 路灯花与迷雾核心
 
+## 2026-08-29 雾势翻译单元边界
+
+独立雾势推进、逐格 alpha、路灯花照明形状和雾片稳定变体已机械迁入
+`Game/BoardFogWeather.cpp`；燃料供给/到账、挡位控制、产光倍率和通用索敌门面继续留在
+`Board.cpp`。Board 公共接口、字段、存档键与所有玩法数值未改。当前 `clang-release` 构建、
+CTest 3/3 及可见 `smoke_fog_weather`、`smoke_plantern_fog_core`、`smoke_level_6_9_fog`
+均通过，照明开窗、索敌边界和 6-9 读档雾截图已目验。
+
 ## 当前契约（2026-08-27）
 
 - `PLANT_PLANTERN` 在冒险 4-1 作为奖励，25 阳光、30 秒冷却；4-1 只保留雾视觉，4-2～4-9

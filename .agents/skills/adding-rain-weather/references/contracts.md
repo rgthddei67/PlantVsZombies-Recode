@@ -249,7 +249,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 
 | 目的 | 当前位置 / 搜索词 | 约束 |
 |---|---|---|
-| 基础雨势权重、持续时间、倍率 | `BoardWeather.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释；独立雾势与屋顶径流/雷荷仍留 `Board.cpp` |
+| 基础雨势权重、持续时间、倍率 | `BoardWeather.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释；不混入独立雾势或屋顶积累器 |
+| 独立雾势、驱散与逐格 alpha | `BoardFogWeather.cpp`：`Board::UpdateFog*` / `GetFogCellAlpha` | Board 持状态；雾势常量与路灯花照明形状集中在同一翻译单元 |
 | 冬日寒潮温区、权重与时长 | `BoardWinterClimate.cpp` 匿名命名空间 `k*ColdWave*` / `kWinter*` | Board 接口和状态布局不变；调参常量同行中文注释 |
 | 随机下一天气 | `BoardWeather.cpp`：`Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
@@ -275,7 +276,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 天气面板上方交互浮层 | `GameScene::BuildDrawCommands` / `PlanternGearMenu` | `GameObjects` 命令整体早于天气面板；需另注册更晚的 UI 绘制命令，不能只提高组件所属对象层级 |
 | 存档版本升级 | `SaveSchema::UpgradeLevelDocument` | 升级成功后才允许修改 `Board` 或实体 |
 | 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X，雷声暴露资源加载与播放请求次数 |
-| 雾势玩法与绘制 | `Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |
+| 雾势玩法与绘制 | `BoardFogWeather.cpp`：`Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |
 | 路灯花照明/雾中索敌 | `GetPlanternIllumination` / `CanPlantAcquireZombie` | 同一逐格 alpha 同时服务视觉和远程索敌；近身例外只在统一入口 |
 | 雾势 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["fog"]` / `out["plantern"]` | 断言覆盖逐格 alpha、照明矩阵、驱散、燃料、挡位和资源 |
 

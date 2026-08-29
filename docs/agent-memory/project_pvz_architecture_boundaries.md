@@ -1,5 +1,18 @@
 # PvZ 架构边界与存档版本入口
 
+## 2026-08-29 Board 独立雾势第四批拆分
+
+`Board` 的独立雾势状态机/预报、台风驱散与漂移、逐格 alpha、资格门禁、路灯花照明形状、
+雾片稳定变体及测试入口已机械迁入 `Game/BoardFogWeather.cpp`。路灯花燃料经济、产光倍率、
+雾中通用索敌门面、出怪与屋顶系统仍留在 `Board.cpp`；`GameScene::DrawFog` 继续只消费 Board getter。
+
+公共接口、成员布局、Board 唯一天气权威和关卡 JSON 键保持不变，30 个迁移函数与拆分前
+`HEAD` 的函数体逐字一致。`Board.cpp` 从 6073 行降至 5587 行，新雾势文件 504 行。
+`clang-release` 完整构建、Win7 378 项导入审计与 CTest 3/3 通过；桌面可见
+`smoke_fog_weather`、`smoke_plantern_fog_core`、`smoke_level_6_9_fog` 和跨文件的
+`smoke_weather_jammer_fog_commit` 全部通过，
+大雾、超强台风清场、读档首帧雾、路灯花开窗和 6-9 屋顶雾截图已目验。
+
 ## 2026-08-29 Board 基础天气第三批拆分
 
 `Board` 的基础雨势、天气导演/预报、台风、4-9 暴风雨夜、天气栏目干扰及其测试入口已机械迁入

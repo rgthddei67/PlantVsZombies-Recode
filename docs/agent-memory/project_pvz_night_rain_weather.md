@@ -1,9 +1,23 @@
 # 黑夜随机雨势天气
 
+## 2026-08-29 BoardFogWeather 翻译单元拆分
+
+独立雾势状态机/预报、台风驱散与漂移、逐格 alpha、资格门禁、路灯花照明形状、雾片稳定变体
+及雾势测试入口已机械迁入 `Game/BoardFogWeather.cpp`。Board 仍是唯一状态权威，公共接口、
+字段布局和存档键未改变；路灯花燃料经济、产光倍率和同时承载极夜雪盲的通用索敌门面仍在
+`Board.cpp`，世界雾绘制仍由 `GameScene::DrawFog` 消费 getter。
+
+当前 `clang-release` 完整构建、Win7 378 项导入审计、CTest 3/3 通过；桌面可见
+`smoke_fog_weather` 163 条、`smoke_plantern_fog_core` 216 条、`smoke_level_6_9_fog` 97 条
+命令均 `exit 0`、`status=passed`、`script finished OK`；另有 51 条命令的
+`smoke_weather_jammer_fog_commit` 通过，锁定天气文件与雾势文件间的预报干扰协作。
+关键雾层、吹散、照明、干扰和读档截图已目验。
+
 ## 2026-08-29 BoardWeather 翻译单元拆分
 
 基础雨势、天气导演/预报、台风、4-9 暴风雨夜、天气栏目干扰及其测试入口已机械迁入
-`Game/BoardWeather.cpp`；独立雾势、屋顶径流/雷荷、出怪变异与波次调度继续留在 `Board.cpp`。
+`Game/BoardWeather.cpp`；该批次当时仍在核心文件的独立雾势现已继续迁入 `BoardFogWeather.cpp`，
+屋顶径流/雷荷、出怪变异与波次调度继续留在 `Board.cpp`。
 Board 仍是唯一状态权威，公共接口、字段布局和存档键均未改变。`clang-release`、Win7 导入审计、
 CTest 3/3 以及可见的 `smoke_night_rain`、`smoke_weather_forecast`、`smoke_typhoon`、
 `smoke_stormy_night_4_9`、`smoke_roof_marshal_weather` 全部通过；后两份脚本分别补齐固定难度和
