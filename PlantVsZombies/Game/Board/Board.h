@@ -322,6 +322,7 @@ private:
 		int lockedHijackerID, float& executionSeconds,
 		float& survivalExecutionLineCap) const;
 	int mMonteCarloHealerDecisionCooldownSteps = 0; // 下次急救员推演前需经过的固定逻辑步数，不入存档
+	int mMonteCarloBungeeDecisionCooldownSteps = 0; // 下次蹦极选点推演前需经过的固定逻辑步数，不入存档
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateZombieMetricsTimer = 0.0f;	// 僵尸血量与音乐敌对数的合并采样计时器
@@ -748,7 +749,8 @@ public:
 		int* selectedRemovalPlantID = nullptr,
 		float removalStrikeInterval = 0.0f,
 		int removalStrikeDamage = 0,
-		const std::vector<int>* removalStrikeCounts = nullptr);
+		const std::vector<int>* removalStrikeCounts = nullptr,
+		int maxCandidateRolloutEvaluations = 0);
 	/**
 	 * @brief 用共享短视推演从给定植物 ID 中选择立即移除后对玩家损失最大的目标。
 	 */
@@ -756,7 +758,8 @@ public:
 		const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
 		int& targetPlantID, MonteCarloTargetStats* stats = nullptr,
 		float strikeInterval = 0.0f, int strikeDamage = 0,
-		const std::vector<int>* strikeCounts = nullptr);
+		const std::vector<int>* strikeCounts = nullptr,
+		int maxCandidateRolloutEvaluations = 0);
 	/**
 	 * @brief 比较急救员当前全部群疗、单疗与一次延迟分支；魅惑侧不适用时返回 false。
 	 *
@@ -772,6 +775,12 @@ public:
 	 * 名额尚未恢复时调用者保持治疗就绪，后续按实体 ID 顺序尝试。
 	 */
 	bool TryClaimMonteCarloHealerDecisionSlot();
+	/**
+	 * @brief 领取按固定逻辑步限流的蹦极选点推演名额。
+	 *
+	 * 名额尚未恢复时调用者停留在屏幕外等待，避免同波蹦极把多次长时域推演叠到一帧。
+	 */
+	bool TryClaimMonteCarloBungeeDecisionSlot();
 	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
 	void CompleteLoadRestore();
 	/** 返回 Board 是否仍处于关卡存档恢复生命周期。 */

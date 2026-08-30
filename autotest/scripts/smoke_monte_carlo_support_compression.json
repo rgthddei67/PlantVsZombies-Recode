@@ -29,7 +29,7 @@
     { "op": "spawn_zombie", "type": "ZOMBIE_BUNGEE", "row": 0, "x": 950 },
     { "op": "wait_frames", "value": 3 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUNGEE.bungeeTargetMode", "equals": "MONTE_CARLO" },
-    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUNGEE.bungeeMonteCarloRolloutCount", "equals": 64 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUNGEE.bungeeMonteCarloRolloutCount", "equals": 25 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUNGEE.bungeeMonteCarloCandidateCount", "equals": 15 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUNGEE.bungeeMonteCarloPlantCount", "equals": 2 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUNGEE.bungeeMonteCarloSupportCount", "equals": 14 },

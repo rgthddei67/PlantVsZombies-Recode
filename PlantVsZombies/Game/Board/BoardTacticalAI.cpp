@@ -23,6 +23,7 @@ namespace {
 	constexpr int kPlantTargetMonteCarloRolloutCount = 48; // 蹦极与精英小丑长时域选点的每候选未来样本数
 	constexpr int kTreatmentMonteCarloRolloutCount = 40; // 急救员短时域选疗的每候选未来样本数
 	constexpr int kMonteCarloHealerDecisionSpacingSteps = 3; // 两次急救员推演至少间隔的固定逻辑步数
+	constexpr int kMonteCarloBungeeDecisionSpacingSteps = 3; // 两次蹦极选点推演至少间隔的固定逻辑步数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
 	constexpr float kMonteCarloBacklineMultiplier = 1.2f; // 当前后半场植物的战略价值倍率
 	constexpr float kMonteCarloSunProducerFutureValue = 300.0f; // 当前产能植物的未来经济价值，单位：阳光分
@@ -450,8 +451,10 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats,
 	const std::vector<int>* removalPlantIDs, int* selectedRemovalPlantID,
 	float removalStrikeInterval, int removalStrikeDamage,
-	const std::vector<int>* removalStrikeCounts)
+	const std::vector<int>* removalStrikeCounts,
+	int maxCandidateRolloutEvaluations)
 {
+	PROFILE_SCOPE("MC.PlantTarget.Total");
 	using namespace PlantDefenseMonteCarlo;
 	const bool removalMode = removalPlantIDs != nullptr;
 	if (removalMode ? removalPlantIDs->empty()
@@ -462,7 +465,12 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	maxRow = std::clamp(maxRow, minRow, std::max(0, mRows - 1));
 
 	Snapshot snapshot;
-	if (!BuildMonteCarloCombatSnapshot(snapshot, false)) return false;
+	bool snapshotBuilt = false;
+	{
+		PROFILE_SCOPE("MC.PlantTarget.Snapshot");
+		snapshotBuilt = BuildMonteCarloCombatSnapshot(snapshot, false);
+	}
+	if (!snapshotBuilt) return false;
 	std::vector<std::pair<int, int>> candidateCells;
 	const std::unordered_set<int> eligibleRemovalIDs = removalMode
 		? std::unordered_set<int>(removalPlantIDs->begin(), removalPlantIDs->end())
@@ -520,9 +528,17 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	}
 	if (snapshot.candidates.empty()) return false;
 
+	int rolloutCount = kPlantTargetMonteCarloRolloutCount;
+	if (maxCandidateRolloutEvaluations > 0) {
+		// 密集防线按总候选评估量封顶；候选少时仍保留完整样本数。
+		rolloutCount = std::clamp(
+			maxCandidateRolloutEvaluations
+				/ static_cast<int>(snapshot.candidates.size()),
+			1, kPlantTargetMonteCarloRolloutCount);
+	}
 	Config config;
 	ConfigureMonteCarloPlantImpactConfig(config,
-		kPlantTargetMonteCarloRolloutCount, kMonteCarloHorizonSeconds,
+		rolloutCount, kMonteCarloHorizonSeconds,
 		damage, radius);
 
 	std::uint32_t seed = 2166136261u;
@@ -533,7 +549,11 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	mixSeed(static_cast<std::uint32_t>(mBoardFrame));
 	mixSeed(static_cast<std::uint32_t>(mCurrentWave));
 	mixSeed(static_cast<std::uint32_t>(sourceZombieID));
-	const Result result = ChooseTarget(snapshot, config, seed);
+	Result result;
+	{
+		PROFILE_SCOPE("MC.PlantTarget.Rollouts");
+		result = ChooseTarget(snapshot, config, seed);
+	}
 	if (stats) {
 		stats->rolloutCount = result.rolloutCount;
 		stats->candidateCount =
@@ -562,7 +582,8 @@ bool Board::PickMonteCarloPlantRemovalTarget(
 	const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
 	int& targetPlantID, MonteCarloTargetStats* stats,
 	float strikeInterval, int strikeDamage,
-	const std::vector<int>* strikeCounts)
+	const std::vector<int>* strikeCounts,
+	int maxCandidateRolloutEvaluations)
 {
 	int targetRow = -1;
 	Vector targetPosition;
@@ -570,7 +591,8 @@ bool Board::PickMonteCarloPlantRemovalTarget(
 	return PickMonteCarloPlantBlastTarget(
 		0, std::max(0, mRows - 1), 0, 0.0f, sourceZombieID,
 		targetRow, targetPosition, stats, &eligiblePlantIDs, &targetPlantID,
-		strikeInterval, strikeDamage, strikeCounts);
+		strikeInterval, strikeDamage, strikeCounts,
+		maxCandidateRolloutEvaluations);
 }
 
 bool Board::TryClaimMonteCarloHealerDecisionSlot()
@@ -578,6 +600,14 @@ bool Board::TryClaimMonteCarloHealerDecisionSlot()
 	if (mMonteCarloHealerDecisionCooldownSteps > 0) return false;
 	mMonteCarloHealerDecisionCooldownSteps =
 		kMonteCarloHealerDecisionSpacingSteps;
+	return true;
+}
+
+bool Board::TryClaimMonteCarloBungeeDecisionSlot()
+{
+	if (mMonteCarloBungeeDecisionCooldownSteps > 0) return false;
+	mMonteCarloBungeeDecisionCooldownSteps =
+		kMonteCarloBungeeDecisionSpacingSteps;
 	return true;
 }
 

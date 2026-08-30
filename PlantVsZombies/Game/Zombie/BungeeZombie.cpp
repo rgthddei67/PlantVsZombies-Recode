@@ -33,6 +33,7 @@ namespace {
 	constexpr float kUmbrellaBounceVolume = 0.4f;           // 叶子保护伞弹回蹦极时的 boing 音量
 	constexpr float kOccupiedCellWeight = 10000.0f;         // 原版有植物格随机权重
 	constexpr float kEmptyCellWeight = 1.0f;                // 原版空格随机权重
+	constexpr int kMonteCarloCandidateRolloutBudget = 384;  // 单次选点最多推进的“候选×样本”总评估量
 
 	constexpr std::array<const char*, 4> kFrontArmTracks = {
 		"Zombie_bungi_rightarm_lower2",
@@ -88,6 +89,11 @@ void BungeeZombie::ZombieItemUpdate() const
 void BungeeZombie::ZombieUpdate(float scaledTime)
 {
 	if (!mTargetInitialized) {
+		// 同波蹦极会在同一固定步进入这里；逐只领取 Board 名额，把昂贵推演摊到不同渲染帧。
+		if (GameAPP::GetInstance().mEnableMonteCarloAI
+			&& !mBoard->TryClaimMonteCarloBungeeDecisionSlot()) {
+			return;
+		}
 		if (!SelectTarget()) Die();
 		return;
 	}
@@ -158,7 +164,8 @@ bool BungeeZombie::SelectMonteCarloTarget()
 
 	int plantID = NULL_PLANT_ID;
 	if (!mBoard->PickMonteCarloPlantRemovalTarget(
-		eligiblePlantIDs, mZombieID, plantID, &mMonteCarloStats)) {
+		eligiblePlantIDs, mZombieID, plantID, &mMonteCarloStats,
+		0.0f, 0, nullptr, kMonteCarloCandidateRolloutBudget)) {
 		return false;
 	}
 	Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);

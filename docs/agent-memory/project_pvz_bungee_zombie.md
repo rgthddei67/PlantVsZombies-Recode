@@ -17,7 +17,7 @@ metadata:
 
 ## 选点与资源
 
-- `GameAPP::mEnableMonteCarloAI=false` 时复刻原版网格加权随机：未被别只蹦极预订的有植物格权重 10000、空格权重 1，并保留最后一株未被预订向日葵；同 Seed 42 的专项锁定普通豌豆格。开关为 true 时，`Board::PickMonteCarloPlantRemovalTarget` 以 48 rollout、16 秒时域和最多 16 只当前僵尸，为每个候选格按 normal → pumpkin → under 选实际会带走的一株，用 `PlantDefenseMonteCarlo::Candidate::targetPlantId` 在推演起点精确移除该实体，选择对僵尸方未来收益最大的目标；失败回退原版随机。并列最高分使用局部 seeded RNG，不消费正式 `GameRandom`。
+- `GameAPP::mEnableMonteCarloAI=false` 时复刻原版网格加权随机：未被别只蹦极预订的有植物格权重 10000、空格权重 1，并保留最后一株未被预订向日葵；同 Seed 42 的专项锁定普通豌豆格。开关为 true 时，`Board::PickMonteCarloPlantRemovalTarget` 使用最多 48 rollout、16 秒时域和最多 16 只当前僵尸，为每个候选格按 normal → pumpkin → under 选实际会带走的一株，用 `PlantDefenseMonteCarlo::Candidate::targetPlantId` 在推演起点精确移除该实体，选择对僵尸方未来收益最大的目标；失败回退原版随机。蹦极单次选点以 384 个“候选×样本”总评估量封顶，候选少时仍保留 48 rollout。并列最高分使用局部 seeded RNG，不消费正式 `GameRandom`。
 - 2026-08-22 起，普通层若存在活动且明确 `CanBeTargetedByBungee()==false` 的植物，该实体会遮住同格下方承载层，蹦极不得越过双格玉米加农炮去抱走任一花盆；这只改变蹦极选层，不改变巨人逐层砸击。
 - C# 参考和年度版素材库补齐 `ZombieBungi.reanim` 已有注册所需资源：`BungeeCord.png`、`BungeeTarget.png`、`grassstep.ogg` 与三条 `bungee_scream*.ogg`。权威注册位于 `build/clang-release/resources/resources.xml`，资源键位于 `ResourceKeys.h`；运行专项逐项断言 reanim、贴图和音效可加载。
 - gamedata 当前为 `weight=1800`、`appearWave=10`、`survivalRound=15`、`offset=[-46,-92]`、`scale=1.0`。主人屋顶实机图指出本体略偏左与绳索断口后，整身向右调 6px，绳索末端由视觉原点 `-38` 延到 `+24`，多余绳段在本体后方遮住。同格组合植物由 normal 层优先，其次 pumpkin、最后 under；各蹦极之间按目标格和实体 ID 排他预订。
@@ -31,6 +31,7 @@ metadata:
 - 2026-08-14 植物选点预算与急救员选疗拆分后，蹦极改为 64 rollout，16 秒时域和 16 只详细样本上限不变；`clang-release`、378 项 Win7 导入审计与三项 CTest 通过。本次数值调整按主人要求未运行 AutoTest，脚本预期已同步到 64。
 - 2026-08-08 接入叶子保护伞后，`smoke_bungee_zombie.json` 104 条命令再次在主人当前桌面可见运行 exit 0、`script finished OK`，携带坚果与随机/蒙特卡洛选点截图保持正常；`smoke_umbrella_leaf.json` 另断言保护区内蹦极空手上升、目标 300 生命保留、快照往返不重播伞声或 `boing`。
 - 2026-08-22 `clang-release`、LTO 与 378 项 Win7 导入审计通过；当前桌面可见 `smoke_bungee_zombie.json` 124 条命令 exit 0。6-8 初始 15 个花盆仍为合法候选，玉米炮下新增两只花盆不增加候选数且保持活动，截图 `04_bungee_cob_support_blocked.png` 已目验。
+- 2026-08-30 卡顿专项：同一固定步生成 5 只蹦极、15 个候选植物和 16 只详细僵尸时，旧实现把 5 次推演叠在一帧，`GOM_Update` 单次峰值 78.60ms。现在 Board 每 3 个固定逻辑步按对象稳定顺序发放一次蹦极推演名额，未领取者停留屏幕外；再以 384 总评估量把 15 候选压到 25 rollout、11 候选压到 34 rollout。相同 `-Profile` 压力夹具最终 `GOM_Update` 峰值 9.83ms、单次 `MC.PlantTarget.Total` 最大 9.77ms，约降低 87.5%。`stress_bungee_monte_carlo`、`smoke_bungee_zombie`、`smoke_monte_carlo_support_compression` 可见通过，CTest 3/3 通过；精英小丑和冰像处刑者未接该蹦极专属预算。
 
 ## 可复用契约
 
