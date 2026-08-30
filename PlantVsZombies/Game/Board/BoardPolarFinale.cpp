@@ -303,11 +303,12 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 				zombie->RestoreTemporalAbilityState({
 					target.abilityPhase, target.abilityRemaining });
 			}
-			else {
-				// v10 旧档及来源钟匠继续使用只保留 submitted 的兼容语义。
+			else if (target.zombieID != it->ownerZombieID) {
+				// v10 旧档非来源目标继续使用只保留 submitted 的兼容语义。
 				zombie->RestoreCommittedIrreversibleSpecialAction(
 					target.specialActionSubmitted);
 			}
+			// 来源钟匠不记录也不恢复局部技能状态，避免六秒结算刷新自己的循环冷却。
 			if (g_particleSystem) {
 				g_particleSystem->EmitEffect("PolarClockRewind", zombie->GetVisualPosition());
 			}

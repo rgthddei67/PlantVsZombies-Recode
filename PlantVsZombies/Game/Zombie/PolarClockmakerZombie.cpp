@@ -16,6 +16,7 @@ constexpr int kBiteDamage = 50; // 星盘完整或破坏后的单口伤害
 constexpr float kPreparationSeconds = 2.0f; // 完成实体创建后的准备游戏秒
 constexpr float kWindupSeconds = 3.2f; // 时间锚提交前可打断前摇
 constexpr float kRetryWaitSeconds = 4.0f; // 被警铃草打断后的等待游戏秒
+constexpr float kCycleCooldownSeconds = 10.0f; // 每次时间锚提交后至下一次前摇的循环冷却游戏秒
 constexpr float kChannelPulseSeconds = 0.72f; // 前摇期间补充一轮星盘齿轮的游戏秒间隔
 constexpr float kDiskOffsetX = 21.0f; // 星盘相对身体轨道的水平偏移，动画 px
 constexpr float kDiskOffsetY = -21.0f; // 星盘相对身体轨道的垂直偏移，动画 px
@@ -33,6 +34,7 @@ float MaxClockRemaining(PolarClockmakerZombie::ClockPhase phase)
 	case PolarClockmakerZombie::ClockPhase::PREPARING: return kPreparationSeconds;
 	case PolarClockmakerZombie::ClockPhase::WINDUP: return kWindupSeconds;
 	case PolarClockmakerZombie::ClockPhase::RETRY_WAIT: return kRetryWaitSeconds;
+	case PolarClockmakerZombie::ClockPhase::COOLDOWN: return kCycleCooldownSeconds;
 	case PolarClockmakerZombie::ClockPhase::COMMITTED:
 	case PolarClockmakerZombie::ClockPhase::DISABLED: return 0.0f;
 	}
@@ -76,13 +78,15 @@ void PolarClockmakerZombie::Update()
 				- DeltaTime::GetDeltaTime() * slow);
 			if (mClockRemaining <= 0.0f) {
 				if (mClockPhase == ClockPhase::PREPARING
-					|| mClockPhase == ClockPhase::RETRY_WAIT) {
+					|| mClockPhase == ClockPhase::RETRY_WAIT
+					|| mClockPhase == ClockPhase::COOLDOWN) {
 					BeginWindup();
 				}
 				else if (mClockPhase == ClockPhase::WINDUP) {
 					if (mBoard) mBoard->CommitPolarClockAnchor(mZombieID, mRow);
-					mClockPhase = ClockPhase::COMMITTED;
-					mClockRemaining = 0.0f;
+					// 提交边沿立即开始下一轮冷却，不等待 Board 持有的六秒时间锚结算。
+					mClockPhase = ClockPhase::COOLDOWN;
+					mClockRemaining = kCycleCooldownSeconds;
 					PlayWalkAnimation(0.12f);
 				}
 			}
@@ -130,8 +134,9 @@ bool PolarClockmakerZombie::InterruptUncommittedSpecialAction()
 void PolarClockmakerZombie::RestoreCommittedIrreversibleSpecialAction(bool submitted)
 {
 	if (!submitted) return;
-	mClockPhase = ClockPhase::COMMITTED;
-	mClockRemaining = 0.0f;
+	// v10 时间锚只有“已提交”位；循环技能以完整冷却承接其不可退款语义。
+	mClockPhase = ClockPhase::COOLDOWN;
+	mClockRemaining = kCycleCooldownSeconds;
 	if (!mIsDying && IsActive()) PlayWalkAnimation(0.12f);
 	SyncFollowerPresentation();
 }
@@ -149,7 +154,7 @@ void PolarClockmakerZombie::RestoreTemporalAbilityState(
 {
 	const ClockPhase restoredPhase = static_cast<ClockPhase>(std::clamp(
 		state.phase, static_cast<int>(ClockPhase::PREPARING),
-		static_cast<int>(ClockPhase::DISABLED)));
+		static_cast<int>(ClockPhase::COOLDOWN)));
 	mClockPhase = restoredPhase;
 	mClockRemaining = std::clamp(state.remaining, 0.0f,
 		MaxClockRemaining(restoredPhase));
@@ -264,7 +269,7 @@ void PolarClockmakerZombie::LoadExtraData(const nlohmann::json& j)
 	mClockPhase = static_cast<ClockPhase>(std::clamp(
 		j.value("clockPhase", static_cast<int>(ClockPhase::PREPARING)),
 		static_cast<int>(ClockPhase::PREPARING),
-		static_cast<int>(ClockPhase::DISABLED)));
+		static_cast<int>(ClockPhase::COOLDOWN)));
 	mClockRemaining = std::clamp(j.value("clockRemaining", 0.0f),
 		0.0f, MaxClockRemaining(mClockPhase));
 	if (!HasHead() || IsMindControlled()

@@ -17,6 +17,7 @@ constexpr int kOverloadBiteDamage = 150; // 仪器破坏后的过载单口伤害
 constexpr float kPreparationSeconds = 6.0f; // 实体完成创建后的仪式准备游戏秒
 constexpr float kWindupSeconds = 2.8f; // 裂隙提交前可被警铃草打断的完整前摇
 constexpr float kRetryWaitSeconds = 5.0f; // 被打断后再次尝试前的等待游戏秒
+constexpr float kCycleCooldownSeconds = 5.0f; // 每次裂隙提交后至下一次前摇的循环冷却游戏秒
 constexpr float kChannelPulseSeconds = 0.62f; // 前摇期间补充一次极光旋涡的游戏秒间隔
 constexpr float kDeviceOffsetX = 24.0f; // 仪器相对身体轨道的水平偏移，动画 px
 constexpr float kDeviceOffsetY = -20.0f; // 仪器相对身体轨道的垂直偏移，动画 px
@@ -34,6 +35,7 @@ float MaxRitualRemaining(AuroraPriestZombie::RitualPhase phase)
 	case AuroraPriestZombie::RitualPhase::PREPARING: return kPreparationSeconds;
 	case AuroraPriestZombie::RitualPhase::WINDUP: return kWindupSeconds;
 	case AuroraPriestZombie::RitualPhase::RETRY_WAIT: return kRetryWaitSeconds;
+	case AuroraPriestZombie::RitualPhase::COOLDOWN: return kCycleCooldownSeconds;
 	case AuroraPriestZombie::RitualPhase::COMMITTED:
 	case AuroraPriestZombie::RitualPhase::DISABLED: return 0.0f;
 	}
@@ -79,15 +81,17 @@ void AuroraPriestZombie::Update()
 				- DeltaTime::GetDeltaTime() * slow);
 			if (mRitualRemaining <= 0.0f) {
 				if (mRitualPhase == RitualPhase::PREPARING
-					|| mRitualPhase == RitualPhase::RETRY_WAIT) {
+					|| mRitualPhase == RitualPhase::RETRY_WAIT
+					|| mRitualPhase == RitualPhase::COOLDOWN) {
 					BeginWindup();
 				}
 				else if (mRitualPhase == RitualPhase::WINDUP) {
 					const bool whiteout = mBoard && mBoard->IsPolarSnowBlindActive();
 					if (mBoard) mBoard->CommitAuroraPriestRitual(
 						mZombieID, mRow, whiteout);
-					mRitualPhase = RitualPhase::COMMITTED;
-					mRitualRemaining = 0.0f;
+					// 提交边沿立即开始下一轮冷却，不等待裂隙的独立到场事务。
+					mRitualPhase = RitualPhase::COOLDOWN;
+					mRitualRemaining = kCycleCooldownSeconds;
 					PlayWalkAnimation(0.12f);
 				}
 			}
@@ -135,8 +139,9 @@ bool AuroraPriestZombie::InterruptUncommittedSpecialAction()
 void AuroraPriestZombie::RestoreCommittedIrreversibleSpecialAction(bool submitted)
 {
 	if (!submitted) return;
-	mRitualPhase = RitualPhase::COMMITTED;
-	mRitualRemaining = 0.0f;
+	// v10 时间锚只有“已提交”位；循环技能以完整冷却承接其不可退款语义。
+	mRitualPhase = RitualPhase::COOLDOWN;
+	mRitualRemaining = kCycleCooldownSeconds;
 	if (!mIsDying && IsActive()) PlayWalkAnimation(0.12f);
 	SyncFollowerPresentation();
 }
@@ -154,7 +159,7 @@ void AuroraPriestZombie::RestoreTemporalAbilityState(
 {
 	const RitualPhase restoredPhase = static_cast<RitualPhase>(std::clamp(
 		state.phase, static_cast<int>(RitualPhase::PREPARING),
-		static_cast<int>(RitualPhase::DISABLED)));
+		static_cast<int>(RitualPhase::COOLDOWN)));
 	mRitualPhase = restoredPhase;
 	mRitualRemaining = std::clamp(state.remaining, 0.0f,
 		MaxRitualRemaining(restoredPhase));
@@ -281,7 +286,7 @@ void AuroraPriestZombie::LoadExtraData(const nlohmann::json& j)
 	mRitualPhase = static_cast<RitualPhase>(std::clamp(
 		j.value("ritualPhase", static_cast<int>(RitualPhase::PREPARING)),
 		static_cast<int>(RitualPhase::PREPARING),
-		static_cast<int>(RitualPhase::DISABLED)));
+		static_cast<int>(RitualPhase::COOLDOWN)));
 	mRitualRemaining = std::clamp(j.value("ritualRemaining", 0.0f),
 		0.0f, MaxRitualRemaining(mRitualPhase));
 	mOverloaded = j.value("overloaded", false)

@@ -17,6 +17,7 @@ public:
 		RETRY_WAIT,
 		COMMITTED,
 		DISABLED,
+		COOLDOWN,
 	};
 
 	void Update() override;
@@ -48,7 +49,7 @@ protected:
 private:
 	/** 配置星盘与悬摆命名 follower，保持普通僵尸时间线不变。 */
 	void ConfigureFollowers();
-	/** 从准备或重试等待抢占啃食，进入完整 3.2 秒前摇。 */
+	/** 从首次准备、循环冷却或重试等待抢占啃食，进入完整 3.2 秒前摇。 */
 	void BeginWindup();
 	/** 永久取消尚未提交的时间锚。 */
 	void DisableUncommittedClock();

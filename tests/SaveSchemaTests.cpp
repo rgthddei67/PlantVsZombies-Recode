@@ -1,5 +1,6 @@
 #include "SaveSchema.h"
 #include "Game/Plant/PlantType.h"
+#include "Game/Zombie/ZombieType.h"
 
 #include <algorithm>
 #include <iostream>
@@ -490,6 +491,75 @@ namespace {
 			"旧锚不得凭空获得可返还的能力状态");
 	}
 
+	void TestVersionElevenLevelUpgradeStartsRepeatableFinaleCooldowns() {
+		const int priestType = static_cast<int>(ZombieType::ZOMBIE_AURORA_PRIEST);
+		const int clockType = static_cast<int>(ZombieType::ZOMBIE_POLAR_CLOCKMAKER);
+		nlohmann::json document = {
+			{ "schemaVersion", 11 },
+			{ "zombies", nlohmann::json::array({
+				{
+					{ "type", priestType },
+					{ "extraData", {
+						{ "ritualPhase", 3 }, { "ritualRemaining", 0.0f }
+					} }
+				},
+				{
+					{ "type", clockType },
+					{ "extraData", {
+						{ "clockPhase", 3 }, { "clockRemaining", 0.0f }
+					} }
+				},
+				{
+					{ "type", priestType },
+					{ "extraData", {
+						{ "ritualPhase", 0 }, { "ritualRemaining", 2.5f }
+					} }
+				}
+			}) },
+			{ "temporalAnchors", nlohmann::json::array({ {
+				{ "targets", nlohmann::json::array({
+					{
+						{ "type", priestType }, { "abilityStateValid", true },
+						{ "abilityPhase", 3 }, { "abilityRemaining", 0.0f }
+					},
+					{
+						{ "type", clockType }, { "abilityStateValid", true },
+						{ "abilityPhase", 3 }, { "abilityRemaining", 0.0f }
+					},
+					{
+						{ "type", clockType }, { "abilityStateValid", false },
+						{ "abilityPhase", 3 }, { "abilityRemaining", 0.0f }
+					}
+				}) }
+			} }) }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v11 关卡档应升级到压轴僵尸循环冷却结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v11 关卡档应写入当前版本");
+		Expect(document["zombies"][0]["extraData"]["ritualPhase"] == 5
+			&& document["zombies"][0]["extraData"]["ritualRemaining"] == 5.0f,
+			"旧祭司永久提交态应迁移为完整五秒循环冷却");
+		Expect(document["zombies"][1]["extraData"]["clockPhase"] == 5
+			&& document["zombies"][1]["extraData"]["clockRemaining"] == 10.0f,
+			"旧钟匠永久提交态应迁移为完整十秒循环冷却");
+		Expect(document["zombies"][2]["extraData"]["ritualPhase"] == 0
+			&& document["zombies"][2]["extraData"]["ritualRemaining"] == 2.5f,
+			"迁移不得改写尚未提交的祭司阶段与剩余时间");
+		const auto& targets = document["temporalAnchors"][0]["targets"];
+		Expect(targets[0]["abilityPhase"] == 5
+			&& targets[0]["abilityRemaining"] == 5.0f,
+			"祭司有效能力快照的旧提交态应迁移为完整冷却");
+		Expect(targets[1]["abilityPhase"] == 5
+			&& targets[1]["abilityRemaining"] == 10.0f,
+			"钟匠有效能力快照的旧提交态应迁移为完整冷却");
+		Expect(targets[2]["abilityPhase"] == 3
+			&& targets[2]["abilityRemaining"] == 0.0f,
+			"无效的旧能力快照必须保留仅认 submitted 的兼容语义");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -550,6 +620,7 @@ int main() {
 	TestVersionSevenLevelUpgradeAddsPolarNightState();
 	TestVersionEightLevelUpgradeAddsAdaptiveDamageOriginState();
 	TestVersionTenLevelUpgradePreservesLegacyTemporalSemantics();
+	TestVersionElevenLevelUpgradeStartsRepeatableFinaleCooldowns();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

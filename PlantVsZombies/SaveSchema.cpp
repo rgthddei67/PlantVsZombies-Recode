@@ -1,5 +1,6 @@
 #include "SaveSchema.h"
 #include "Game/Plant/PlantType.h"
+#include "Game/Zombie/ZombieType.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -72,6 +73,71 @@ namespace {
 					static_cast<int>(PlantType::PLANT_TOXICPEASHOOTER);
 			});
 		if (!alreadyOwned) cards.push_back(reward);
+	}
+
+	constexpr int kLegacyCommittedPhase = 3; // v11 祭司与钟匠的一次性 COMMITTED 阶段值
+	constexpr int kRepeatableCooldownPhase = 5; // v12 新增且不改写旧阶段编号的循环冷却值
+	constexpr float kAuroraPriestCooldownSeconds = 5.0f; // 祭司旧提交态迁移后的完整循环冷却
+	constexpr float kPolarClockmakerCooldownSeconds = 10.0f; // 钟匠旧提交态迁移后的完整循环冷却
+
+	/** 将 v11 一次性提交态升级为可重复技能的完整冷却，并同步活动时间锚中的能力快照。 */
+	void MigrateRepeatableFinaleCooldowns(nlohmann::json& document)
+	{
+		auto getCooldown = [](int zombieType) {
+			if (zombieType == static_cast<int>(ZombieType::ZOMBIE_AURORA_PRIEST)) {
+				return kAuroraPriestCooldownSeconds;
+			}
+			if (zombieType == static_cast<int>(ZombieType::ZOMBIE_POLAR_CLOCKMAKER)) {
+				return kPolarClockmakerCooldownSeconds;
+			}
+			return 0.0f;
+		};
+
+		if (document.contains("zombies") && document["zombies"].is_array()) {
+			for (auto& zombie : document["zombies"]) {
+				if (!zombie.is_object() || !zombie.contains("type")
+					|| !zombie["type"].is_number_integer()
+					|| !zombie.contains("extraData") || !zombie["extraData"].is_object()) {
+					continue;
+				}
+				const int type = zombie["type"].get<int>();
+				const float cooldown = getCooldown(type);
+				if (cooldown <= 0.0f) continue;
+				auto& extraData = zombie["extraData"];
+				const char* phaseKey = type == static_cast<int>(
+					ZombieType::ZOMBIE_AURORA_PRIEST) ? "ritualPhase" : "clockPhase";
+				const char* remainingKey = type == static_cast<int>(
+					ZombieType::ZOMBIE_AURORA_PRIEST) ? "ritualRemaining" : "clockRemaining";
+				if (extraData.contains(phaseKey) && extraData[phaseKey].is_number_integer()
+					&& extraData[phaseKey].get<int>() == kLegacyCommittedPhase) {
+					extraData[phaseKey] = kRepeatableCooldownPhase;
+					extraData[remainingKey] = cooldown;
+				}
+			}
+		}
+
+		if (!document.contains("temporalAnchors")
+			|| !document["temporalAnchors"].is_array()) return;
+		for (auto& anchor : document["temporalAnchors"]) {
+			if (!anchor.is_object() || !anchor.contains("targets")
+				|| !anchor["targets"].is_array()) continue;
+			for (auto& target : anchor["targets"]) {
+				const auto abilityValid = target.is_object()
+					? target.find("abilityStateValid") : target.end();
+				if (!target.is_object() || abilityValid == target.end()
+					|| !abilityValid->is_boolean() || !abilityValid->get<bool>()
+					|| !target.contains("type") || !target["type"].is_number_integer()
+					|| !target.contains("abilityPhase")
+					|| !target["abilityPhase"].is_number_integer()
+					|| target["abilityPhase"].get<int>() != kLegacyCommittedPhase) {
+					continue;
+				}
+				const float cooldown = getCooldown(target["type"].get<int>());
+				if (cooldown <= 0.0f) continue;
+				target["abilityPhase"] = kRepeatableCooldownPhase;
+				target["abilityRemaining"] = cooldown;
+			}
+		}
 	}
 
 	/** 在副本上按文档类型执行迁移，全部成功后才提交，避免失败留下半迁移文档。 */
@@ -259,6 +325,14 @@ namespace {
 					}
 				}
 				version = 11;
+				upgraded["schemaVersion"] = version;
+				break;
+			case 11:
+				if (kind == DocumentKind::Level) {
+					// 关卡 v12 把压轴僵尸的永久提交态升级为从提交边沿开始的循环冷却。
+					MigrateRepeatableFinaleCooldowns(upgraded);
+				}
+				version = 12;
 				upgraded["schemaVersion"] = version;
 				break;
 			default:

@@ -1229,9 +1229,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				target.specialActionSubmitted = savedTarget.value(
 					"specialActionSubmitted", false);
 				target.abilityStateValid = savedTarget.value("abilityStateValid", false);
-				target.abilityPhase = std::clamp(savedTarget.value("abilityPhase", -1), -1, 4);
+				target.abilityPhase = std::clamp(savedTarget.value("abilityPhase", -1), -1, 5);
 				target.abilityRemaining = std::clamp(savedTarget.value(
-					"abilityRemaining", 0.0f), 0.0f, 6.0f);
+					"abilityRemaining", 0.0f), 0.0f, 10.0f);
 				anchor.targets.push_back(target);
 			}
 			if (!anchor.targets.empty()) board->mTemporalAnchors.push_back(std::move(anchor));
