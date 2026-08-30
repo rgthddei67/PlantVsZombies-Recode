@@ -26,6 +26,19 @@ constexpr float kPrismOffsetY = 4.0f; // 胸前光谱片相对身体轨道的垂
 constexpr float kPrismScale = 0.58f; // 胸前光谱片 follower 尺寸倍率
 constexpr const char* kDeviceSlot = "aurora_priest_device"; // 身体轨道极光仪器槽
 constexpr const char* kPrismSlot = "aurora_priest_prism"; // 身体轨道光谱状态槽
+
+/** 返回各仪式阶段允许持有的最大剩余时间，供读档和时间锚共同校验。 */
+float MaxRitualRemaining(AuroraPriestZombie::RitualPhase phase)
+{
+	switch (phase) {
+	case AuroraPriestZombie::RitualPhase::PREPARING: return kPreparationSeconds;
+	case AuroraPriestZombie::RitualPhase::WINDUP: return kWindupSeconds;
+	case AuroraPriestZombie::RitualPhase::RETRY_WAIT: return kRetryWaitSeconds;
+	case AuroraPriestZombie::RitualPhase::COMMITTED:
+	case AuroraPriestZombie::RitualPhase::DISABLED: return 0.0f;
+	}
+	return 0.0f;
+}
 }
 
 void AuroraPriestZombie::SetupZombie()
@@ -124,6 +137,45 @@ void AuroraPriestZombie::RestoreCommittedIrreversibleSpecialAction(bool submitte
 	if (!submitted) return;
 	mRitualPhase = RitualPhase::COMMITTED;
 	mRitualRemaining = 0.0f;
+	if (!mIsDying && IsActive()) PlayWalkAnimation(0.12f);
+	SyncFollowerPresentation();
+}
+
+bool AuroraPriestZombie::CaptureTemporalAbilityState(
+	ZombieTemporalAbilityState& state) const
+{
+	state.phase = static_cast<int>(mRitualPhase);
+	state.remaining = mRitualRemaining;
+	return true;
+}
+
+void AuroraPriestZombie::RestoreTemporalAbilityState(
+	const ZombieTemporalAbilityState& state)
+{
+	const RitualPhase restoredPhase = static_cast<RitualPhase>(std::clamp(
+		state.phase, static_cast<int>(RitualPhase::PREPARING),
+		static_cast<int>(RitualPhase::DISABLED)));
+	mRitualPhase = restoredPhase;
+	mRitualRemaining = std::clamp(state.remaining, 0.0f,
+		MaxRitualRemaining(restoredPhase));
+	mRitualVisualPulseTimer = 0.0f;
+
+	// 磁吸、断头或魅惑不会被核心快照撤销；这些资格丢失时不得复活前摇。
+	if (mRitualPhase != RitualPhase::COMMITTED
+		&& mRitualPhase != RitualPhase::DISABLED
+		&& (!HasHead() || IsMindControlled()
+			|| mHelmType != HelmType::HELMTYPE_AURORA_DEVICE || mHelmHealth <= 0)) {
+		DisableUncommittedRitual();
+	}
+	else if (!mIsDying && IsActive()) {
+		if (mRitualPhase == RitualPhase::WINDUP) {
+			CancelEatingForSpecialAction();
+			PlayTrack("anim_idle", 0.72f, 0.12f);
+		}
+		else {
+			PlayWalkAnimation(0.12f);
+		}
+	}
 	SyncFollowerPresentation();
 }
 
@@ -231,7 +283,7 @@ void AuroraPriestZombie::LoadExtraData(const nlohmann::json& j)
 		static_cast<int>(RitualPhase::PREPARING),
 		static_cast<int>(RitualPhase::DISABLED)));
 	mRitualRemaining = std::clamp(j.value("ritualRemaining", 0.0f),
-		0.0f, kPreparationSeconds);
+		0.0f, MaxRitualRemaining(mRitualPhase));
 	mOverloaded = j.value("overloaded", false)
 		|| mHelmType != HelmType::HELMTYPE_AURORA_DEVICE || mHelmHealth <= 0;
 	mAttackDamage = mOverloaded ? kOverloadBiteDamage : kNormalBiteDamage;

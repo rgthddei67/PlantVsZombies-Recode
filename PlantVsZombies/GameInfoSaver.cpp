@@ -429,6 +429,9 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 				{ "restoreHelm", target.restoreHelm },
 				{ "restoreShield", target.restoreShield },
 				{ "specialActionSubmitted", target.specialActionSubmitted },
+				{ "abilityStateValid", target.abilityStateValid },
+				{ "abilityPhase", target.abilityPhase },
+				{ "abilityRemaining", target.abilityRemaining },
 			});
 		}
 		j["temporalAnchors"].push_back({
@@ -1225,6 +1228,10 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				target.restoreShield = savedTarget.value("restoreShield", true);
 				target.specialActionSubmitted = savedTarget.value(
 					"specialActionSubmitted", false);
+				target.abilityStateValid = savedTarget.value("abilityStateValid", false);
+				target.abilityPhase = std::clamp(savedTarget.value("abilityPhase", -1), -1, 4);
+				target.abilityRemaining = std::clamp(savedTarget.value(
+					"abilityRemaining", 0.0f), 0.0f, 6.0f);
 				anchor.targets.push_back(target);
 			}
 			if (!anchor.targets.empty()) board->mTemporalAnchors.push_back(std::move(anchor));

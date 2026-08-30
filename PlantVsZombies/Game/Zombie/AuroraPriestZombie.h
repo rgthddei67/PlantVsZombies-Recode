@@ -33,6 +33,8 @@ public:
 		return mRitualPhase == RitualPhase::COMMITTED;
 	}
 	void RestoreCommittedIrreversibleSpecialAction(bool submitted) override;
+	bool CaptureTemporalAbilityState(ZombieTemporalAbilityState& state) const override;
+	void RestoreTemporalAbilityState(const ZombieTemporalAbilityState& state) override;
 
 	RitualPhase GetRitualPhase() const { return mRitualPhase; }
 	float GetRitualRemaining() const { return mRitualRemaining; }

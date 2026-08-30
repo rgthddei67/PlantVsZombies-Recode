@@ -51,6 +51,12 @@ constexpr ZombieControlMask ZOMBIE_CONTROL_HARD_MASK =
 	| ZombieControlBit(ZombieControlEffect::BUTTER)
 	| ZombieControlBit(ZombieControlEffect::PARALYSIS);
 
+/** 时间锚跨品种保存的窄能力状态；phase 只由原僵尸类型解释。 */
+struct ZombieTemporalAbilityState {
+	int phase = -1;
+	float remaining = 0.0f;
+};
+
 class Zombie : public AnimatedObject {
 private:
 	struct ToxinState;
@@ -213,6 +219,12 @@ public:
 	virtual bool HasCommittedIrreversibleSpecialAction() const { return false; }
 	/** 复活后重建已提交的一次性能力状态，但不重复创建外部对象。 */
 	virtual void RestoreCommittedIrreversibleSpecialAction(bool) {}
+	/** 把可回溯的一次性能力阶段与剩余时间写入窄快照；普通僵尸不参与。 */
+	virtual bool CaptureTemporalAbilityState(ZombieTemporalAbilityState&) const {
+		return false;
+	}
+	/** 用同品种快照覆盖当前本地能力阶段；已经提交的 Board 事务不得在此回滚。 */
+	virtual void RestoreTemporalAbilityState(const ZombieTemporalAbilityState&) {}
 	/** 时间锚恢复核心数值后，同步品种自身派生状态；不得回滚 Animator 或动作相位。 */
 	virtual void OnTemporalCoreStateRestored() {}
 	/**

@@ -168,6 +168,15 @@ void Board::CommitPolarClockAnchor(int ownerZombieID, int sourceRow)
 		target.hasArm = zombie->HasArm();
 		target.specialActionSubmitted = zombie->HasCommittedIrreversibleSpecialAction()
 			|| zombie->mZombieID == ownerZombieID;
+		// 来源钟匠在 Board 提交时仍处于 WINDUP；显式不记录它可防止自我刷新。
+		if (zombie->mZombieID != ownerZombieID) {
+			ZombieTemporalAbilityState abilityState;
+			target.abilityStateValid = zombie->CaptureTemporalAbilityState(abilityState);
+			if (target.abilityStateValid) {
+				target.abilityPhase = abilityState.phase;
+				target.abilityRemaining = std::max(0.0f, abilityState.remaining);
+			}
+		}
 		anchor.targets.push_back(target);
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("PolarClockMark", zombie->GetVisualPosition());
@@ -289,8 +298,16 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 				target.bodyHealth, helmType, helmHealth, shieldType, shieldHealth, target.hasHead,
 				target.hasArm, target.slowTimer, target.frozenTimer,
 				target.butterTimer, target.paralysisTimer, !positionRejected);
-			zombie->RestoreCommittedIrreversibleSpecialAction(
-				target.specialActionSubmitted);
+			if (target.abilityStateValid) {
+				// 只回放目标自己的阶段；锚内已提交的裂隙和时间锚仍留在 Board。
+				zombie->RestoreTemporalAbilityState({
+					target.abilityPhase, target.abilityRemaining });
+			}
+			else {
+				// v10 旧档及来源钟匠继续使用只保留 submitted 的兼容语义。
+				zombie->RestoreCommittedIrreversibleSpecialAction(
+					target.specialActionSubmitted);
+			}
 			if (g_particleSystem) {
 				g_particleSystem->EmitEffect("PolarClockRewind", zombie->GetVisualPosition());
 			}

@@ -25,6 +25,19 @@ constexpr float kPendulumOffsetY = 16.0f; // 悬摆相对身体轨道的垂直�
 constexpr float kPendulumScale = 0.62f; // 悬摆 follower 尺寸倍率
 constexpr const char* kDiskSlot = "polar_clock_disk"; // 身体轨道星盘槽
 constexpr const char* kPendulumSlot = "polar_clock_pendulum"; // 身体轨道悬摆槽
+
+/** 返回各钟匠阶段允许持有的最大剩余时间，供读档和时间锚共同校验。 */
+float MaxClockRemaining(PolarClockmakerZombie::ClockPhase phase)
+{
+	switch (phase) {
+	case PolarClockmakerZombie::ClockPhase::PREPARING: return kPreparationSeconds;
+	case PolarClockmakerZombie::ClockPhase::WINDUP: return kWindupSeconds;
+	case PolarClockmakerZombie::ClockPhase::RETRY_WAIT: return kRetryWaitSeconds;
+	case PolarClockmakerZombie::ClockPhase::COMMITTED:
+	case PolarClockmakerZombie::ClockPhase::DISABLED: return 0.0f;
+	}
+	return 0.0f;
+}
 }
 
 void PolarClockmakerZombie::SetupZombie()
@@ -119,6 +132,45 @@ void PolarClockmakerZombie::RestoreCommittedIrreversibleSpecialAction(bool submi
 	if (!submitted) return;
 	mClockPhase = ClockPhase::COMMITTED;
 	mClockRemaining = 0.0f;
+	if (!mIsDying && IsActive()) PlayWalkAnimation(0.12f);
+	SyncFollowerPresentation();
+}
+
+bool PolarClockmakerZombie::CaptureTemporalAbilityState(
+	ZombieTemporalAbilityState& state) const
+{
+	state.phase = static_cast<int>(mClockPhase);
+	state.remaining = mClockRemaining;
+	return true;
+}
+
+void PolarClockmakerZombie::RestoreTemporalAbilityState(
+	const ZombieTemporalAbilityState& state)
+{
+	const ClockPhase restoredPhase = static_cast<ClockPhase>(std::clamp(
+		state.phase, static_cast<int>(ClockPhase::PREPARING),
+		static_cast<int>(ClockPhase::DISABLED)));
+	mClockPhase = restoredPhase;
+	mClockRemaining = std::clamp(state.remaining, 0.0f,
+		MaxClockRemaining(restoredPhase));
+	mClockVisualPulseTimer = 0.0f;
+
+	// 时间锚不撤销磁吸、断头或魅惑；资格已失效时不可重新进入施法链。
+	if (mClockPhase != ClockPhase::COMMITTED
+		&& mClockPhase != ClockPhase::DISABLED
+		&& (!HasHead() || IsMindControlled()
+			|| mHelmType != HelmType::HELMTYPE_CLOCK_DISK || mHelmHealth <= 0)) {
+		DisableUncommittedClock();
+	}
+	else if (!mIsDying && IsActive()) {
+		if (mClockPhase == ClockPhase::WINDUP) {
+			CancelEatingForSpecialAction();
+			PlayTrack("anim_idle", 0.62f, 0.12f);
+		}
+		else {
+			PlayWalkAnimation(0.12f);
+		}
+	}
 	SyncFollowerPresentation();
 }
 
@@ -214,7 +266,7 @@ void PolarClockmakerZombie::LoadExtraData(const nlohmann::json& j)
 		static_cast<int>(ClockPhase::PREPARING),
 		static_cast<int>(ClockPhase::DISABLED)));
 	mClockRemaining = std::clamp(j.value("clockRemaining", 0.0f),
-		0.0f, kWindupSeconds);
+		0.0f, MaxClockRemaining(mClockPhase));
 	if (!HasHead() || IsMindControlled()
 		|| mHelmType != HelmType::HELMTYPE_CLOCK_DISK || mHelmHealth <= 0) {
 		DisableUncommittedClock();

@@ -240,6 +240,27 @@ namespace {
 				version = 10;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 10:
+				if (kind == DocumentKind::Level
+					&& upgraded.contains("temporalAnchors")
+					&& upgraded["temporalAnchors"].is_array()) {
+					// 关卡 v11 为时间锚加入品种能力快照；旧锚保留只认 submitted 的原语义。
+					for (auto& anchor : upgraded["temporalAnchors"]) {
+						if (!anchor.is_object() || !anchor.contains("targets")
+							|| !anchor["targets"].is_array()) continue;
+						for (auto& target : anchor["targets"]) {
+							if (!target.is_object()) continue;
+							if (!target.contains("abilityStateValid"))
+								target["abilityStateValid"] = false;
+							if (!target.contains("abilityPhase")) target["abilityPhase"] = -1;
+							if (!target.contains("abilityRemaining"))
+								target["abilityRemaining"] = 0.0f;
+						}
+					}
+				}
+				version = 11;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

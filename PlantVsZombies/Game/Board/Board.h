@@ -287,6 +287,9 @@ private:
 		bool restoreHelm = true;
 		bool restoreShield = true;
 		bool specialActionSubmitted = false;
+		bool abilityStateValid = false;
+		int abilityPhase = -1;
+		float abilityRemaining = 0.0f;
 	};
 
 	/** 钟匠提交后与来源生命周期解耦的六秒时间锚。 */

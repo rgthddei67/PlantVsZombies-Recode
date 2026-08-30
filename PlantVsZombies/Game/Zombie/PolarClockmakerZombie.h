@@ -32,6 +32,8 @@ public:
 		return mClockPhase == ClockPhase::COMMITTED;
 	}
 	void RestoreCommittedIrreversibleSpecialAction(bool submitted) override;
+	bool CaptureTemporalAbilityState(ZombieTemporalAbilityState& state) const override;
+	void RestoreTemporalAbilityState(const ZombieTemporalAbilityState& state) override;
 
 	ClockPhase GetClockPhase() const { return mClockPhase; }
 	float GetClockRemaining() const { return mClockRemaining; }

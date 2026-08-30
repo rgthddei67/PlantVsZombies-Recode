@@ -465,6 +465,31 @@ namespace {
 			"迁移不得覆盖预发布档已经提交的预算和弹丸来源");
 	}
 
+	void TestVersionTenLevelUpgradePreservesLegacyTemporalSemantics() {
+		nlohmann::json document = {
+			{ "schemaVersion", 10 },
+			{ "temporalAnchors", nlohmann::json::array({ {
+				{ "ownerZombieID", 17 },
+				{ "targets", nlohmann::json::array({ {
+					{ "zombieID", 23 }, { "specialActionSubmitted", true }
+				} }) }
+			} }) }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v10 关卡档应升级到时间锚能力快照结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v10 关卡档应写入当前版本");
+		const auto& target = document["temporalAnchors"][0]["targets"][0];
+		Expect(target["specialActionSubmitted"] == true,
+			"旧锚已经记录的提交位不得被迁移覆盖");
+		Expect(target["abilityStateValid"] == false
+			&& target["abilityPhase"] == -1
+			&& target["abilityRemaining"] == 0.0f,
+			"旧锚不得凭空获得可返还的能力状态");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -524,6 +549,7 @@ int main() {
 	TestVersionSixLevelUpgradeDefaultsOpeningColdWaveUnconsumed();
 	TestVersionSevenLevelUpgradeAddsPolarNightState();
 	TestVersionEightLevelUpgradeAddsAdaptiveDamageOriginState();
+	TestVersionTenLevelUpgradePreservesLegacyTemporalSemantics();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 
