@@ -454,6 +454,19 @@ void SnowBurrowZombie::ZombieItemUpdate() const
 	}
 }
 
+void SnowBurrowZombie::OnTemporalCoreStateRestored()
+{
+	Zombie::OnTemporalCoreStateRestored();
+	if (!mAnimator) return;
+	if (mHasArm) {
+		mAnimator->SetTrackImage("Zombie_digger_outerarm_upper", nullptr);
+	}
+	if (mHasHead) {
+		mAnimator->SetTrackVisible("Zombie_digger_head_eye", true);
+		mAnimator->SetTrackVisible("Zombie_digger_hardhat", true);
+	}
+}
+
 void SnowBurrowZombie::ApplyPhasePresentation()
 {
 	ApplyAltitude();

@@ -268,6 +268,7 @@ void AuroraPriestZombie::ZombieItemUpdate() const
 
 void AuroraPriestZombie::OnTemporalCoreStateRestored()
 {
+	Zombie::OnTemporalCoreStateRestored();
 	// 时间锚可把被击碎的极光仪器恢复出来，过载数值必须跟随防具快照同步回退。
 	mOverloaded = mHelmType != HelmType::HELMTYPE_AURORA_DEVICE || mHelmHealth <= 0;
 	mAttackDamage = mOverloaded ? kOverloadBiteDamage : kNormalBiteDamage;

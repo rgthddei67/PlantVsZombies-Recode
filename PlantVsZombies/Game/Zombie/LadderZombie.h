@@ -33,6 +33,7 @@ public:
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
+	void OnTemporalCoreStateRestored() override;
 	bool HasMagneticItem() const override;
 	bool ExtractMagneticItem(MagneticItem& item) override;
 	void SaveExtraData(nlohmann::json& j) const override;

@@ -199,3 +199,18 @@ void DoorZombie::HeadDrop()
 		GetPosition());
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
 }
+
+void DoorZombie::OnTemporalCoreStateRestored()
+{
+	Zombie::OnTemporalCoreStateRestored();
+	if (!mAnimator || !mHasArm || !mHasHead) return;
+	mAnimator->SetTrackImage("Zombie_outerarm_upper", nullptr);
+	const bool shieldGone = mShieldType == ShieldType::SHIELDTYPE_NONE;
+	ShowArm(shieldGone || mIsEating);
+	if (!shieldGone) {
+		// HeadDrop 会连同持门手臂一起隐藏；原地回溯必须显式撤销这些负向覆盖。
+		mAnimator->SetTrackVisible("Zombie_innerarm_screendoor", true);
+		mAnimator->SetTrackVisible("Zombie_outerarm_screendoor", true);
+		mAnimator->SetTrackVisible("Zombie_innerarm_screendoor_hand", true);
+	}
+}

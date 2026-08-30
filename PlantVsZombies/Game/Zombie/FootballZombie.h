@@ -21,6 +21,7 @@ public:
 	bool ExtractMagneticItem(MagneticItem& item) override;
 	void HeadDrop() override;
 	void ArmDrop() override;
+	void OnTemporalCoreStateRestored() override;
 
 	void SaveExtraData(nlohmann::json& j) const override {
 		j["helmStage"] = static_cast<int>(mHelmStage);

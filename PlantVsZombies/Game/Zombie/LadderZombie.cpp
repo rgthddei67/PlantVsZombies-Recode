@@ -316,6 +316,14 @@ void LadderZombie::ZombieItemUpdate() const
 	}
 }
 
+void LadderZombie::OnTemporalCoreStateRestored()
+{
+	Zombie::OnTemporalCoreStateRestored();
+	if (mAnimator && mHasArm) {
+		mAnimator->SetTrackImage("Zombie_ladder_outerarm_upper", nullptr);
+	}
+}
+
 void LadderZombie::SaveExtraData(nlohmann::json& j) const
 {
 	j["phase"] = static_cast<int>(mPhase);

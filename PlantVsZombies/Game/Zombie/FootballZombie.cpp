@@ -112,3 +112,14 @@ void FootballZombie::ArmDrop()
 		GetPosition());
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
 }
+
+void FootballZombie::OnTemporalCoreStateRestored()
+{
+	Zombie::OnTemporalCoreStateRestored();
+	if (!mAnimator) return;
+	if (mHasArm) {
+		mAnimator->SetTrackVisible("zombie_football_leftarm_hand", true);
+		mAnimator->SetTrackVisible("zombie_football_leftarm_lower", true);
+		mAnimator->SetTrackImage("zombie_football_leftarm_upper", nullptr);
+	}
+}

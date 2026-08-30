@@ -449,6 +449,18 @@ void PogoZombie::ZombieItemUpdate() const
 	}
 }
 
+void PogoZombie::OnTemporalCoreStateRestored()
+{
+	Zombie::OnTemporalCoreStateRestored();
+	if (!mAnimator) return;
+	if (mHasArm) {
+		mAnimator->SetTrackImage("Zombie_pogo_stickhands", nullptr);
+		mAnimator->SetTrackImage("Zombie_pogo_stick", nullptr);
+		mAnimator->SetTrackImage("Zombie_pogo_stick2", nullptr);
+	}
+	if (mHasHead) mAnimator->SetTrackVisible("anim_head_glasses", true);
+}
+
 Vector PogoZombie::GetVisualPosition() const
 {
 	return Zombie::GetVisualPosition() + Vector(0.0f, -mAltitude);

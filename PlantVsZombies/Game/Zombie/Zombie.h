@@ -225,8 +225,8 @@ public:
 	}
 	/** 用同品种快照覆盖当前本地能力阶段；已经提交的 Board 事务不得在此回滚。 */
 	virtual void RestoreTemporalAbilityState(const ZombieTemporalAbilityState&) {}
-	/** 时间锚恢复核心数值后，同步品种自身派生状态；不得回滚 Animator 或动作相位。 */
-	virtual void OnTemporalCoreStateRestored() {}
+	/** 时间锚恢复核心数值后，静默重建可逆分件与品种派生状态；不得回滚动作相位或重放掉落效果。 */
+	virtual void OnTemporalCoreStateRestored();
 	/**
 	 * 玩家卡片成功部署植物后的同行通知；普通僵尸不响应。
 	 * baseMaxHealth 是部署类型的基础最大生命快照，不包含运行期强化。

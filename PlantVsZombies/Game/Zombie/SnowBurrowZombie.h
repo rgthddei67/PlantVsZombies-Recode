@@ -36,6 +36,7 @@ public:
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
+	void OnTemporalCoreStateRestored() override;
 	bool IsMovingRight() const override { return mIsMindControlled; }
 	bool CanTriggerGameOver() const override;
 	bool CanBeTargetedByProjectile(bool targetsFlying) const override;

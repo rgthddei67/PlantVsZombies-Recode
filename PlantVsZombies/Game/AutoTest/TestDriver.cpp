@@ -6225,6 +6225,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "magneticItemAvailable", z->CanBeTargetedByMagnetShroom() },
 			{ "colliderEnabled", z->GetColliderComponent()
 				&& z->GetColliderComponent()->mEnabled },
+			// 时间回溯不仅要恢复 hasHead，还必须撤销 HeadDrop 留在 Animator 上的隐藏覆盖。
+			{ "headVisible", anim && anim->GetTrackVisible("anim_head1") },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
 			// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
 			{ "armVisible", anim && anim->GetTrackVisible("Zombie_outerarm_hand") },

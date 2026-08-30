@@ -39,6 +39,7 @@ public:
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
+	void OnTemporalCoreStateRestored() override;
 	void PlaySpawnSound() override;
 	Vector GetVisualPosition() const override;
 	bool CanBeCharmed() const override { return !mHasPogo; }

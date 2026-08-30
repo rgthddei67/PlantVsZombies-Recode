@@ -38,6 +38,7 @@ public:
 	bool ExtractMagneticItem(MagneticItem& item) override;
 
 	void HeadDrop() override;
+	void OnTemporalCoreStateRestored() override;
 
 	void ZombieItemUpdate() const override {
 		const bool shieldGone = (mShieldStage == ArmorBrokenState::NONE

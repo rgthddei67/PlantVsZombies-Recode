@@ -1910,6 +1910,26 @@ void Zombie::RestoreTemporalCoreState(int row, float x, int bodyHealth,
 	UpdateStatusOverlay();
 }
 
+void Zombie::OnTemporalCoreStateRestored()
+{
+	if (!mAnimator) return;
+
+	// HeadDrop/ArmDrop 对 Animator 做的是一次性负向覆盖；回溯只恢复布尔值不会自动撤销它们。
+	// 这里静默恢复普通骨架的默认分件，不生成第二份掉落物、粒子或声音。
+	if (mHasArm) {
+		mAnimator->SetTrackVisible("Zombie_outerarm_hand", true);
+		mAnimator->SetTrackVisible("Zombie_outerarm_lower", true);
+		mAnimator->SetTrackImage("Zombie_outerarm_upper", nullptr);
+	}
+	if (mHasHead) {
+		mAnimator->SetTrackVisible("anim_head1", true);
+		mAnimator->SetTrackVisible("anim_head2", true);
+		mAnimator->SetTrackVisible("anim_hair", true);
+		mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
+	}
+	SetGarlicYuckFaceVisible(IsGarlicYuckFaceVisible());
+}
+
 int Zombie::TakeShieldDamage(int damage)
 {
 	if (mShieldHealth <= 0)
