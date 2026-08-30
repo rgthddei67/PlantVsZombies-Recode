@@ -1229,7 +1229,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				target.specialActionSubmitted = savedTarget.value(
 					"specialActionSubmitted", false);
 				target.abilityStateValid = savedTarget.value("abilityStateValid", false);
-				target.abilityPhase = std::clamp(savedTarget.value("abilityPhase", -1), -1, 5);
+				// phase 是由具体僵尸解释的不透明编码；适应头盔会在其中携带完整植物谱系。
+				target.abilityPhase = std::clamp(savedTarget.value("abilityPhase", -1), -1,
+					static_cast<int>(PlantType::NUM_PLANT_TYPES) + 1);
 				target.abilityRemaining = std::clamp(savedTarget.value(
 					"abilityRemaining", 0.0f), 0.0f, 10.0f);
 				anchor.targets.push_back(target);

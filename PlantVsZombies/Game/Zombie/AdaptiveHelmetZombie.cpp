@@ -19,6 +19,36 @@ namespace {
 		"adaptive_helmet";                            // anim_head1 上的静态头盔槽
 	constexpr const char* kBadgeFollowerSlot =
 		"adaptive_badge";                             // Zombie_body 上的适应状态槽
+	constexpr int kTemporalOriginNone = 0;            // 时间锚编码：尚未适应
+	constexpr int kTemporalOriginAsh = 1;             // 时间锚编码：灰烬类别
+	constexpr int kTemporalOriginPlantBase = 2;       // 时间锚编码：植物谱系起始值
+
+	/** 把完整适应来源编码进目标品种独占解释的 phase 字段。 */
+	int EncodeTemporalOrigin(PlantDamageOrigin origin)
+	{
+		if (origin.kind == PlantDamageOriginKind::ASH) return kTemporalOriginAsh;
+		if (origin.kind == PlantDamageOriginKind::PLANT_LINEAGE
+			&& origin.lineage >= PlantType::PLANT_PEASHOOTER
+			&& origin.lineage < PlantType::NUM_PLANT_TYPES) {
+			return kTemporalOriginPlantBase + static_cast<int>(origin.lineage);
+		}
+		return kTemporalOriginNone;
+	}
+
+	/** 解码时间锚中的适应来源；损坏或越界编码安全降级为“未适应”。 */
+	PlantDamageOrigin DecodeTemporalOrigin(int encoded)
+	{
+		if (encoded == kTemporalOriginAsh) return PlantDamageOrigin::Ash();
+		const int lineage = encoded - kTemporalOriginPlantBase;
+		if (lineage >= static_cast<int>(PlantType::PLANT_PEASHOOTER)
+			&& lineage < static_cast<int>(PlantType::NUM_PLANT_TYPES)) {
+			return {
+				PlantDamageOriginKind::PLANT_LINEAGE,
+				static_cast<PlantType>(lineage),
+			};
+		}
+		return {};
+	}
 }
 
 void AdaptiveHelmetZombie::SetupZombie()
@@ -157,25 +187,48 @@ void AdaptiveHelmetZombie::LoadExtraData(const nlohmann::json& j)
 		j.value("adaptedOriginLineage", static_cast<int>(PlantType::NUM_PLANT_TYPES)),
 		static_cast<int>(PlantType::PLANT_PEASHOOTER),
 		static_cast<int>(PlantType::NUM_PLANT_TYPES)));
-	mAdaptedOrigin = loaded.IsValid() ? loaded : PlantDamageOrigin{};
+	ApplyAdaptedOriginState(loaded);
+	ConfigureFollowers();
+	SyncFollowerPresentation();
+}
 
-	// 头盔击穿与适应必须原子一致；损坏旧档不能留下“无头盔且无免疫”的非法组合。
+bool AdaptiveHelmetZombie::CaptureTemporalAbilityState(
+	ZombieTemporalAbilityState& state) const
+{
+	state.phase = EncodeTemporalOrigin(mAdaptedOrigin);
+	state.remaining = 0.0f;
+	// “尚未适应”也是必须提交的状态，否则锚定后新获得的免疫无法被清除。
+	return true;
+}
+
+void AdaptiveHelmetZombie::RestoreTemporalAbilityState(
+	const ZombieTemporalAbilityState& state)
+{
+	ApplyAdaptedOriginState(DecodeTemporalOrigin(state.phase));
+	ConfigureFollowers();
+	SyncFollowerPresentation();
+}
+
+void AdaptiveHelmetZombie::ApplyAdaptedOriginState(PlantDamageOrigin origin)
+{
+	mAdaptedOrigin = origin.IsValid() ? origin : PlantDamageOrigin{};
+
+	// 核心快照先恢复当时的头盔血量；这里只修复适应来源与防具的原子不变量。
 	if (mAdaptedOrigin.IsValid()) {
 		mHelmHealth = 0;
 		mHelmType = HelmType::HELMTYPE_NONE;
+		return;
+	}
+
+	mHelmMaxHealth = kAdaptiveHelmetHealth;
+	if (mHelmType == HelmType::HELMTYPE_ADAPTIVE && mHelmHealth > 0) {
+		mHelmHealth = std::clamp(mHelmHealth, 1, kAdaptiveHelmetHealth);
 	}
 	else {
-		mHelmMaxHealth = kAdaptiveHelmetHealth;
-		if (mHelmType == HelmType::HELMTYPE_ADAPTIVE && mHelmHealth > 0) {
-			mHelmHealth = std::clamp(mHelmHealth, 1, kAdaptiveHelmetHealth);
-		}
-		else {
-			mHelmHealth = kAdaptiveHelmetHealth;
-			mHelmType = HelmType::HELMTYPE_ADAPTIVE;
-		}
+		// 损坏旧档或非法时间锚不能留下“无头盔且无免疫”的弱化组合。
+		mHelmHealth = kAdaptiveHelmetHealth;
+		mHelmType = HelmType::HELMTYPE_ADAPTIVE;
 	}
-	ConfigureFollowers();
-	SyncFollowerPresentation();
 }
 
 bool AdaptiveHelmetZombie::IsAdaptiveHelmetVisible() const

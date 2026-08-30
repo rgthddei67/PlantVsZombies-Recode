@@ -20,6 +20,10 @@ public:
 	void ZombieItemUpdate() const override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
+	/** 记录“未适应/植物谱系/灰烬”完整来源；未适应也必须作为有效快照参与回溯。 */
+	bool CaptureTemporalAbilityState(ZombieTemporalAbilityState& state) const override;
+	/** 原子恢复适应来源、头盔数值与 follower 表现。 */
+	void RestoreTemporalAbilityState(const ZombieTemporalAbilityState& state) override;
 
 	bool HasAdapted() const { return mAdaptedOrigin.IsValid(); }
 	PlantDamageOrigin GetAdaptedOrigin() const { return mAdaptedOrigin; }
@@ -34,6 +38,8 @@ private:
 	void ConfigureFollowers();
 	/** 按头盔、适应和死亡状态同步两个 follower 的可见性。 */
 	void SyncFollowerPresentation() const;
+	/** 应用适应来源并修复“头盔存在”和“已适应”互斥的不变量。 */
+	void ApplyAdaptedOriginState(PlantDamageOrigin origin);
 
 	PlantDamageOrigin mAdaptedOrigin{};
 	bool mFollowersConfigured = false;
