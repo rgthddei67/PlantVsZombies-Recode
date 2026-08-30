@@ -8,7 +8,7 @@
 namespace pvz {
 
 	/**
-	 * 只加载 OpenGL 3.3 Core 实现实际使用的入口。这里不探测扩展，也不建立隐藏高级路径。
+	 * 加载 OpenGL 3.3 Core 基线入口；SSBO 可选快路只复用 3.3 已有的 buffer 入口。
 	 */
 	struct OpenGLApi {
 		using GetStringProc = const GLubyte* (APIENTRY*)(GLenum);
@@ -43,6 +43,7 @@ namespace pvz {
 		using BufferSubDataProc = void (APIENTRY*)(GLenum, GLintptr, GLsizeiptr, const void*);
 		using EnableVertexAttribArrayProc = void (APIENTRY*)(GLuint);
 		using VertexAttribPointerProc = void (APIENTRY*)(GLuint, GLint, GLenum, GLboolean, GLsizei, const void*);
+		using VertexAttribIPointerProc = void (APIENTRY*)(GLuint, GLint, GLenum, GLsizei, const void*);
 		using CreateShaderProc = GLuint (APIENTRY*)(GLenum);
 		using ShaderSourceProc = void (APIENTRY*)(GLuint, GLsizei, const GLchar* const*, const GLint*);
 		using CompileShaderProc = void (APIENTRY*)(GLuint);
@@ -61,6 +62,8 @@ namespace pvz {
 		using Uniform1fProc = void (APIENTRY*)(GLint, GLfloat);
 		using UniformMatrix4fvProc = void (APIENTRY*)(GLint, GLsizei, GLboolean, const GLfloat*);
 		using DrawElementsProc = void (APIENTRY*)(GLenum, GLsizei, GLenum, const void*);
+		using DrawArraysProc = void (APIENTRY*)(GLenum, GLint, GLsizei);
+		using BindBufferBaseProc = void (APIENTRY*)(GLenum, GLuint, GLuint);
 		using GenFramebuffersProc = void (APIENTRY*)(GLsizei, GLuint*);
 		using DeleteFramebuffersProc = void (APIENTRY*)(GLsizei, const GLuint*);
 		using BindFramebufferProc = void (APIENTRY*)(GLenum, GLuint);
@@ -98,6 +101,7 @@ namespace pvz {
 		BufferSubDataProc BufferSubData = nullptr;
 		EnableVertexAttribArrayProc EnableVertexAttribArray = nullptr;
 		VertexAttribPointerProc VertexAttribPointer = nullptr;
+		VertexAttribIPointerProc VertexAttribIPointer = nullptr;
 		CreateShaderProc CreateShader = nullptr;
 		ShaderSourceProc ShaderSource = nullptr;
 		CompileShaderProc CompileShader = nullptr;
@@ -116,6 +120,8 @@ namespace pvz {
 		Uniform1fProc Uniform1f = nullptr;
 		UniformMatrix4fvProc UniformMatrix4fv = nullptr;
 		DrawElementsProc DrawElements = nullptr;
+		DrawArraysProc DrawArrays = nullptr;
+		BindBufferBaseProc BindBufferBase = nullptr;
 		GenFramebuffersProc GenFramebuffers = nullptr;
 		DeleteFramebuffersProc DeleteFramebuffers = nullptr;
 		BindFramebufferProc BindFramebuffer = nullptr;

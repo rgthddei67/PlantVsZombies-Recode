@@ -45,6 +45,7 @@ namespace pvz {
 		PVZ_GL_LOAD(BufferSubData, glBufferSubData);
 		PVZ_GL_LOAD(EnableVertexAttribArray, glEnableVertexAttribArray);
 		PVZ_GL_LOAD(VertexAttribPointer, glVertexAttribPointer);
+		PVZ_GL_LOAD(VertexAttribIPointer, glVertexAttribIPointer);
 		PVZ_GL_LOAD(CreateShader, glCreateShader);
 		PVZ_GL_LOAD(ShaderSource, glShaderSource);
 		PVZ_GL_LOAD(CompileShader, glCompileShader);
@@ -63,6 +64,8 @@ namespace pvz {
 		PVZ_GL_LOAD(Uniform1f, glUniform1f);
 		PVZ_GL_LOAD(UniformMatrix4fv, glUniformMatrix4fv);
 		PVZ_GL_LOAD(DrawElements, glDrawElements);
+		PVZ_GL_LOAD(DrawArrays, glDrawArrays);
+		PVZ_GL_LOAD(BindBufferBase, glBindBufferBase);
 		PVZ_GL_LOAD(GenFramebuffers, glGenFramebuffers);
 		PVZ_GL_LOAD(DeleteFramebuffers, glDeleteFramebuffers);
 		PVZ_GL_LOAD(BindFramebuffer, glBindFramebuffer);

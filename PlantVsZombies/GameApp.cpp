@@ -189,29 +189,45 @@ bool GameAPP::TryCreateVulkanRenderer(std::string& error)
 
 bool GameAPP::TryCreateOpenGLRenderer(std::string& error)
 {
-	SDL_GL_ResetAttributes();
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
-	mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
-		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		SCENE_WIDTH, SCENE_HEIGHT,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-	if (!mWindow) {
-		error = std::string("OpenGL window: ") + SDL_GetError();
-		return false;
+	/** 以独立窗口尝试指定 Core Context，避免失败 Context 的 pixel format 污染后备重试。 */
+	auto tryContext = [&](int major, int minor, std::string& attemptError) {
+		SDL_GL_ResetAttributes();
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
+		mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			SCENE_WIDTH, SCENE_HEIGHT,
+			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+		if (!mWindow) {
+			attemptError = "OpenGL " + std::to_string(major) + "." + std::to_string(minor)
+				+ " window: " + SDL_GetError();
+			return false;
+		}
+		m_openGLRenderer = std::make_unique<pvz::OpenGLRenderer>();
+		if (!m_openGLRenderer->Initialize(mWindow, mVsync, attemptError)) return false;
+		m_openGLTextureBackend = std::make_unique<pvz::OpenGLTextureBackend>();
+		if (!m_openGLTextureBackend->Initialize(m_openGLRenderer->Api())) {
+			attemptError = "OpenGLTextureBackend: GL_MAX_TEXTURE_SIZE 或纹理入口无效";
+			return false;
+		}
+		return true;
+	};
+
+	std::string fastError;
+	if (!mForceOpenGL33 && tryContext(4, 3, fastError)) return true;
+	if (!mForceOpenGL33) {
+		LOG_WARN("OpenGL") << "OpenGL 4.3/SSBO Context 不可用，回落 3.3 CPU Batch: " << fastError;
+		DestroyRenderWindow();
 	}
-	m_openGLRenderer = std::make_unique<pvz::OpenGLRenderer>();
-	if (!m_openGLRenderer->Initialize(mWindow, mVsync, error)) return false;
-	m_openGLTextureBackend = std::make_unique<pvz::OpenGLTextureBackend>();
-	if (!m_openGLTextureBackend->Initialize(m_openGLRenderer->Api())) {
-		error = "OpenGLTextureBackend: GL_MAX_TEXTURE_SIZE 或纹理入口无效";
-		return false;
-	}
-	return true;
+	std::string compatibilityError;
+	if (tryContext(3, 3, compatibilityError)) return true;
+	error = mForceOpenGL33 ? compatibilityError
+		: "OpenGL 4.3: " + fastError + "; OpenGL 3.3: " + compatibilityError;
+	return false;
 }
 
 bool GameAPP::CreateWindowAndRenderer()
@@ -234,7 +250,7 @@ bool GameAPP::CreateWindowAndRenderer()
 					m_vulkanStartupError.c_str(), nullptr);
 				return false;
 			}
-			LOG_WARN("Startup") << "Renderer auto: 完整清理 Vulkan 后尝试 OpenGL 3.3 Core";
+			LOG_WARN("Startup") << "Renderer auto: 完整清理 Vulkan 后尝试 OpenGL Core（SSBO 可选）";
 		}
 	}
 

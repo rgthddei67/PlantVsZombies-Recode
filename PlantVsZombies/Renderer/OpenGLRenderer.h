@@ -35,6 +35,25 @@ namespace pvz {
 	};
 	static_assert(sizeof(OpenGLVertex) == 48, "OpenGLVertex must be 48 bytes");
 
+	/** 与 Graphics::BatchVertex 字节对齐的 SSBO 快路顶点；未使用字段仍保留以共享 CPU 提交数组。 */
+	struct OpenGLSsboBatchVertex {
+		float x = 0.0f;
+		float y = 0.0f;
+		float u = 0.0f;
+		float v = 0.0f;
+		std::uint32_t texture = 0;
+		std::uint32_t matrixIndex = 0;
+		float r = 1.0f;
+		float g = 1.0f;
+		float b = 1.0f;
+		float a = 1.0f;
+		float blendMode = 0.0f;
+		std::uint32_t clipMinXY = 0;
+		std::uint32_t clipMaxXY = 0xFFFFFFFFu;
+	};
+	static_assert(sizeof(OpenGLSsboBatchVertex) == 52,
+		"OpenGLSsboBatchVertex must be 52 bytes");
+
 	struct OpenGLFrameStats {
 		std::uint32_t quadCount = 0;
 		std::uint32_t batchCount = 0;
@@ -43,10 +62,11 @@ namespace pvz {
 		std::uint32_t stateFlushCount = 0;
 		std::size_t peakVboBytes = 0;
 		std::size_t peakIboBytes = 0;
+		std::size_t peakSsboBytes = 0;
 		double frameMilliseconds = 0.0;
 	};
 
-	/** OpenGL 3.3 Core 帧、shader、动态 VBO/IBO、截图和交换控制。 */
+	/** OpenGL Core 帧、可选 4.3 SSBO Batch、3.3 CPU Batch、截图和交换控制。 */
 	class OpenGLRenderer final : public CaptureBackend {
 	public:
 		OpenGLRenderer() = default;
@@ -73,6 +93,14 @@ namespace pvz {
 			const glm::mat4& projectionView,
 			bool textureBoundary, bool stateBoundary);
 
+		/** 一次上传完整顶点/矩阵数组；后续按原顺序仅分段 draw，避免重复上传 SSBO。 */
+		bool UploadSsboBatch(const OpenGLSsboBatchVertex* vertices, std::size_t vertexCount,
+			const glm::mat4* matrices, std::size_t matrixCount);
+		/** 绘制已上传 SSBO batch 的连续三角形段。 */
+		bool SubmitSsboBatchSegment(std::uint32_t texture, bool additive, bool washedOut,
+			bool lessWashedOut, std::size_t firstVertex, std::size_t vertexCount,
+			const glm::mat4& projectionView, bool textureBoundary, bool stateBoundary);
+
 		/** Pool 专用 GLSL 330 路径；顶点中的 UV 同时是规则网格坐标。 */
 		bool SubmitPoolLayer(std::uint32_t texture, int layer, float poolCounter,
 			const OpenGLVertex* vertices, std::size_t vertexCount,
@@ -88,6 +116,10 @@ namespace pvz {
 		int DrawableHeight() const { return mDrawableHeight; }
 		bool IsFrameOpen() const { return mFrameOpen; }
 		bool IsVsyncEnabled() const { return mVsync; }
+		bool SupportsSsboBatch() const { return mSsboBatchEnabled; }
+		const char* BatchPathName() const { return mSsboBatchEnabled ? "ssbo" : "cpu"; }
+		int ContextMajorVersion() const { return mContextMajor; }
+		int ContextMinorVersion() const { return mContextMinor; }
 		const std::string& Vendor() const { return mVendor; }
 		const std::string& RendererName() const { return mRendererName; }
 		const std::string& Version() const { return mVersion; }
@@ -109,7 +141,10 @@ namespace pvz {
 		unsigned int CompileShader(const char* programName, unsigned int type,
 			const std::string& source, std::string& error);
 		bool CreateBuffers(std::string& error);
+		bool TryCreateSsboBatch(std::string& error);
+		void DestroySsboBatch();
 		bool EnsureBufferCapacity(std::size_t vertexBytes, std::size_t indexBytes);
+		bool EnsureSsboCapacity(std::size_t bytes);
 		bool UploadAndDraw(Program& program, std::uint32_t texture, bool additive,
 			const OpenGLVertex* vertices, std::size_t vertexCount,
 			const glm::mat4& projectionView);
@@ -124,16 +159,25 @@ namespace pvz {
 		Program mBatchColorizeProgram;
 		Program mBatchLessColorizeProgram;
 		Program mPoolProgram;
+		Program mSsboBatchProgram;
+		Program mSsboBatchColorizeProgram;
+		Program mSsboBatchLessColorizeProgram;
 		unsigned int mVao = 0;
+		unsigned int mSsboVao = 0;
 		unsigned int mVbo = 0;
 		unsigned int mIbo = 0;
+		unsigned int mMatrixSsbo = 0;
 		std::size_t mVboCapacity = 0;
 		std::size_t mIboCapacity = 0;
+		std::size_t mSsboCapacity = 0;
 		std::vector<std::uint32_t> mSequentialIndices;
 		bool mFrameOpen = false;
 		bool mVsync = false;
 		int mDrawableWidth = 0;
 		int mDrawableHeight = 0;
+		int mContextMajor = 0;
+		int mContextMinor = 0;
+		bool mSsboBatchEnabled = false;
 		std::string mVendor;
 		std::string mRendererName;
 		std::string mVersion;

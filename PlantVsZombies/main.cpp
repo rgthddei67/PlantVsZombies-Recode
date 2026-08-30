@@ -90,6 +90,11 @@ int main(int argc, char** argv)
 			g_ProfileEnabled = true;
 			LOG_WARN("Main") << "性能分析输出已启用 (-profile). 可能导致游戏不稳定等问题!";
 		}
+		else if (lowerArg == "-opengl33")
+		{
+			GameAPP::mForceOpenGL33 = true;
+			LOG_WARN("Main") << "OpenGL 3.3 CPU Batch 已强制启用（SSBO A/B baseline）.";
+		}
 		else if (arg == "-FrameProfile" || arg == "-frameprofile")
 		{
 			g_FrameProfileEnabled = true;

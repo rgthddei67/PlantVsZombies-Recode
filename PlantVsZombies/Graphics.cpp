@@ -161,6 +161,13 @@ namespace {
 		std::array<const GlyphInfo*, 64> glyphs{};
 		int glyphCount = 0;
 	};
+	static_assert(sizeof(BatchVertex) == sizeof(pvz::OpenGLSsboBatchVertex),
+		"OpenGL SSBO batch must share BatchVertex bytes");
+	static_assert(offsetof(BatchVertex, matrixIndex)
+		== offsetof(pvz::OpenGLSsboBatchVertex, matrixIndex));
+	static_assert(offsetof(BatchVertex, r) == offsetof(pvz::OpenGLSsboBatchVertex, r));
+	static_assert(offsetof(BatchVertex, clipMinXY)
+		== offsetof(pvz::OpenGLSsboBatchVertex, clipMinXY));
 
 	// InstanceRecord 走 Vulkan 的 per-instance 顶点取数器；同一份记录由四个 quad 顶点
 	// 复用，避免 vertex shader 通过 gl_InstanceIndex 对 host-visible SSBO 重复动态读取。
@@ -940,6 +947,47 @@ void Graphics::FlushBatch() {
 			return;
 		}
 
+		// 4.3 快路一次上传原 BatchVertex 与矩阵 SSBO，之后只按纹理/混合边界 draw。
+		// 矩阵索引若异常则保守回落原 CPU 单位阵语义，避免 shader 越界读。
+		const bool matricesValid = matCount > 0 && std::all_of(
+			m_batchVertices.begin(), m_batchVertices.end(),
+			[matCount](const BatchVertex& vertex) { return vertex.matrixIndex < matCount; });
+		if (m_gl->SupportsSsboBatch() && matricesValid
+			&& m_gl->UploadSsboBatch(
+				reinterpret_cast<const pvz::OpenGLSsboBatchVertex*>(m_batchVertices.data()),
+				vertCount, m_batchMatrices.data(), matCount)) {
+			const glm::mat4 projectionView = m_projection * m_viewMatrix;
+			std::size_t segmentStart = 0;
+			std::uint32_t segmentTexture = m_batchVertices[0].texIndex;
+			float segmentBlend = m_batchVertices[0].blendMode;
+			bool firstSegment = true;
+			auto submit = [&](std::size_t end) {
+				if (end <= segmentStart) return;
+				const bool textureBoundary = !firstSegment
+					&& segmentTexture != m_batchVertices[segmentStart - 1].texIndex;
+				const bool stateBoundary = !firstSegment
+					&& segmentBlend != m_batchVertices[segmentStart - 1].blendMode;
+				const BlendMode mode = DecodeBatchBlendMode(segmentBlend);
+				m_gl->SubmitSsboBatchSegment(segmentTexture,
+					mode == BlendMode::Add, mode == BlendMode::WashedOut,
+					mode == BlendMode::LessWashedOut, segmentStart, end - segmentStart,
+					projectionView, textureBoundary, stateBoundary);
+				firstSegment = false;
+			};
+			for (std::size_t i = 3; i + 2 < vertCount; i += 3) {
+				const BatchVertex& next = m_batchVertices[i];
+				if (next.texIndex != segmentTexture || next.blendMode != segmentBlend) {
+					submit(i);
+					segmentStart = i;
+					segmentTexture = next.texIndex;
+					segmentBlend = next.blendMode;
+				}
+			}
+			submit(vertCount - (vertCount % 3));
+			clearCpu();
+			return;
+		}
+
 		std::vector<pvz::OpenGLVertex> expanded;
 		expanded.reserve(vertCount);
 		for (const BatchVertex& source : m_batchVertices) {
@@ -1512,7 +1560,8 @@ bool Graphics::InitializeOpenGL(pvz::OpenGLRenderer* renderer,
 	m_batchBufferCapacity = 65536;
 	m_batchVertices.reserve(m_batchBufferCapacity);
 	m_batchMatrices.reserve(m_batchBufferCapacity / 6);
-	LOG_WARN("Graphics") << "OpenGL 兼容路径启用: CPU vertex batch, GPU instancing=off, parallel record=off";
+	LOG_WARN("Graphics") << "OpenGL 兼容路径启用: batch=" << renderer->BatchPathName()
+		<< ", GPU instancing=off, parallel record=off";
 	return true;
 }
 

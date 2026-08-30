@@ -13,6 +13,7 @@
 namespace pvz {
 	namespace {
 		constexpr std::size_t kInitialBufferBytes = 256 * 1024; // 兼容路径初始动态缓冲，按峰值自动增长
+		constexpr unsigned int kMatrixSsboBinding = 0; // batch 矩阵 SSBO 固定 binding，与 GLSL layout 一致
 
 		std::string GlString(OpenGLApi& api, unsigned int name) {
 			const auto* value = api.GetString(name);
@@ -52,16 +53,14 @@ namespace pvz {
 			return false;
 		}
 
-		int major = 0;
-		int minor = 0;
-		mApi.GetIntegerv(GL_MAJOR_VERSION, &major);
-		mApi.GetIntegerv(GL_MINOR_VERSION, &minor);
+		mApi.GetIntegerv(GL_MAJOR_VERSION, &mContextMajor);
+		mApi.GetIntegerv(GL_MINOR_VERSION, &mContextMinor);
 		mVendor = GlString(mApi, GL_VENDOR);
 		mRendererName = GlString(mApi, GL_RENDERER);
 		mVersion = GlString(mApi, GL_VERSION);
 		mShadingLanguageVersion = GlString(mApi, GL_SHADING_LANGUAGE_VERSION);
-		if (major < 3 || (major == 3 && minor < 3)) {
-			error = "检测到 OpenGL " + std::to_string(major) + "." + std::to_string(minor)
+		if (mContextMajor < 3 || (mContextMajor == 3 && mContextMinor < 3)) {
+			error = "检测到 OpenGL " + std::to_string(mContextMajor) + "." + std::to_string(mContextMinor)
 				+ "；最低要求是 OpenGL 3.3 Core";
 			Shutdown();
 			return false;
@@ -78,6 +77,16 @@ namespace pvz {
 			Shutdown();
 			return false;
 		}
+		// SSBO 是 OpenGL 4.3 Core 能力；此 Context 的快路初始化失败时，
+		// 让 GameApp 销毁整个窗口并重建真正的 3.3 Context，避免能力状态含混。
+		if (mContextMajor > 4 || (mContextMajor == 4 && mContextMinor >= 3)) {
+			std::string ssboError;
+			if (!TryCreateSsboBatch(ssboError)) {
+				error = "OpenGL 4.3 SSBO batch: " + ssboError;
+				Shutdown();
+				return false;
+			}
+		}
 		mApi.Disable(GL_DEPTH_TEST);
 		mApi.Disable(GL_CULL_FACE);
 		mApi.Disable(GL_SCISSOR_TEST);
@@ -85,11 +94,12 @@ namespace pvz {
 		mApi.BlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
 		RefreshDrawableSize();
 
-		LOG_WARN("OpenGL") << "OpenGL 3.3 Core ready: vendor=" << mVendor
+		LOG_WARN("OpenGL") << "OpenGL Core ready: vendor=" << mVendor
 			<< " renderer=" << mRendererName << " version=" << mVersion
 			<< " GLSL=" << mShadingLanguageVersion
 			<< " framebuffer=" << mDrawableWidth << "x" << mDrawableHeight
-			<< " vsync=" << (mVsync ? "on" : "off");
+			<< " vsync=" << (mVsync ? "on" : "off")
+			<< " batchPath=" << BatchPathName();
 		return true;
 	}
 
@@ -99,6 +109,7 @@ namespace pvz {
 
 	void OpenGLRenderer::Shutdown() {
 		if (mContext && mWindow) SDL_GL_MakeCurrent(mWindow, mContext);
+		DestroySsboBatch();
 		if (mApi.DeleteBuffers) {
 			if (mVbo) mApi.DeleteBuffers(1, &mVbo);
 			if (mIbo) mApi.DeleteBuffers(1, &mIbo);
@@ -116,6 +127,7 @@ namespace pvz {
 		mBatchLessColorizeProgram = {};
 		mPoolProgram = {};
 		mVboCapacity = mIboCapacity = 0;
+		mContextMajor = mContextMinor = 0;
 		mSequentialIndices.clear();
 		mFrameOpen = false;
 		if (mContext) {
@@ -226,6 +238,68 @@ namespace pvz {
 		return EnsureBufferCapacity(kInitialBufferBytes, kInitialBufferBytes);
 	}
 
+	/** 为 4.3 Context 创建矩阵 SSBO 与独立 VAO；失败不影响 3.3 CPU 后备路径。 */
+	bool OpenGLRenderer::TryCreateSsboBatch(std::string& error) {
+		if (!CreateProgram("batch_ssbo", "Shader/opengl/batch_ssbo.vert.glsl",
+			"Shader/opengl/batch.frag.glsl", mSsboBatchProgram, error)
+			|| !CreateProgram("batch_ssbo_colorize", "Shader/opengl/batch_ssbo.vert.glsl",
+				"Shader/opengl/batch_colorize.frag.glsl", mSsboBatchColorizeProgram, error)
+			|| !CreateProgram("batch_ssbo_less_colorize", "Shader/opengl/batch_ssbo.vert.glsl",
+				"Shader/opengl/batch_less_colorize.frag.glsl", mSsboBatchLessColorizeProgram, error)) {
+			return false;
+		}
+
+		mApi.GenVertexArrays(1, &mSsboVao);
+		mApi.GenBuffers(1, &mMatrixSsbo);
+		if (!mSsboVao || !mMatrixSsbo) {
+			error = "OpenGL SSBO batch VAO/矩阵缓冲创建失败";
+			return false;
+		}
+
+		mApi.BindVertexArray(mSsboVao);
+		mApi.BindBuffer(GL_ARRAY_BUFFER, mVbo);
+		const int stride = static_cast<int>(sizeof(OpenGLSsboBatchVertex));
+		auto floatAttribute = [&](unsigned int index, int count, std::size_t offset) {
+			mApi.EnableVertexAttribArray(index);
+			mApi.VertexAttribPointer(index, count, GL_FLOAT, GL_FALSE, stride,
+				reinterpret_cast<const void*>(offset));
+		};
+		auto uintAttribute = [&](unsigned int index, int count, std::size_t offset) {
+			mApi.EnableVertexAttribArray(index);
+			mApi.VertexAttribIPointer(index, count, GL_UNSIGNED_INT, stride,
+				reinterpret_cast<const void*>(offset));
+		};
+		floatAttribute(0, 2, offsetof(OpenGLSsboBatchVertex, x));
+		floatAttribute(1, 2, offsetof(OpenGLSsboBatchVertex, u));
+		floatAttribute(2, 4, offsetof(OpenGLSsboBatchVertex, r));
+		uintAttribute(3, 2, offsetof(OpenGLSsboBatchVertex, clipMinXY));
+		uintAttribute(4, 1, offsetof(OpenGLSsboBatchVertex, matrixIndex));
+		mApi.BindVertexArray(0);
+		if (!EnsureSsboCapacity(kInitialBufferBytes)) {
+			error = "OpenGL 矩阵 SSBO 初始分配失败";
+			return false;
+		}
+		mSsboBatchEnabled = true;
+		return true;
+	}
+
+	/** 只销毁可选 SSBO 快路资源，保留基线 OpenGL Context 与 CPU Batch。 */
+	void OpenGLRenderer::DestroySsboBatch() {
+		mSsboBatchEnabled = false;
+		if (mApi.DeleteBuffers && mMatrixSsbo) mApi.DeleteBuffers(1, &mMatrixSsbo);
+		if (mApi.DeleteVertexArrays && mSsboVao) mApi.DeleteVertexArrays(1, &mSsboVao);
+		if (mApi.DeleteProgram) {
+			if (mSsboBatchProgram.id) mApi.DeleteProgram(mSsboBatchProgram.id);
+			if (mSsboBatchColorizeProgram.id) mApi.DeleteProgram(mSsboBatchColorizeProgram.id);
+			if (mSsboBatchLessColorizeProgram.id) mApi.DeleteProgram(mSsboBatchLessColorizeProgram.id);
+		}
+		mMatrixSsbo = mSsboVao = 0;
+		mSsboCapacity = 0;
+		mSsboBatchProgram = {};
+		mSsboBatchColorizeProgram = {};
+		mSsboBatchLessColorizeProgram = {};
+	}
+
 	bool OpenGLRenderer::EnsureBufferCapacity(std::size_t vertexBytes, std::size_t indexBytes) {
 		if (vertexBytes > mVboCapacity) {
 			mVboCapacity = GrowCapacity(mVboCapacity, vertexBytes);
@@ -237,6 +311,15 @@ namespace pvz {
 			mApi.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIbo);
 			mApi.BufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(mIboCapacity), nullptr, GL_DYNAMIC_DRAW);
 		}
+		return mApi.GetError() == GL_NO_ERROR;
+	}
+
+	bool OpenGLRenderer::EnsureSsboCapacity(std::size_t bytes) {
+		if (bytes <= mSsboCapacity) return true;
+		mSsboCapacity = GrowCapacity(mSsboCapacity, bytes);
+		mApi.BindBuffer(GL_SHADER_STORAGE_BUFFER, mMatrixSsbo);
+		mApi.BufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mSsboCapacity),
+			nullptr, GL_DYNAMIC_DRAW);
 		return mApi.GetError() == GL_NO_ERROR;
 	}
 
@@ -323,6 +406,51 @@ namespace pvz {
 		Program& program = lessWashedOut ? mBatchLessColorizeProgram
 			: washedOut ? mBatchColorizeProgram : mBatchProgram;
 		return UploadAndDraw(program, texture, additive, vertices, vertexCount, projectionView);
+	}
+
+	bool OpenGLRenderer::UploadSsboBatch(const OpenGLSsboBatchVertex* vertices,
+		std::size_t vertexCount, const glm::mat4* matrices, std::size_t matrixCount) {
+		if (!mSsboBatchEnabled || !mFrameOpen || !vertices || !matrices
+			|| vertexCount == 0 || matrixCount == 0) return false;
+		const std::size_t vertexBytes = vertexCount * sizeof(OpenGLSsboBatchVertex);
+		const std::size_t matrixBytes = matrixCount * sizeof(glm::mat4);
+		if (!EnsureBufferCapacity(vertexBytes, 0) || !EnsureSsboCapacity(matrixBytes)) return false;
+
+		mApi.BindVertexArray(mSsboVao);
+		mApi.BindBuffer(GL_ARRAY_BUFFER, mVbo);
+		mApi.BufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(mVboCapacity), nullptr, GL_DYNAMIC_DRAW);
+		mApi.BufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(vertexBytes), vertices);
+		mApi.BindBuffer(GL_SHADER_STORAGE_BUFFER, mMatrixSsbo);
+		mApi.BufferData(GL_SHADER_STORAGE_BUFFER, static_cast<GLsizeiptr>(mSsboCapacity), nullptr, GL_DYNAMIC_DRAW);
+		mApi.BufferSubData(GL_SHADER_STORAGE_BUFFER, 0, static_cast<GLsizeiptr>(matrixBytes), matrices);
+		mApi.BindBufferBase(GL_SHADER_STORAGE_BUFFER, kMatrixSsboBinding, mMatrixSsbo);
+		mFrameStats.peakVboBytes = std::max(mFrameStats.peakVboBytes, vertexBytes);
+		mFrameStats.peakSsboBytes = std::max(mFrameStats.peakSsboBytes, matrixBytes);
+		return mApi.GetError() == GL_NO_ERROR;
+	}
+
+	bool OpenGLRenderer::SubmitSsboBatchSegment(std::uint32_t texture, bool additive,
+		bool washedOut, bool lessWashedOut, std::size_t firstVertex, std::size_t vertexCount,
+		const glm::mat4& projectionView, bool textureBoundary, bool stateBoundary) {
+		if (!mSsboBatchEnabled || !mFrameOpen || vertexCount == 0
+			|| firstVertex > 0x7FFFFFFFu || vertexCount > 0x7FFFFFFFu) return false;
+		if (textureBoundary) ++mFrameStats.textureFlushCount;
+		if (stateBoundary) ++mFrameStats.stateFlushCount;
+		Program& program = lessWashedOut ? mSsboBatchLessColorizeProgram
+			: washedOut ? mSsboBatchColorizeProgram : mSsboBatchProgram;
+		mApi.BindVertexArray(mSsboVao);
+		mApi.UseProgram(program.id);
+		mApi.UniformMatrix4fv(program.projectionView, 1, GL_FALSE, glm::value_ptr(projectionView));
+		mApi.Uniform1f(program.framebufferHeight, static_cast<float>(mDrawableHeight));
+		mApi.ActiveTexture(GL_TEXTURE0);
+		mApi.BindTexture(GL_TEXTURE_2D, texture);
+		mApi.Uniform1i(program.texture, 0);
+		ApplyBlend(additive);
+		mApi.DrawArrays(GL_TRIANGLES, static_cast<int>(firstVertex), static_cast<int>(vertexCount));
+		mFrameStats.quadCount += static_cast<std::uint32_t>(vertexCount / 6);
+		++mFrameStats.batchCount;
+		++mFrameStats.drawCallCount;
+		return mApi.GetError() == GL_NO_ERROR;
 	}
 
 	bool OpenGLRenderer::SubmitPoolLayer(std::uint32_t texture, int layer, float poolCounter,

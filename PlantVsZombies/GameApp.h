@@ -106,6 +106,7 @@ public:
 	inline static bool mDebugMode = false;        // 是否是调试模式
 	inline static bool mShowColliders = false;    // 显示碰撞框开关
 	inline static bool mDisableInstancePath = false;  // Task 7: -NoInstance 启动参数禁用 GPU instance path
+	inline static bool mForceOpenGL33 = false;        // -OpenGL33：跳过 4.3/SSBO 探测，强制原 CPU Batch
 	inline static bool mForceVulkan12 = false;        // -Vulkan12：把 instance/device 能力协商限制到 Vulkan 1.2
 	inline static bool mForceLegacyRendering = false; // -VulkanLegacyRendering：屏蔽 dynamic rendering 路径
 	inline static bool mForceLegacySync = false;      // -VulkanLegacySync：屏蔽 synchronization2 路径

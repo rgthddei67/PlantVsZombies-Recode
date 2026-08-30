@@ -813,7 +813,8 @@ void TestDriver::Update() {
 				+ " version=" + renderer->Version() + " glsl=" + renderer->ShadingLanguageVersion()
 				+ " framebuffer=" + std::to_string(renderer->DrawableWidth()) + "x"
 				+ std::to_string(renderer->DrawableHeight())
-				+ " vsync=" + (renderer->IsVsyncEnabled() ? "on" : "off"));
+				+ " vsync=" + (renderer->IsVsyncEnabled() ? "on" : "off")
+				+ " batchPath=" + renderer->BatchPathName());
 #if defined(_WIN32)
 			Log(std::string("opengl vulkanLoaderLoaded=")
 				+ (GetModuleHandleW(L"vulkan-1.dll") ? "yes" : "no"));
@@ -4772,6 +4773,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			? openGLRenderer->LastFrameStats().peakVboBytes : 0 },
 		{ "openGLPeakIboBytes", openGLRenderer
 			? openGLRenderer->LastFrameStats().peakIboBytes : 0 },
+		{ "openGLPeakSsboBytes", openGLRenderer
+			? openGLRenderer->LastFrameStats().peakSsboBytes : 0 },
+		{ "openGLBatchPath", openGLRenderer
+			? openGLRenderer->BatchPathName() : "unavailable" },
+		{ "openGLContextMajor", openGLRenderer
+			? openGLRenderer->ContextMajorVersion() : 0 },
+		{ "openGLContextMinor", openGLRenderer
+			? openGLRenderer->ContextMinorVersion() : 0 },
 		{ "openGLFrameMilliseconds", openGLRenderer
 			? openGLRenderer->LastFrameStats().frameMilliseconds : 0.0 },
 	};
