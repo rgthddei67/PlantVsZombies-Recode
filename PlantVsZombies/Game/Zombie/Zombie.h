@@ -124,6 +124,7 @@ protected:
 	bool mIsDying = false;	// 是否播放死亡动画 大概可以这么理解 这个时候不能走路
 	bool mIsDead = false;	// Die() 防重入：外部（大嘴花/土豆雷/清场）与帧事件可能同帧重复调 Die，
 							// 第二次进入会把 mZombieNumber 多扣一次导致计数提前归零
+	bool mTemporalReplacementRetirement = false; // 时间替身接管稳定 ID 时，旧壳只释放生命周期且不结算死亡
 	bool mDbgAnomalyLogged = false;	// [DBG] 临时插桩：死亡期间轨道异常只记一次
 
 	float mSpeed = 10.0f;
@@ -229,6 +230,15 @@ public:
 	virtual void OnTemporalCoreStateRestored();
 	/** 时间锚恢复全部局部阶段后，重建有效啮食表现并原子收尾失效植物目标。 */
 	void ReconcileTemporalEatingPresentation();
+	/**
+	 * 让已进入死亡动画的旧对象把稳定 ID 的计数所有权移交给时间替身。
+	 * 该入口同步走品种死亡清理，但不触发死亡奖励、死亡联动、计数扣减或胜利检查。
+	 */
+	bool RetireForTemporalReplacement();
+	/** 当前 Die 调用是否只是在回收已由时间替身接管的旧死亡壳。 */
+	bool IsRetiringForTemporalReplacement() const {
+		return mTemporalReplacementRetirement;
+	}
 	/**
 	 * 玩家卡片成功部署植物后的同行通知；普通僵尸不响应。
 	 * baseMaxHealth 是部署类型的基础最大生命快照，不包含运行期强化。

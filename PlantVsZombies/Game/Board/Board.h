@@ -928,6 +928,11 @@ public:
 	int GetTemporalAnchorCount() const {
 		return static_cast<int>(mTemporalAnchors.size());
 	}
+	int GetTemporalAnchorTargetCount() const {
+		std::size_t count = 0;
+		for (const TemporalAnchor& anchor : mTemporalAnchors) count += anchor.targets.size();
+		return static_cast<int>(count);
+	}
 	int GetAuroraPriestsSpawnedThisWave() const { return mAuroraPriestsSpawnedThisWave; }
 	int GetClockmakersSpawnedThisWave() const { return mClockmakersSpawnedThisWave; }
 	bool HasConsumedAuroraPriestGuarantee() const { return mAuroraPriestGuaranteeConsumed; }
@@ -1580,6 +1585,9 @@ public:
 	/** 读档恢复按目标占层/占格的模仿者占位。 */
 	Plant* CreateImitaterPlantWithID(PlantType targetType, int row, int col, int id);
 	Zombie* CreateZombieWithID(ZombieType type, int row, float x, int id);
+	/** 用未计数的新对象接管仍在死亡动画中的同 ID 旧壳，整个操作不改变 mZombieNumber。 */
+	Zombie* ReplaceDyingZombieWithID(Zombie* dyingZombie, ZombieType type,
+		int row, float x, int id);
 	Bullet* CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
 	Sun* CreateSunWithID(const Vector& pos, bool fromSky, int id);
 	SmallSun* CreateSmallSunWithID(const Vector& pos, bool fromSky, int id);

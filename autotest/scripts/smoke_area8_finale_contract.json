@@ -115,6 +115,7 @@
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_POLAR_CLOCKMAKER.clockPhase", "equals": 5 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_POLAR_CLOCKMAKER.clockRemainingMs", "atLeast": 3300, "atMost": 4300 },
     { "op": "assert_state", "path": "zombieCount", "equals": 3 },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 3 },
     { "op": "assert_state", "path": "particleEffectNameCounts.PolarClockRewind", "equals": 3 },
     { "op": "screenshot", "name": "07_clock_rewind_restored.png" },
     { "op": "wait_seconds", "value": 1.0, "timeout": 4 },

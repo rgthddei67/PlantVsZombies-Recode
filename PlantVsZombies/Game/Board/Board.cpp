@@ -3599,6 +3599,31 @@ Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, int id) {
 	return zombie.get();
 }
 
+Zombie* Board::ReplaceDyingZombieWithID(Zombie* dyingZombie, ZombieType type,
+	int row, float x, int id)
+{
+	if (!dyingZombie || dyingZombie != mEntityRegistry.GetZombie(id)
+		|| !dyingZombie->IsActive() || !dyingZombie->IsDying()
+		|| dyingZombie->mZombieID != id
+		|| dyingZombie->mZombieType != type) return nullptr;
+
+	float y = GetZombieSpawnY(row, x);
+	if (y < 0.0f) y = 0.0f;
+	std::shared_ptr<Zombie> replacement = GameAPP::GetInstance().InstantiateZombie(
+		type, this, x, y, row, false);
+	if (!replacement) return nullptr;
+	replacement->mSpawnWave = mCurrentWave;
+
+	// 替身尚未登记也未计数，旧壳仍可通过自身稳定 ID 安全清理派生状态。
+	// 退役成功后直接把旧壳原有的那一份计数所有权交给替身，不经过 +1/-1 窗口。
+	if (!dyingZombie->RetireForTemporalReplacement()) {
+		GameObjectManager::GetInstance().DestroyGameObject(replacement);
+		return nullptr;
+	}
+	mEntityRegistry.AddZombieWithID(replacement, id);
+	return replacement.get();
+}
+
 Bullet* Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, int id) {
 	BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
 	if (!bulletPool) {

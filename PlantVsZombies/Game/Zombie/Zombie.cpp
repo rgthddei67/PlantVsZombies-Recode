@@ -2239,7 +2239,7 @@ void Zombie::Die()
 	}
 	mEatZombieID = NULL_ZOMBIE_ID;
 
-	if (mBoard) {
+	if (mBoard && !mTemporalReplacementRetirement) {
 		mBoard->RelayZombieDeathWard(this);
 		mBoard->CollectMistFuelFromZombie(this);
 		mBoard->mZombieNumber--;
@@ -2255,6 +2255,17 @@ void Zombie::Die()
 		mBoard->mEntityRegistry.InvalidateZombieRowIndex();
 	}
 	GameObjectManager::GetInstance().DestroyGameObject(this);
+}
+
+bool Zombie::RetireForTemporalReplacement()
+{
+	// 只有仍占用 Board 计数的死亡动画壳允许移交；普通死亡和存活目标必须走原入口。
+	if (!mBoard || !mActive || !mIsDying || mIsDead
+		|| mTemporalReplacementRetirement) return false;
+	mTemporalReplacementRetirement = true;
+	Die();
+	mTemporalReplacementRetirement = false;
+	return mIsDead && !mActive;
 }
 
 Vector Zombie::GetVisualPosition() const {

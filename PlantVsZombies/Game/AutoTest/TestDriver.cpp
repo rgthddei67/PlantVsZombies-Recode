@@ -5427,6 +5427,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->HasConsumedClockmakerGuarantee() },
 			{ "pendingAuroraRiftCount", board->GetPendingAuroraRiftCount() },
 			{ "temporalAnchorCount", board->GetTemporalAnchorCount() },
+			{ "temporalAnchorTargetCount", board->GetTemporalAnchorTargetCount() },
 			{ "dawnNavigationRemainingMs", static_cast<int>(std::lround(
 				board->GetDawnNavigationTimer() * 1000.0f)) },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },

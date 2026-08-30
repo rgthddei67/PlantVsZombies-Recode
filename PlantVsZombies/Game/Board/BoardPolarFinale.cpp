@@ -31,6 +31,14 @@ constexpr std::array<ZombieType, 5> kAuroraSummonTypes{
 	ZombieType::ZOMBIE_FOOTBALL,
 };
 
+/** 复合编队和首领不进入单体稳定 ID 时间恢复。 */
+bool IsTemporalAnchorTargetType(ZombieType type)
+{
+	return type != ZombieType::ZOMBIE_BOBSLED_TEAM
+		&& type != ZombieType::ZOMBIE_ROOF_MARSHAL
+		&& type != ZombieType::ZOMBIE_BOSS;
+}
+
 /** 越靠近房屋且总生命越高，时间锚和曙光莲越优先处理。 */
 long long ThreatScore(const Zombie* zombie)
 {
@@ -133,8 +141,7 @@ void Board::CommitPolarClockAnchor(int ownerZombieID, int sourceRow)
 			|| zombie->IsMindControlled() || !zombie->HasHead()
 			|| std::abs(zombie->mRow - sourceRow) > 1
 			|| alreadyAnchored.find(zombieID) != alreadyAnchored.end()
-			|| zombie->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL
-			|| zombie->mZombieType == ZombieType::ZOMBIE_BOSS) continue;
+			|| !IsTemporalAnchorTargetType(zombie->mZombieType)) continue;
 		candidates.push_back(zombie);
 	}
 	std::stable_sort(candidates.begin(), candidates.end(), [](const Zombie* a,
@@ -272,7 +279,8 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 		it->timer = std::max(0.0f, it->timer - deltaTime);
 		if (it->timer > 0.0f) { ++it; continue; }
 		for (const TemporalTargetSnapshot& target : it->targets) {
-			if (target.irreversible) continue;
+			// 旧档中已经提交的复合编队快照也必须保持无效，避免恢复出孤立队员。
+			if (target.irreversible || !IsTemporalAnchorTargetType(target.type)) continue;
 			Zombie* zombie = mEntityRegistry.GetZombie(target.zombieID);
 			const bool survivor = zombie && zombie->IsActive() && !zombie->IsDying()
 				&& !zombie->IsMindControlled();
@@ -283,7 +291,10 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 			if (!survivor) {
 				const float spawnX = positionRejected
 					? static_cast<float>(SCENE_WIDTH) + 40.0f : target.x;
-				zombie = CreateZombieWithID(target.type, target.row, spawnX, target.zombieID);
+				zombie = zombie && zombie->IsActive() && zombie->IsDying()
+					? ReplaceDyingZombieWithID(zombie, target.type, target.row,
+						spawnX, target.zombieID)
+					: CreateZombieWithID(target.type, target.row, spawnX, target.zombieID);
 				if (!zombie) continue;
 			}
 			const HelmType helmType = target.restoreHelm ? target.helmType

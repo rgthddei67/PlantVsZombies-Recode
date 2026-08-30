@@ -385,7 +385,8 @@ bool CatapultZombie::HandleCaltropHit(Caltrop& caltrop)
 void CatapultZombie::Die()
 {
 	if (mIsDead) return;
-	if (!mSuppressDeathEffects && !mIsPreview && !mDeathEffectsEmitted) {
+	if (!mSuppressDeathEffects && !IsRetiringForTemporalReplacement()
+		&& !mIsPreview && !mDeathEffectsEmitted) {
 		mDeathEffectsEmitted = true;
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect(GetCatapultExplosionEffectName(),

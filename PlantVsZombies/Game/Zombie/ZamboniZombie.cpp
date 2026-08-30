@@ -329,7 +329,8 @@ float ZamboniZombie::GetCurrentHorizontalMoveSpeed() const
 void ZamboniZombie::Die()
 {
 	if (mIsDead) return;
-	if (!mSuppressDeathEffects && !mIsPreview && !mDeathEffectsEmitted) {
+	if (!mSuppressDeathEffects && !IsRetiringForTemporalReplacement()
+		&& !mIsPreview && !mDeathEffectsEmitted) {
 		mDeathEffectsEmitted = true;
 		if (g_particleSystem) {
 			const Vector stableVisualOrigin = GetPosition() + mVisualOffset;
