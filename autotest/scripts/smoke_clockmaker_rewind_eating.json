@@ -1,0 +1,37 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 71, "background": "POLAR_NIGHT_SNOWFIELD", "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER", "PLANT_PUMPKINSHELL"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "set_polar_environment", "temperature": -14, "humidity": 58, "wind": 8, "direction": "NONE", "phase": "DANGER_HOLD", "remaining": 60 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 5 },
+    { "op": "plant", "type": "PLANT_PUMPKINSHELL", "row": 2, "col": 5 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_POLAR_CLOCKMAKER", "row": 1, "x": 900, "stationary": true },
+    { "op": "wait_seconds", "value": 4.6, "timeout": 5 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_POLAR_CLOCKMAKER", "row": 2, "x": 750, "stationary": true },
+    { "op": "wait_seconds", "value": 0.8, "timeout": 4 },
+    { "op": "assert_state", "path": "weather.temporalAnchorCount", "equals": 1 },
+    { "op": "assert_state", "path": "zombies.1.clockPhase", "equals": 0 },
+    { "op": "assert_state", "path": "zombies.1.isEating", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.track", "equals": "anim_eat" },
+    { "op": "apply_zombie_control", "row": 2, "index": 0, "effect": "FROZEN", "duration": 10.0, "expectedApplied": true },
+
+    { "op": "wait_seconds", "value": 4.9, "timeout": 5 },
+    { "op": "assert_state", "path": "weather.temporalAnchorCount", "equals": 1 },
+    { "op": "assert_state", "path": "zombies.1.isEating", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.track", "equals": "anim_eat" },
+    { "op": "wait_seconds", "value": 1.5, "timeout": 4 },
+    { "op": "assert_state", "path": "weather.temporalAnchorCount", "equals": 0 },
+    { "op": "assert_state", "path": "zombies.1.clockPhase", "equals": 0 },
+    { "op": "assert_state", "path": "zombies.1.isEating", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.track", "equals": "anim_eat" },
+    { "op": "assert_state", "path": "plants.1.eaterCount", "equals": 1 },
+    { "op": "screenshot", "name": "clockmaker_rewind_keeps_eating.png" },
+    { "op": "dump_state", "name": "clockmaker_rewind_eating_final.json" },
+    { "op": "quit" }
+  ]
+}

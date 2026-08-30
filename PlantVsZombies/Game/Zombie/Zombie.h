@@ -227,6 +227,8 @@ public:
 	virtual void RestoreTemporalAbilityState(const ZombieTemporalAbilityState&) {}
 	/** 时间锚恢复核心数值后，静默重建可逆分件与品种派生状态；不得回滚动作相位或重放掉落效果。 */
 	virtual void OnTemporalCoreStateRestored();
+	/** 时间锚恢复全部局部阶段后，重建有效啮食表现并原子收尾失效植物目标。 */
+	void ReconcileTemporalEatingPresentation();
 	/**
 	 * 玩家卡片成功部署植物后的同行通知；普通僵尸不响应。
 	 * baseMaxHealth 是部署类型的基础最大生命快照，不包含运行期强化。

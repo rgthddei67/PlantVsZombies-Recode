@@ -309,6 +309,8 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 					target.specialActionSubmitted);
 			}
 			// 来源钟匠不记录也不恢复局部技能状态，避免六秒结算刷新自己的循环冷却。
+			// 局部阶段可以覆盖轨道，故啮食表现必须在全部阶段恢复之后最终对齐。
+			zombie->ReconcileTemporalEatingPresentation();
 			if (g_particleSystem) {
 				g_particleSystem->EmitEffect("PolarClockRewind", zombie->GetVisualPosition());
 			}

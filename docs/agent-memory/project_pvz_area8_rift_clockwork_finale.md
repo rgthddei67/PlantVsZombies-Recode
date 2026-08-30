@@ -20,6 +20,8 @@
 
 2026-08-30 修复存活目标断头/断臂后的表现回溯：`RestoreTemporalCoreState` 仍在原对象恢复 `mHasHead/mHasArm`，随后由 `OnTemporalCoreStateRestored` 静默撤销 `HeadDrop/ArmDrop` 留在 Animator 上的隐藏与残肢换图，不重放掉落物、粒子或声音。普通骨架由基类重建；8-8 自然池与祭司裂隙涉及的橄榄球、扶梯/精英扶梯、潜雪、铁门和跳跳各自恢复专属轨道。存活目标不采用强制 `CreateZombieWithID`，避免啃食、附件、碰撞与 Board 事务仍引用旧对象。可见 `clang-release` 专项在中途存档往返后锁定同一普通僵尸的 `hasHead/hasArm/headVisible/armVisible` 从全 false 恢复为全 true。
 
+2026-08-30 修复存活目标在啮食中回溯后出现 `mIsEating=true` 但轨道永久停在 `anim_walk/anim_walk2` 的组合状态。根因是钟匠/祭司局部能力阶段恢复会选择走路轨道，但不拥有啮食关系；主循环随后因 `mIsEating` 早退，碰撞也没有新的开吃边沿可重播动画。Board 现在于核心数值和全部局部阶段恢复完成后调用 `Zombie::ReconcileTemporalEatingPresentation`：有效植物/僵尸关系重播该品种 `anim_eat` 并重建 `OnStartEating` 表现，已因位置回溯而失效的植物关系则走既有原子收尾以平衡 `mEaterCount`。可见 `clang-release` 专项用另一名钟匠记录正在啮食南瓜的钟匠，锁定结算前后均为 `isEating=true/anim_eat`且南瓜 `eaterCount=1`。已进入 `mIsDying` 倒地轨道的目标仍按“死亡目标”处理：用原稳定 ID 新建可交互对象，旧对象只是已从注册表解绑、继续收尾的死亡壳，这与完全销毁后复建共用同一契约。
+
 `PLANT_DAWNLOTUS` 为 250 阳光、50 秒冷却、500 生命、普通层且场上同时最多一株。温度、湿度和风速每个红色仪表每秒各提供 1 能量，满 60 后由玩家点击释放；停机暂停充能并禁止释放。释放时只结算当前仍为红色的模块：温度对每行最高威胁目标造成 1200 点带曙光莲来源的植物伤害；湿度封闭全部雪穴并强制合法地下目标无伤出土；风速为 Board 提供 8 秒导航，忽略白毛风索敌距离和投掷物强风偏移。通关 8-8 奖励曙光莲。
 
 ## 表现、存档与验证契约

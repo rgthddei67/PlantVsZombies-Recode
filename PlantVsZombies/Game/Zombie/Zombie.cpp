@@ -1930,6 +1930,40 @@ void Zombie::OnTemporalCoreStateRestored()
 	SetGarlicYuckFaceVisible(IsGarlicYuckFaceVisible());
 }
 
+void Zombie::ReconcileTemporalEatingPresentation()
+{
+	if (!mIsEating || mIsDying || mIsDead || !IsActive()) return;
+
+	if (mEatPlantID != NULL_PLANT_ID) {
+		// 回溯位置可能把僵尸带离原目标；失效关系必须走既有的原子收尾，
+		// 否则植物 mEaterCount 会残留。
+		if (!IsCurrentPlantEatingTargetValid()) {
+			StopEatingInvalidPlantTarget(0.12f);
+			return;
+		}
+	}
+	else if (mEatZombieID != NULL_ZOMBIE_ID) {
+		Zombie* target = mBoard ? mBoard->mEntityRegistry.GetZombie(mEatZombieID) : nullptr;
+		if (!target || !target->IsActive() || target->mIsDying || target->mIsDead) {
+			mIsEating = false;
+			mEatZombieID = NULL_ZOMBIE_ID;
+			ResumeWalkAfterEat(0.12f);
+			return;
+		}
+	}
+	else {
+		// 无目标的啮食位是旧档或异常帧的非法组合，在此收敛为稳态行走。
+		mIsEating = false;
+		ResumeWalkAfterEat(0.12f);
+		return;
+	}
+
+	// 局部能力阶段会为非前摇态选择 walk，但它不拥有啮食关系。
+	// 最终关系仍有效时由目标本体重播啮食，再让品种钩子恢复手臂、朝向等表现。
+	PlayTrack("anim_eat", 2.1f, 0.12f);
+	OnStartEating();
+}
+
 int Zombie::TakeShieldDamage(int damage)
 {
 	if (mShieldHealth <= 0)
