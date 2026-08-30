@@ -159,11 +159,11 @@ namespace {
 	constexpr int kAuroraPriestLevel = 70;                 // 内部 70 即 8-7
 	constexpr int kAuroraPriestGuaranteeWave = 3;         // 8-7 第三波额外保底
 	constexpr int kAuroraPriestMaxPerWave = 3;             // 极光祭司每波累计上限
-	constexpr int kAuroraPriestMaxActive = 3;              // 敌对同时上限
+	constexpr int kAuroraPriestMaxActive = 4;              // 敌对同时上限
 	constexpr int kPolarClockmakerLevel = 71;              // 内部 71 即 8-8
 	constexpr int kPolarClockmakerGuaranteeWave = 2;       // 8-8 第二波额外保底
-	constexpr int kPolarClockmakerMaxPerWave = 2;          // 极夜钟匠每波累计上限
-	constexpr int kPolarClockmakerMaxActive = 2;           // 敌对同时上限
+	constexpr int kPolarClockmakerMaxPerWave = 3;          // 极夜钟匠每波累计上限
+	constexpr int kPolarClockmakerMaxActive = 3;           // 敌对同时上限
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
