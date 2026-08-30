@@ -17,6 +17,8 @@ metadata:
 `AdventureProgression::BossSlot::ROOF_MARSHAL` 只在内部关卡 45 的正式第 15 波由
 `Board::TrySummonAdventureBoss()` 额外创建一只，固定中路 `x=1000`。开发者面板和 AutoTest 仍可直造，
 但普通出怪池、预览和未来新增类型不会自动混入首领路径。
+图鉴沿相同固定槽位在 5-9 通关后登记屋脊督军，不把首领伪装成随机池成员；标题与机制说明已登记到
+权威 `info.txt`。
 `RoofMarshal.reanim` 完整复制 `NormalZombie.reanim` 时间线，派生 `SetupZombie()` 先调用
 `Zombie::SetupZombie()`，再把本体当前/最大生命设为 15000、每口伤害从 50 提升到 250；因此继续复用
 普通走路、啃食和死亡帧事件，没有新增帧号。
