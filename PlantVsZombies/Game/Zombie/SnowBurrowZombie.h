@@ -60,7 +60,8 @@ protected:
 	float GetAbilityAnimSpeedMultiplier() const override;
 	bool CanUseGroundPoolState() const override { return false; }
 	bool TryGetDrawClipBottom(float& clipBottom) const override;
-	bool ShouldPlayDeathAnimation() const override { return IsSurfaceInteractive(); }
+	/** 地下移动可直接回收；开始出土后即使尚不可交互，也必须播放可见死亡动画。 */
+	bool ShouldPlayDeathAnimation() const override { return !IsUnderground(); }
 
 private:
 	void BeginBurrow(Phase phase, float maxCells);
