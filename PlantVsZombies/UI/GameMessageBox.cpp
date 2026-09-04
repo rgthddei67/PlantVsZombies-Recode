@@ -18,6 +18,7 @@ namespace {
 	const Vector LEGACY_TITLE_OFFSET = Vector(-70, -65); // 专用纹理背景的旧标题偏移，单位：逻辑像素
 	const Vector LEGACY_MESSAGE_OFFSET = Vector(-190, -25); // 专用纹理背景的旧正文偏移，单位：逻辑像素
 	constexpr float kDialogHeaderOffset = 24.0f; // 原版九宫格主体为顶部骷髅装饰预留的高度，单位：素材像素
+	constexpr float kDialogHeaderLift = 16.0f; // 骷髅顶盖相对主体向上越界的距离，单位：素材像素
 	constexpr float kDialogMinimumHeight = 257.0f; // 短文框的原版基准高度，单位：素材像素
 	constexpr float kDialogContentInsetLeft = 40.0f; // 正文左内边距，单位：素材像素
 	constexpr float kDialogContentInsetRight = 46.0f; // 正文右内边距，单位：素材像素
@@ -25,7 +26,8 @@ namespace {
 	constexpr float kDialogTitleBodyGap = 8.0f; // 标题与正文间距，单位：素材像素
 	constexpr float kDialogMessageLineGap = 4.0f; // 正文换行间距，单位：素材像素
 	constexpr float kDialogContentButtonGap = 10.0f; // 文字块与按钮区的最小间距，单位：素材像素
-	constexpr float kDialogButtonTopInset = 16.0f; // 按钮顶部相对底座分件顶部的偏移，单位：素材像素
+	constexpr float kDialogContentBottomAnchor = 16.0f; // 文字区下边界相对底座顶部的原版锚点，单位：素材像素
+	constexpr float kDialogButtonTopInset = 36.0f; // 按钮顶部相对底座分件顶部的偏移，单位：素材像素
 	constexpr float kDialogButtonSideInset = 20.0f; // 双按钮行距石板左右边缘的留白，单位：素材像素
 	constexpr float kDialogButtonGap = 24.0f; // 同行按钮间距，单位：素材像素
 	constexpr float kDialogScreenMargin = 40.0f; // 自适应框与屏幕左右边缘的最小留白，单位：逻辑像素
@@ -276,7 +278,7 @@ void GameMessageBox::LayoutStandardDialog()
 		ResourceKeys::Textures::IMAGE_DIALOG_BOTTOMMIDDLE, false);
 	const float bottomHeight = (bottomMiddle ? bottomMiddle->height : 114.0f) * scale;
 	const float requiredHeight = kDialogContentTop * scale + contentHeight
-		+ kDialogContentButtonGap * scale + bottomHeight - kDialogButtonTopInset * scale;
+		+ kDialogContentButtonGap * scale + bottomHeight - kDialogContentBottomAnchor * scale;
 	m_size.y = std::max(kDialogMinimumHeight * scale, requiredHeight);
 
 	const float top = m_position.y - m_size.y / 2.0f;
@@ -288,7 +290,9 @@ void GameMessageBox::LayoutStandardDialog()
 	}
 
 	const float contentTop = top + kDialogContentTop * scale;
-	const float contentBottom = buttonY - kDialogContentButtonGap * scale;
+	// 按钮可以在底座内独立微调，不能连带拖动暗槽中的标题与正文。
+	const float contentBottom = top + m_size.y - bottomHeight
+		+ (kDialogContentBottomAnchor - kDialogContentButtonGap) * scale;
 	float drawY = contentTop + std::max(0.0f,
 		(contentBottom - contentTop - contentHeight) / 2.0f);
 	if (!m_title.empty()) {
@@ -441,7 +445,8 @@ void GameMessageBox::DrawStandardDialog(Graphics* g) const
 		bottomRight->width * scale, bottomRight->height * scale);
 
 	DrawLogicalTexture(g, header,
-		left + (m_size.x - header->width * scale) / 2.0f, top,
+		left + (m_size.x - header->width * scale) / 2.0f,
+		top - kDialogHeaderLift * scale,
 		header->width * scale, header->height * scale);
 }
 

@@ -43,6 +43,9 @@ Builder 调用接口不变，但 `Show()` 现在把普通 `GameMessageBox` 注�
 所有标准按钮在控件注册前改为框内相对排布，整个矩形以 Builder 传入的中心点对称绘制。
 PC 素材的 `dialog_centerright` 比上下右角少 3 列透明阴影，绘制时要与 `topright`
 共用左侧内沿；按各自宽度贴右会让暗槽在上下接缝处向右凸出。
+视觉微调沿用素材像素尺度：骷髅 `header` 相对九宫格主体上提 16 px，标准按钮相对
+底座分件顶部下移到 36 px；两者随 MessageBox `scale` 等比变化。文字区继续使用底座顶部
+16 px 的独立原版锚点，禁止复用按钮 Y，否则下移按钮会把标题与正文一起拖出暗色内容区。
 
 `.Background()` 仍保留主菜单选项/暂停菜单的旧纹理、旧坐标；`.Panel()` 仍保留词条和开发者面板的纯色尺寸。
 `adaptive_messagebox` 锁定长文扩宽/换行/增高和十分件资源；`adaptive_messagebox_confirm`
