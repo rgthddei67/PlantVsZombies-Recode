@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 30 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "key", "name": "escape" },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "click", "x": 580, "y": 350, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "assert_state", "path": "gameMessageBox.adaptiveStandardSkin", "equals": true },
+    { "op": "assert_state", "path": "gameMessageBox.centerXInt", "equals": 550 },
+    { "op": "assert_state", "path": "gameMessageBox.centerYInt", "equals": 300 },
+    { "op": "assert_state", "path": "gameMessageBox.widthInt", "equals": 480 },
+    { "op": "assert_state", "path": "gameMessageBox.heightInt", "equals": 386 },
+    { "op": "assert_state", "path": "gameMessageBox.wrappedMessageLineCount", "equals": 1 },
+    { "op": "dump_state", "name": "confirm_state.json" },
+    { "op": "screenshot", "name": "restart_confirmation" },
+    { "op": "quit" }
+  ]
+}

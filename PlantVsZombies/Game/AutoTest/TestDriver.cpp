@@ -9,6 +9,7 @@
 #include "../../ResourceKeys.h"
 #include "../../CursorManager.h"
 #include "../../UI/Button.h"
+#include "../../UI/GameMessageBox.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
 #include "../CrazyDaveDialog.h"
@@ -1208,6 +1209,17 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("set_polar_environment: 仅极夜雪原可用；phase 或 direction 无效");
 			return false;
 		}
+		return true;
+	}
+	if (op == "show_test_message_box") {
+		const std::string title = cmd.value("title", "");
+		const std::string message = cmd.value("message", "");
+		GameMessageBox::Builder builder(Vector(SCENE_WIDTH / 2.0f, SCENE_HEIGHT / 2.0f));
+		builder.Scale(cmd.value("scale", 1.0f));
+		if (!title.empty()) builder.Title(title);
+		if (!message.empty()) builder.Message(message);
+		builder.Button(u8"确定", Vector::zero(), Vector(100.0f, 41.6f), 14.0f, []() {});
+		builder.Show();
 		return true;
 	}
 	if (op == "activate_dawn_lotus") {
@@ -3348,6 +3360,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "requiredVoiceSoundCount", CrazyDaveDialog::GetRequiredVoiceSoundCount() },
 		{ "loadedVoiceSoundCount", CrazyDaveDialog::GetLoadedRequiredVoiceSoundCount() },
 	};
+	out["dialogSkinResources"] = {
+		{ "requiredTextureCount", GameMessageBox::GetStandardSkinRequiredTextureCount() },
+		{ "loadedTextureCount", GameMessageBox::GetLoadedStandardSkinTextureCount() },
+	};
+	out["gameMessageBox"] = nullptr;
+	if (auto messageBox = currentScene->GetUIManager().GetTopActiveMessageBox()) {
+		const Vector position = messageBox->GetPosition();
+		const Vector size = messageBox->GetSize();
+		out["gameMessageBox"] = {
+			{ "adaptiveStandardSkin", messageBox->UsesAdaptiveStandardSkin() },
+			{ "centerXInt", static_cast<int>(std::lround(position.x)) },
+			{ "centerYInt", static_cast<int>(std::lround(position.y)) },
+			{ "widthInt", static_cast<int>(std::lround(size.x)) },
+			{ "heightInt", static_cast<int>(std::lround(size.y)) },
+			{ "wrappedMessageLineCount", messageBox->GetWrappedMessageLineCount() },
+		};
+	}
 	out["adaptiveMusic"] = {
 		{ "playing", AudioSystem::IsAdaptiveMusicPlaying() },
 		{ "currentTune", AudioSystem::GetAdaptiveMusicCurrentTune() },

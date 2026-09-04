@@ -19,6 +19,11 @@ class UIManager;
 class GameMessageBox {
 public:
 	class Builder;
+	enum class BackgroundMode {
+		STANDARD_DIALOG,
+		SOLID_PANEL,
+		TEXTURE,
+	};
 
 	struct ButtonConfig {
 		std::string text;
@@ -65,10 +70,11 @@ public:
 		const std::vector<SliderConfig>& sliders,
 		const std::vector<TextConfig>& texts,
 		const std::string& title,
+		BackgroundMode backgroundMode,
 		const std::string& backgroundImageKey,
 		float scale,
 		const Vector& explicitSize,
-		const TooltipPanelConfig& tooltipPanel);   // 非零 explicitSize=用此尺寸并以 pos 居中绘制背景
+		const TooltipPanelConfig& tooltipPanel);   // explicitSize 仅用于 Panel/显式纹理；标准框由内容测量
 
 	~GameMessageBox();
 
@@ -81,6 +87,14 @@ public:
 	const std::string& GetHoveredTooltipText() const;
 	/** 返回随鼠标并经屏幕边缘修正后的说明框左上角；无说明时返回零向量。 */
 	Vector GetTooltipDrawPosition() const;
+	/** 返回对话框的屏幕逻辑中心与当前自适应尺寸。 */
+	Vector GetPosition() const { return m_position; }
+	Vector GetSize() const { return m_size; }
+	bool UsesAdaptiveStandardSkin() const { return m_backgroundMode == BackgroundMode::STANDARD_DIALOG; }
+	size_t GetWrappedMessageLineCount() const { return m_messageLines.size(); }
+	/** 返回原版标准对话框皮肤的资源完整性，供启动自检与 AutoTest 复用。 */
+	static size_t GetStandardSkinRequiredTextureCount();
+	static size_t GetLoadedStandardSkinTextureCount();
 
 private:
 	friend class UIManager;
@@ -94,7 +108,8 @@ private:
 	Vector m_explicitSize{ 0.0f, 0.0f };   // 非零时覆盖纹理尺寸，背景以 m_position 居中绘制
 	std::string m_title;
 	std::string m_message;
-	std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
+	BackgroundMode m_backgroundMode = BackgroundMode::STANDARD_DIALOG;
+	std::string m_backgroundImageKey;
 	std::vector<ButtonConfig> m_buttonConfigs;
 	std::vector<SliderConfig> m_sliderConfigs;
 	std::vector<TextConfig> m_textConfigs;
@@ -102,6 +117,9 @@ private:
 
 	std::vector<std::shared_ptr<Button>> m_buttons;
 	std::vector<std::shared_ptr<Slider>> m_sliders;
+	std::vector<std::string> m_messageLines;
+	Vector m_titleDrawPosition;
+	std::vector<Vector> m_messageLinePositions;
 
 	glm::vec4 m_textColor = { 245, 214, 127, 255 };
 	glm::vec4 m_titleColor = { 53, 191, 61, 255 };
@@ -110,23 +128,34 @@ private:
 	void DetachControls();
 	bool IsCloseRequested() const { return m_closeRequested; }
 	Vector GetBackgroundOriginalSize() const;
+	/** 按标题、换行正文和按钮行测量标准框，并把自有按钮改为框内相对排布。 */
+	void LayoutStandardDialog();
+	/** 用原版上、中、下分件平铺标准对话框，边缘不随尺寸拉伸。 */
+	void DrawStandardDialog(Graphics* g) const;
 	Vector GetTooltipDrawSize(const std::string& text) const;
 };
 
-// 流式构建器：把 9 参构造与隐式规则（空key+explicitSize=纯色面板、CHECKBOX纹理嗅探）
+// 流式构建器：把标准自适应框、纯色面板、专用纹理背景和 checkbox 规则
 // 显式化为命名方法。终结方法 Show() 创建对象并返回 shared_ptr。
 class GameMessageBox::Builder {
 public:
 	explicit Builder(const Vector& pos) : m_pos(pos) {}
 
-	// —— 背景（不调用 = 默认 IMAGE_MESSAGEBOX 纹理）；后调覆盖先调 ——
+	// —— 背景（不调用 = 原版分件自适应对话框）；后调覆盖先调 ——
+	Builder& StandardDialog() {
+		m_backgroundMode = BackgroundMode::STANDARD_DIALOG;
+		m_bgKey.clear(); m_explicitSize = Vector(0.0f, 0.0f); return *this;
+	}
 	Builder& Panel(float w, float h) {                    // 纯色面板，尺寸 w×h，以 pos 居中
+		m_backgroundMode = BackgroundMode::SOLID_PANEL;
 		m_bgKey.clear(); m_explicitSize = Vector(w, h); return *this;
 	}
 	Builder& Background(const std::string& key) {         // 纹理，原始尺寸×scale
+		m_backgroundMode = BackgroundMode::TEXTURE;
 		m_bgKey = key; m_explicitSize = Vector(0.0f, 0.0f); return *this;
 	}
 	Builder& Background(const std::string& key, const Vector& size) {  // 纹理+显式尺寸居中
+		m_backgroundMode = BackgroundMode::TEXTURE;
 		m_bgKey = key; m_explicitSize = size; return *this;
 	}
 
@@ -177,7 +206,8 @@ private:
 	Vector m_pos;
 	std::string m_title;
 	std::string m_message;
-	std::string m_bgKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
+	BackgroundMode m_backgroundMode = BackgroundMode::STANDARD_DIALOG;
+	std::string m_bgKey;
 	float m_scale = 1.0f;
 	Vector m_explicitSize{ 0.0f, 0.0f };
 	std::vector<GameMessageBox::ButtonConfig> m_buttons;

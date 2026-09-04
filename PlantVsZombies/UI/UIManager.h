@@ -48,6 +48,15 @@ public:
 		if (messageBox) messageBoxes.push_back(messageBox);
 	}
 
+	/** 返回当前最上层的活动模态框；没有时返回 nullptr。 */
+	std::shared_ptr<GameMessageBox> GetTopActiveMessageBox() const
+	{
+		for (auto it = messageBoxes.rbegin(); it != messageBoxes.rend(); ++it) {
+			if (*it && (*it)->IsActive()) return *it;
+		}
+		return nullptr;
+	}
+
 	void RemoveButton(std::shared_ptr<Button> button)
 	{
 		buttonManager.RemoveButton(button);

@@ -2188,17 +2188,18 @@ void GameScene::OpenRestartMenu()
 	this->mOpenRestartMenu = true;
 
 	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
-		.Message(u8"    确定重新开始游戏吗?")
+		.Title(u8"重新开始游戏？")
+		.Message(u8"你想要重新开始这一关吗？")
 		.Scale(1.5f)
-		.Button(u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
-			this->mOpenMenu = false;
-			this->mOpenRestartMenu = false;
-			DeltaTime::SetPaused(false);
-		})
-		.Button(u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+		.Button(u8"重来", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToRestart = true;
 			this->mOpenRestartMenu = false;
 			this->mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		})
+		.Button(u8"取消", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mOpenMenu = false;
+			this->mOpenRestartMenu = false;
 			DeltaTime::SetPaused(false);
 		})
 		.Show();
@@ -2210,17 +2211,18 @@ void GameScene::OpenQuitMenu()
 	this->mOpenQuitMenu = true;
 
 	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
-		.Message(u8"    确定退出这把游戏吗?")
+		.Title(u8"退出当前游戏？")
+		.Message(u8"你想要返回主菜单吗？")
 		.Scale(1.5f)
-		.Button(u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
-			this->mOpenMenu = false;
-			this->mOpenQuitMenu = false;
-			DeltaTime::SetPaused(false);
-		})
-		.Button(u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+		.Button(u8"退出", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToBackMenu = true;
 			this->mOpenQuitMenu = false;
 			this->mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		})
+		.Button(u8"取消", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mOpenMenu = false;
+			this->mOpenQuitMenu = false;
 			DeltaTime::SetPaused(false);
 		})
 		.Show();

@@ -1,0 +1,25 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 30 },
+    {
+      "op": "show_test_message_box",
+      "title": "自适应对话框",
+      "message": "这是一段专门用来验证对话框自动测量、长文换行与居中排版的文字。当内容超过短文框的可用宽度时，边框应先横向扩展，到达屏幕留白上限后再换行并增加高度；上下左右的石板边缘必须保持原比例，不能被整张拉伸。",
+      "scale": 1.0
+    },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "assert_state", "path": "dialogSkinResources.requiredTextureCount", "equals": 10 },
+    { "op": "assert_state", "path": "dialogSkinResources.loadedTextureCount", "equals": 10 },
+    { "op": "assert_state", "path": "gameMessageBox.adaptiveStandardSkin", "equals": true },
+    { "op": "assert_state", "path": "gameMessageBox.centerXInt", "equals": 550 },
+    { "op": "assert_state", "path": "gameMessageBox.centerYInt", "equals": 300 },
+    { "op": "assert_state", "path": "gameMessageBox.widthInt", "atLeast": 600, "atMost": 1020 },
+    { "op": "assert_state", "path": "gameMessageBox.heightInt", "atLeast": 258 },
+    { "op": "assert_state", "path": "gameMessageBox.wrappedMessageLineCount", "atLeast": 2 },
+    { "op": "dump_state", "name": "adaptive_messagebox_state.json" },
+    { "op": "screenshot", "name": "adaptive_messagebox" },
+    { "op": "quit" }
+  ]
+}

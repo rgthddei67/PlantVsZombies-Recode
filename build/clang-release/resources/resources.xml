@@ -148,6 +148,16 @@
     <Image>./resources/image/UI/buttonbig.png</Image>
     <Image>./resources/image/UI/buttonsmall.png</Image>
     <Image>./resources/image/UI/MessageBox.png</Image>
+    <Image>./resources/image/UI/dialog_topleft.png</Image>
+    <Image>./resources/image/UI/dialog_topmiddle.png</Image>
+    <Image>./resources/image/UI/dialog_topright.png</Image>
+    <Image>./resources/image/UI/dialog_centerleft.png</Image>
+    <Image>./resources/image/UI/dialog_centermiddle.png</Image>
+    <Image>./resources/image/UI/dialog_centerright.png</Image>
+    <Image>./resources/image/UI/dialog_bottomleft.png</Image>
+    <Image>./resources/image/UI/dialog_bottommiddle.png</Image>
+    <Image>./resources/image/UI/dialog_bottomright.png</Image>
+    <Image>./resources/image/UI/dialog_header.png</Image>
     <Image>./resources/image/UI/options_backtogamebutton0.png</Image>
     <Image>./resources/image/UI/options_backtogamebutton_light.png</Image>
     <Image Column="1" Row="2">./resources/image/UI/FlagMeter.png</Image>
