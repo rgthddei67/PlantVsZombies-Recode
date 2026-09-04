@@ -99,6 +99,7 @@ inline constexpr int SURVIVAL_ENDLESS_NIGHT_POOL_LEVEL = 1003; // 黑夜泳池�
 inline constexpr int SURVIVAL_ENDLESS_ROOF_LEVEL = 1004; // 白天屋顶无尽专用 level 号
 inline constexpr int SURVIVAL_ENDLESS_NIGHT_ROOF_LEVEL = 1005; // 黑夜屋顶无尽专用 level 号
 inline constexpr int SURVIVAL_ENDLESS_WINTER_LEVEL = 1006; // 雪原无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_POLAR_LEVEL = 1007; // 极夜无尽专用 level 号
 
 struct SurvivalEndlessDefinition {
 	int level;
@@ -108,7 +109,7 @@ struct SurvivalEndlessDefinition {
 };
 
 // 无尽模式的关卡号、背景、显示名和解锁大关只有这一处真源，新增地形时选关与 Board 自动同步。
-inline constexpr std::array<SurvivalEndlessDefinition, 7> SURVIVAL_ENDLESS_DEFINITIONS{ {
+inline constexpr std::array<SurvivalEndlessDefinition, 8> SURVIVAL_ENDLESS_DEFINITIONS{ {
 	{ SURVIVAL_ENDLESS_LEVEL, Background::GROUND_DAY, u8"白天无尽", 1 },
 	{ SURVIVAL_ENDLESS_NIGHT_LEVEL, Background::GROUND_NIGHT, u8"黑夜无尽", 2 },
 	{ SURVIVAL_ENDLESS_POOL_LEVEL, Background::WATER_POOL, u8"泳池无尽", 3 },
@@ -116,6 +117,7 @@ inline constexpr std::array<SurvivalEndlessDefinition, 7> SURVIVAL_ENDLESS_DEFIN
 	{ SURVIVAL_ENDLESS_ROOF_LEVEL, Background::ROOF, u8"白天屋顶无尽", 5 },
 	{ SURVIVAL_ENDLESS_NIGHT_ROOF_LEVEL, Background::NIGHT_ROOF, u8"黑夜屋顶无尽", 6 },
 	{ SURVIVAL_ENDLESS_WINTER_LEVEL, Background::WINTER_GARDEN, u8"雪原无尽", 7 },
+	{ SURVIVAL_ENDLESS_POLAR_LEVEL, Background::POLAR_NIGHT_SNOWFIELD, u8"极夜无尽", 8 },
 } };
 
 /** 查找无尽关卡定义；普通冒险关返回 nullptr。 */
@@ -1286,7 +1288,7 @@ public:
 	float GetRowCenterYAtX(int row, float worldX) const;
 	/** 返回清扫车前缘探针在指定行的逻辑 Y；屋顶包含 RoofCleaner 资源原点校准。 */
 	float GetMowerTerrainY(int row, float worldX) const;
-	/** 正式冒险从第二大关启用天气；所有无尽地形均独立启用。 */
+	/** 正式冒险从第二大关启用旧天气；极夜无尽改用专属环境。 */
 	bool SupportsWeather() const;
 	/** 昼夜屋顶场景共用坡面径流，不依赖关卡编号。 */
 	bool SupportsRoofRunoff() const;

@@ -3235,6 +3235,18 @@ bool TestDriver::ExecuteCurrent() {
 			x = center.x;
 			y = center.y;
 		}
+		else if (target == "main_menu_survival") {
+			auto* mainMenu = dynamic_cast<MainMenuScene*>(
+				SceneManager::GetInstance().GetCurrentScene());
+			auto button = mainMenu ? mainMenu->GetSurvivalButton() : nullptr;
+			if (!button || !button->IsEnabled()) {
+				Fail("click target=main_menu_survival: 不在主菜单或生存入口不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
 		else if (target == "choose_card") {
 			GameScene* gs = CurrentGameScene();
 			ChooseCardUI* ui = gs ? gs->GetChooseCardUI() : nullptr;
@@ -5716,6 +5728,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ZombieType::ZOMBIE_GILDED_ZAMBONI, board->mSurvivalRound);
 	out["survivalPoolZamboniEligible"] = board->CanZombieTypeEnterSurvivalPool(
 		ZombieType::ZOMBIE_ZAMBONI, board->mSurvivalRound);
+	out["survivalPoolSnowBurrowEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_SNOW_BURROW, board->mSurvivalRound);
+	out["survivalPoolAdaptiveHelmetEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_ADAPTIVE_HELMET, board->mSurvivalRound);
+	out["survivalPoolThermalSniperEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_THERMAL_SNIPER, board->mSurvivalRound);
+	out["survivalPoolAuroraPriestEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_AURORA_PRIEST, board->mSurvivalRound);
+	out["survivalPoolPolarClockmakerEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_POLAR_CLOCKMAKER, board->mSurvivalRound);
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;

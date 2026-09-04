@@ -54,6 +54,13 @@ namespace {
 	{
 		return earlyValue + (lateValue - earlyValue) * progress;
 	}
+
+	/** 只为冒险极夜关返回关内序号；无尽不继承教学或 8-9 终波脚本。 */
+	int GetPolarAdventureLevelInArea(const Board& board)
+	{
+		return board.mIsSurvival ? 0
+			: AdventureProgression::GetLevelNumberInArea(board.mLevel);
+	}
 }
 
 /** 建立极夜雪原的第一轮确定性计划；非极夜地图把全部状态规范化为空。 */
@@ -172,7 +179,7 @@ void Board::UpdatePolarGaugeFluctuation(float deltaTime)
 void Board::RollNextPolarNightPlan()
 {
 	if (!SupportsPolarNightEnvironment()) return;
-	const int levelInArea = AdventureProgression::GetLevelNumberInArea(mLevel);
+	const int levelInArea = GetPolarAdventureLevelInArea(*this);
 	const bool humidityTutorial = levelInArea == 1;
 	const bool windTutorial = levelInArea == 2;
 	const bool forcedFirstWhiteout = levelInArea == 3 && !mPolarFirstWhiteoutCompleted;
@@ -218,7 +225,7 @@ void Board::CommitSnowHoleBatch()
 {
 	mLastSnowHoleBatchCreated = 0;
 	if (!SupportsPolarNightEnvironment()) return;
-	const int levelInArea = AdventureProgression::GetLevelNumberInArea(mLevel);
+	const int levelInArea = GetPolarAdventureLevelInArea(*this);
 	if (levelInArea == 1 && mPolarTutorialHoleBatchConsumed) return;
 
 	std::vector<int> eligibleRows;
@@ -338,7 +345,7 @@ void Board::UpdatePolarNightWindVisual(float deltaTime)
 void Board::BeginPolarFinalWavePrelude()
 {
 	if (!SupportsPolarNightEnvironment() || mPolarFinalWaveUpgradeApplied
-		|| AdventureProgression::GetLevelNumberInArea(mLevel) != 9) return;
+		|| GetPolarAdventureLevelInArea(*this) != 9) return;
 	mPolarFinalWaveUpgradeApplied = true;
 	if (mPolarNightPhase == PolarNightPhase::SNOW_BLIND) {
 		mPolarWhiteoutTimer = std::max(
@@ -428,7 +435,7 @@ void Board::UpdatePolarNightEnvironment(float deltaTime)
 		mPolarPhaseTimer += deltaTime;
 		if (mPolarPhaseTimer >= kPolarWhiteoutRampSeconds) {
 			mPolarNightPhase = PolarNightPhase::SNOW_BLIND;
-			mPolarWhiteoutTimer = AdventureProgression::GetLevelNumberInArea(mLevel) == 9
+			mPolarWhiteoutTimer = GetPolarAdventureLevelInArea(*this) == 9
 				? kPolarFinalSnowBlindSeconds : kPolarSnowBlindSeconds;
 		}
 		break;
@@ -651,7 +658,7 @@ bool Board::SetPolarNightEnvironmentForTesting(float temperatureC,
 	mPolarWhiteoutTimer = phase == PolarNightPhase::SNOW_BLIND
 		? (phaseRemaining >= 0.0f ? std::clamp(phaseRemaining, 0.0f,
 				kPolarFinalSnowBlindSeconds)
-			: (AdventureProgression::GetLevelNumberInArea(mLevel) == 9
+			: (GetPolarAdventureLevelInArea(*this) == 9
 				? kPolarFinalSnowBlindSeconds : kPolarSnowBlindSeconds))
 		: (phase == PolarNightPhase::WHITEOUT_RAMP
 			? kPolarWhiteoutRampSeconds
@@ -705,7 +712,7 @@ bool Board::SetSnowHoleForTesting(int row, int column, SnowHolePhase phase,
 void Board::ActivatePolarFinalWaveImmediately()
 {
 	if (mCurrentWave != mMaxWave || !SupportsPolarNightEnvironment()
-		|| AdventureProgression::GetLevelNumberInArea(mLevel) != 9
+		|| GetPolarAdventureLevelInArea(*this) != 9
 		|| mPolarFinalWaveUpgradeApplied) {
 		return;
 	}

@@ -2510,7 +2510,8 @@ void Board::TriggerRainGroundSplashForTesting()
 
 bool Board::SupportsWeather() const
 {
-	// 基础天气保留唯一的进度门槛：正式一大关不启用；所有无尽地形均独立启用。
+	// 基础天气保留唯一的进度门槛：正式一大关不启用；
+	// 无尽默认启用，但极夜地形始终使用独立三仪表环境。
 	if (SupportsPolarNightEnvironment()) return false;
 	if (mIsSurvival) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)

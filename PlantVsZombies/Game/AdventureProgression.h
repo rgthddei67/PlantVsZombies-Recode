@@ -144,7 +144,7 @@ namespace AdventureProgression
 		return finalLevel > 0 && adventureLevel > finalLevel;
 	}
 
-	/** 判断关卡号是否属于当前七大关冒险流程。 */
+	/** 判断关卡号是否属于当前已登记的冒险流程。 */
 	constexpr bool IsAdventureLevel(int level)
 	{
 		return level >= 1 && level <= LAST_ADVENTURE_LEVEL;

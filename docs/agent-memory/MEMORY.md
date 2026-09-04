@@ -4,7 +4,7 @@
 
 - [AutoTest 套件与验证矩阵](project_pvz_autotest_suite.md) — 2026-08-27 验证按实际改动面分流：新植物、新僵尸、新粒子或纯出怪/逻辑本身只跑默认 `clang-release` 可见专项；只有改动渲染后端、后端兼容路径或跨后端提交实现时才加跑 `-NoInstance` 和强制 OpenGL
 
-- [第八大关极夜雪原核心环境](project_pvz_polar_night_snowfield.md) — 2026-08-29 极夜导演、雪穴状态/延迟事务、强风偏行与绘制实现已迁入 `Board/BoardPolarNight.cpp`，正式波次创建仍留 `Board/Board.cpp`；既有三仪表、5 秒三红、45/60 秒雪盲、12m/s 风效淡入、持续雪穴和 1 秒出生改道契约不变，clang-release core/dynamics/navigation/UI 可见回归闭环；8-5～8-9 最终出怪表仍待后续
+- [第八大关极夜雪原核心环境](project_pvz_polar_night_snowfield.md) — 2026-09-04 第八大关 8-1～8-9 已完成且加入极夜无尽 1007；无尽复用三仪表、雪穴与出生改道，但不继承 8-1～8-3 教学或 8-9 特殊终波。第八大关只是当前登记边界，不是最终区域
 - [第八大关潜雪僵尸](project_pvz_snow_burrow_zombie.md) — 2026-09-04 `ZOMBIE_SNOW_BURROW` 为 700 本体/50 啃咬、无防具；出生两格潜雪与半血 0.8 秒可中断前摇后一格潜雪最多各一次，自然出雪只伤战斗顶层 150，地面能力经目标接口强制出雪并取消冲击；开始出土后残血死亡必须播放死亡轨而非直接删除；8-1 每波/同时限一且雪穴保底，8-2 每波/同时限二，阶段、延迟出生与计数均入档；8-1 通关后解锁图鉴
 - [第八大关听雪草](project_pvz_listening_grass.md) — 2026-08-28 `PLANT_LISTENINGGRASS` 为 8-1 奖励，75 阳光/20 秒卡冷/300 生命；本行优先按最靠近房屋、稳定 ID 迫出一个敌对地下目标，否则封闭一个形成中或活动雪穴，两种成功响应共享 6 秒内部冷却并入档；运行时完整复用经典叶子保护伞时间轴与哈希锁定染色分件
 - [第八大关适应头盔僵尸与植物伤害来源](project_pvz_adaptive_helmet_zombie.md) — 2026-08-30 `ZOMBIE_ADAPTIVE_HELMET` 为 800 本体/100 头盔；击穿整击无溢出并永久免疫原植物谱系或统一灰烬数值伤害，附带状态保留、毒伤归毒囊射手；`PlantDamageOrigin` 锁定原发射者且跨火炬/对象池/存档；钟匠窄快照可恢复 NONE/植物谱系/ASH 并原子对齐头盔胸章；8-3 白毛风后保底，8-3/8-4与后续生存池每波4且无同时或累计上限
@@ -151,7 +151,7 @@
 - [僵尸血量文字thrash→HUD字形图集 ✅完成](project_pvz_zombie_hp_text_thrash.md) — 2026-07-02主人真机验证尖峰消失(已push,feature已删);GlyphAtlas单行白字形+DrawGlyphRun逐字形quad;**关键bug=BeginParallelRecord预留固定4MB被字形×13撑爆→vbo翻倍2GB(b8ab956比例化max(8MB,remain/4))**;+字形基线double-count修(BuildGlyphAtlas按真实墨迹框裁紧致);坑=overflow warning在stdout非run.log
 - [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
 - [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-08-27 轮次、权重、背景、出生行与明确品种排除统一由候选资格查询收口；鎏金冰车是当前唯一额外禁入全部无尽卡池的非零权重类型，普通冰车与其他既有资格不变；最终最多8种和随机±1~2保持
-- [GameSelectScene 冒险分页选关+七地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-08-27 冒险入口按 `AdventureProgression` 与当前进度自动生成，每页6×3、锁定关不创建、通关关左上画奖杯，并默认定位当前可挑战关所在页；无专属缩略图的场景统一裁正式背景。生存由集中定义表自动生成七种无尽，分别要求完成对应第1～7大关，未解锁入口不创建且永不标通关；各背景自动取得雾、径流、雷荷或冬季机制
+- [GameSelectScene 冒险分页选关+八地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-09-04 生存集中定义表新增 1007 极夜无尽，严格在进度越过 8-9 后解锁，复用极夜环境且隔离冒险教学/特殊终波；第八大关不是最终区域，未来区域仍由 `AdventureProgression` 与集中定义继续扩展
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-03 本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白；方向背击与弹丸主动绕盾统一由 `TakeProjectileDamage` 路由，目标可否决主动绕盾；Animator 轨道覆盖的实例化与 NoInstance 路径已有可见专项基线
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)

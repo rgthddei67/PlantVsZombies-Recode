@@ -1,6 +1,6 @@
 ---
 name: project_pvz_gameselect_scene_night_endless
-description: GameSelectScene 挑战风格的冒险分页选关与七种地形无尽入口
+description: GameSelectScene 挑战风格的冒险分页选关与八种地形无尽入口
 metadata:
   node_type: memory
   type: project
@@ -30,8 +30,8 @@ metadata:
 - `Board::SupportsWeather()` 对 1002 返回 true，与第三大关日间泳池保持一致；天气玩法状态
   仍只由 Board 持有，没有新增展示或存档副本。
 - 选择页第三张卡使用 `IMAGE_ALMANAC_GROUNDPOOL`，标签为“泳池无尽”，中心为 `(471,207)`。
-  当前主菜单生存按钮的稳定文字区点击点为 `(680,350)`；旧记录 `(689,400)` 在本次可见
-  AutoTest 中未触发按钮，已同步脚本。
+  AutoTest 现用 `click target=main_menu_survival` 从真实按钮中心解析坐标；不再依赖硬编码点穿过
+  斜石碑的重叠矩形命中区。
 - `clang-playtest` 配置与完整增量构建退出码 0。可见 `gameselect_smoke` 从主菜单点击生存、
   点击第三张卡并进入 1002，18 条命令全部通过、退出码 0；状态锁定
   `WATER_POOL`、6 行、`poolRows=[2,3]`、第 1 轮、天气支持与小雨生效，选择页和泳池截图
@@ -91,3 +91,21 @@ metadata:
   58（7-4）显示前六种且不创建雪原、进度 64 显示全部七种。`clang-release` 默认 Vulkan 与
   `-NoInstance` 可见路径均为 34 条命令、exit 0、`status=passed`、`script finished OK`；四张
   截图目验与状态一致。更新后的 `gameselect_smoke` 为 26 条命令，地形专项为 55 条命令，均通过。
+
+## 2026-09-04 极夜无尽
+
+- 新增 `SURVIVAL_ENDLESS_POLAR_LEVEL=1007`，集中定义映射到
+  `Background::POLAR_NIGHT_SNOWFIELD`、显示名“极夜无尽”和第 8 大关解锁条件；选关入口、
+  `Board::mIsSurvival`、关卡名、独立 `level1007` 存档与背景映射继续只消费同一张表。
+- 解锁严格使用 `HasCompletedArea(adventureLevel, 8)`：进度停在 72（8-9）时仍只显示前七种，
+  奖杯把进度推进到 73 后才显示第八张卡。这只是当前第八大关的完成边界，不把第八大关定义成
+  最终区域；以后增加第九、十区域时扩展 `AdventureProgression` 和集中定义即可。
+- 极夜无尽复用三仪表、雪穴与白毛风环境，但 `mIsSurvival` 明确隔离 8-1～8-3 教学保证和
+  8-9 特殊终波。旧雨势、雾、冬日花园寒潮、径流和雷荷仍按极夜背景集中禁用。
+- `smoke_survival_endless_unlocks.json` 锁定进度 72/73 两侧；
+  `smoke_survival_endless_terrains.json` 锁定真实进入 1007、极夜环境、五种极夜僵尸在第 22 轮
+  的统一生存池资格以及第 22 轮快照往返；`gameselect_smoke.json` 锁定当前八张入口仍为单页。
+- 2026-09-04 `clang-release` 默认 Vulkan 可见验证：解锁专项 50 条、地形专项 92 条、
+  `gameselect_smoke` 26 条均 exit 0、`status=passed`、`script finished OK`；目验
+  `06_area_eight_finished.png` 的八张入口，以及 `06_polar_endless.png` /
+  `07_polar_endless_round_22_reloaded.png` 的极夜棋盘、观测站和轮次文字均正确。CTest 3/3 通过。

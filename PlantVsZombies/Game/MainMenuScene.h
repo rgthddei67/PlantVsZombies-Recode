@@ -20,6 +20,8 @@ public:
 	std::string GetConsoleTooltipText() const;
 	/** 返回控制台浮动说明框的当前左上角，供 UI 自动化验证跟随行为。 */
 	Vector GetConsoleTooltipPosition() const;
+	/** 返回当前生存模式入口按钮，供 UI 自动化走真实点击链。 */
+	std::shared_ptr<Button> GetSurvivalButton() const;
 
 	bool mReadyToSwitchAdventureLevel = false;
 	bool mReadyToSkipToSecondArea = false;
@@ -152,6 +154,9 @@ public:
 			survival->Draw(g);
 		}
 	}
+
+	/** 返回当前生存模式入口按钮；场景离开后弱引用自然失效。 */
+	std::shared_ptr<Button> GetSurvivalButton() const { return mSurvival.lock(); }
 };
 
 #endif

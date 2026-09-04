@@ -21,6 +21,11 @@ namespace
 
 MainMenuScene::~MainMenuScene() = default;
 
+std::shared_ptr<Button> MainMenuScene::GetSurvivalButton() const
+{
+	return mMainMenuButtons ? mMainMenuButtons->GetSurvivalButton() : nullptr;
+}
+
 void MainMenuScene::OnEnter()
 {
 	Scene::OnEnter();
