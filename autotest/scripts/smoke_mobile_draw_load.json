@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "set_all_owned_cards" },
+    { "op": "goto_level", "level": 1 },
+    { "op": "wait_seconds", "value": 5.0 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "assert_state", "path": "chooseCardVisibleCardCount", "atLeast": 40 },
+    { "op": "screenshot", "name": "cards.png" },
+    { "op": "dump_state", "name": "cards.json" },
+    { "op": "goto_level", "level": 54, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "wait_seconds", "value": 2.0 },
+    { "op": "assert_state", "path": "fog.initialized", "equals": true },
+    { "op": "assert_state", "path": "fog.visibleCells", "atLeast": 25 },
+    { "op": "screenshot", "name": "fog.png" },
+    { "op": "dump_state", "name": "fog.json" },
+    { "op": "quit" }
+  ]
+}

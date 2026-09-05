@@ -1010,6 +1010,12 @@ void Graphics::FlushBatch() {
 			expanded.push_back(vertex);
 		}
 
+		// 整组 CPU 几何只上传一次；卡面/雾片仍保序切纹理，但不为每个小段重复 orphan。
+		if (!m_gl->UploadCpuBatch(expanded.data(), expanded.size())) {
+			LOG_ERROR("Graphics") << "OpenGL CPU batch 上传失败";
+			clearCpu();
+			return;
+		}
 		// 上层几何由三角形组成；只在三角形边界按纹理/Blend 分段，不跨命令重排。
 		const glm::mat4 projectionView = m_projection * m_viewMatrix;
 		std::size_t segmentStart = 0;
@@ -1023,10 +1029,10 @@ void Graphics::FlushBatch() {
 			const bool stateBoundary = !firstSegment
 				&& segmentBlend != m_batchVertices[segmentStart - 1].blendMode;
 			const BlendMode mode = DecodeBatchBlendMode(segmentBlend);
-			m_gl->SubmitBatch(segmentTexture,
+			m_gl->SubmitCpuBatchSegment(segmentTexture,
 				mode == BlendMode::Add, mode == BlendMode::WashedOut,
 				mode == BlendMode::LessWashedOut,
-				expanded.data() + segmentStart, end - segmentStart,
+				segmentStart, end - segmentStart,
 				projectionView, textureBoundary, stateBoundary);
 			firstSegment = false;
 		};

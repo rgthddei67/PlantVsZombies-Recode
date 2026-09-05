@@ -420,15 +420,46 @@ namespace pvz {
 		return mApi.GetError() == GL_NO_ERROR;
 	}
 
-	bool OpenGLRenderer::SubmitBatch(std::uint32_t texture, bool additive, bool washedOut,
+	bool OpenGLRenderer::UploadCpuBatch(const OpenGLVertex* vertices, std::size_t vertexCount) {
+		mCpuBatchVertexCount = 0;
+		if (!mFrameOpen || !vertices || vertexCount == 0 || vertexCount > 0x7FFFFFFFu) return false;
+		const std::size_t bytes = vertexCount * sizeof(OpenGLVertex);
+		mVboCapacity = GrowCapacity(mVboCapacity, bytes);
+		mApi.BindVertexArray(mVao);
+		mApi.BindBuffer(GL_ARRAY_BUFFER, mVbo);
+		// 每个完整 batch 仅 orphan 一次；纹理分段共享上传结果，不在小 draw 间反复申请大缓冲。
+		mApi.BufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(mVboCapacity), nullptr, GL_DYNAMIC_DRAW);
+		mApi.BufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(bytes), vertices);
+		if (mApi.GetError() != GL_NO_ERROR) return false;
+		mCpuBatchVertexCount = vertexCount;
+		++mFrameStats.cpuBatchUploadCount;
+		mFrameStats.peakVboBytes = std::max(mFrameStats.peakVboBytes, bytes);
+		return true;
+	}
+
+	bool OpenGLRenderer::SubmitCpuBatchSegment(std::uint32_t texture, bool additive, bool washedOut,
 		bool lessWashedOut,
-		const OpenGLVertex* vertices, std::size_t vertexCount,
+		std::size_t firstVertex, std::size_t vertexCount,
 		const glm::mat4& projectionView, bool textureBoundary, bool stateBoundary) {
+		if (!mFrameOpen || vertexCount == 0 || firstVertex > mCpuBatchVertexCount
+			|| vertexCount > mCpuBatchVertexCount - firstVertex) return false;
 		if (textureBoundary) ++mFrameStats.textureFlushCount;
 		if (stateBoundary) ++mFrameStats.stateFlushCount;
 		Program& program = lessWashedOut ? mBatchLessColorizeProgram
 			: washedOut ? mBatchColorizeProgram : mBatchProgram;
-		return UploadAndDraw(program, texture, additive, vertices, vertexCount, projectionView);
+		mApi.UseProgram(program.id);
+		mApi.UniformMatrix4fv(program.projectionView, 1, GL_FALSE, glm::value_ptr(projectionView));
+		mApi.Uniform1f(program.framebufferHeight, static_cast<float>(mDrawableHeight));
+		mApi.ActiveTexture(GL_TEXTURE0);
+		mApi.BindTexture(GL_TEXTURE_2D, texture);
+		mApi.Uniform1i(program.texture, 0);
+		ApplyBlend(additive);
+		// CPU 数据已经按三角形展开；旧索引始终是 0,1,2,...，DrawArrays 可免去等价索引上传。
+		mApi.DrawArrays(GL_TRIANGLES, static_cast<int>(firstVertex), static_cast<int>(vertexCount));
+		mFrameStats.quadCount += static_cast<std::uint32_t>(vertexCount / 6);
+		++mFrameStats.batchCount;
+		++mFrameStats.drawCallCount;
+		return mApi.GetError() == GL_NO_ERROR;
 	}
 
 	bool OpenGLRenderer::UploadSsboBatch(const OpenGLSsboBatchVertex* vertices,

@@ -4877,6 +4877,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			? openGLRenderer->LastFrameStats().quadCount : 0 },
 		{ "openGLBatchCount", openGLRenderer
 			? openGLRenderer->LastFrameStats().batchCount : 0 },
+		{ "openGLCpuBatchUploadCount", openGLRenderer
+			? openGLRenderer->LastFrameStats().cpuBatchUploadCount : 0 },
 		{ "openGLTextureFlushCount", openGLRenderer
 			? openGLRenderer->LastFrameStats().textureFlushCount : 0 },
 		{ "openGLStateFlushCount", openGLRenderer

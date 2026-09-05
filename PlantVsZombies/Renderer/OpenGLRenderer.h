@@ -58,6 +58,7 @@ namespace pvz {
 		std::uint32_t quadCount = 0;
 		std::uint32_t batchCount = 0;
 		std::uint32_t drawCallCount = 0;
+		std::uint32_t cpuBatchUploadCount = 0;
 		std::uint32_t textureFlushCount = 0;
 		std::uint32_t stateFlushCount = 0;
 		std::size_t peakVboBytes = 0;
@@ -86,10 +87,12 @@ namespace pvz {
 		/** 重新查询高 DPI drawable 尺寸；全屏切换后必须先刷新再计算 letterbox。 */
 		void RefreshDrawableSize();
 
-		/** 连续同纹理、同混合状态的一段三角形；内部用 orphan + subdata 上传动态 VBO/IBO。 */
-		bool SubmitBatch(std::uint32_t texture, bool additive, bool washedOut,
+		/** 一次上传 CPU 展开的完整 batch；后续分段绘制前不得插入 Pool 或其他缓冲上传。 */
+		bool UploadCpuBatch(const OpenGLVertex* vertices, std::size_t vertexCount);
+		/** 按原顺序绘制已上传的连续三角形段，纹理切换不再重分配/上传缓冲。 */
+		bool SubmitCpuBatchSegment(std::uint32_t texture, bool additive, bool washedOut,
 			bool lessWashedOut,
-			const OpenGLVertex* vertices, std::size_t vertexCount,
+			std::size_t firstVertex, std::size_t vertexCount,
 			const glm::mat4& projectionView,
 			bool textureBoundary, bool stateBoundary);
 
@@ -170,6 +173,7 @@ namespace pvz {
 		std::size_t mVboCapacity = 0;
 		std::size_t mIboCapacity = 0;
 		std::size_t mSsboCapacity = 0;
+		std::size_t mCpuBatchVertexCount = 0;
 		std::vector<std::uint32_t> mSequentialIndices;
 		bool mFrameOpen = false;
 		bool mVsync = false;

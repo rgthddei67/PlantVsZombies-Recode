@@ -33,7 +33,24 @@ Android 固定 GLES 3.0 CPU Batch，不执行桌面 4.3/3.3 Core 选择或 Vulka
 - `clang-release` 与 `clang-release-noavx2` 均构建通过且 Win7 import audit 为 378 imports；两个 preset 的 save-migration/save-schema CTest 均通过。no-AVX2 build rules 无 `/arch:AVX2` 且 `PVZ_ENABLE_AVX2=OFF`。原 batch/pool 基线 shader 保持 `#version 330 core`，只有 `batch_ssbo.vert.glsl` 使用 `#version 430 core`。
 - 2026-08-30 Intel Arc B370 当前桌面实测：自动创建 4.3/GLSL 430 并命中 `batchPath=ssbo`；`-OpenGL33` 创建 3.3/GLSL 330 并命中 `batchPath=cpu`。同 Seed 主菜单、全屏、关卡 Reanimation+字形和粒子四张 PNG 逐字节 SHA-256 相同，两路均为 149 quads / 35 batches / 35 draws；SSBO 路径矩阵峰值 9536 B。OpenGL clip、Vulkan 默认、Vulkan `-NoInstance` 及 Vulkan 故障注入自动回落 SSBO 均可见通过。小场景单帧约 1 ms，不足以声称稳定 FPS 改善。
 
-## 尚未证明
+## 2026-09-05：CPU Batch 整组上传
+
+主人报告骁龙 835 在满页选卡和迷雾出现时卡顿。旧 CPU 路径按纹理分段后，每段都
+orphan 并上传 VBO/IBO；修改为 `UploadCpuBatch` 一次上传完整展开顶点，再由
+`SubmitCpuBatchSegment` 按原纹理/混合顺序 DrawArrays。旧索引为连续序列，故该路径
+不再生成或上传索引；Pool 专用上传和桌面 SSBO 路径保持原有实现。上传与分段绘制间
+不能插入 Pool 或其他 VBO 写入，Graphics::FlushBatch 负责保证连续提交。
+
+新增 `graphics.openGLCpuBatchUploadCount` 状态观测，以及 `smoke_mobile_draw_load`
+满页选卡/6-9 迷雾夹具。改前 Windows 强制 CPU 基线 passed，选卡 163 批、迷雾 127 批，
+各段分别上传；截图帧的耗时包含捕获开销，不可作为正常帧率结论。改后 Android 与
+Windows clang-release 编译通过；主人要求自行测试，因此不执行改后运行回归，上传次数
+下降和真机性能改善仍需实测，不能把编译通过视为完成性能验收。
+
+技能/reference 审计：既有动画、资源与后端验证流程仍适用，未改变资产、层次、玩法或
+存档合同，无需更新技能；此次依主人要求省略改后可见运行。
+
+## 尚未证明（硬件兼容）
 
 - 上述运行证据来自当前 Windows 桌面，不是 Windows 7 真机。Win7 SP1 x64 仍需用 `build\clang-release-noavx2` 测试 `-Renderer=opengl` 和 `-Renderer=auto`，回收 `run.log`、OpenGL Vendor/Renderer/Version、GLSL Version、启动失败文本和截图/录屏。
 - auto 已实际尝试 Vulkan 时，Windows loader/ICD 可能仍让 `GetModuleHandle(vulkan-1.dll)` 为 yes；这不等价于 Vulkan 对象或 SDL Vulkan window 未清理。强制 `-Renderer=opengl` 才是“完全不加载/调用 Vulkan”的玩家绕过路径，并已有当前机器 `no` 证据。
