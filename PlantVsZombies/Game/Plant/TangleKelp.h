@@ -13,6 +13,8 @@ class Zombie;
 class TangleKelp : public Plant {
 public:
 	using Plant::Plant;
+	/** 动作提交期间不搬运，防止原目标和结算位置失配。 */
+	bool CanBeRelocated() const override { return Plant::CanBeRelocated() && mState == State::IDLE; }
 
 	void PlantUpdate() override;
 	bool CanBeEaten() const override { return false; }

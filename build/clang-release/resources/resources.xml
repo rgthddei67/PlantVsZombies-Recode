@@ -260,6 +260,7 @@
 	<Image>./resources/image/PlantImage/AlarmBellFlower.png</Image>
 	<Image>./resources/image/PlantImage/BoundaryFlower.png</Image>
 	<Image>./resources/image/PlantImage/DawnLotus.png</Image>
+	<Image>./resources/image/PlantImage/CarryVine.png</Image>
 	<Image>./resources/image/reanim/REANIM_BOUNDARYFLOWER_MONUMENT.png</Image>
 	<Image>./resources/image/reanim/REANIM_DAWNLOTUS_CROWN.png</Image>
 	<Image>./resources/image/reanim/Zombie_aurora_device.png</Image>
@@ -671,6 +672,7 @@
 	<Reanimation name="AlarmBellFlower">./resources/reanim/AlarmBellFlower.reanim</Reanimation>
 	<Reanimation name="BoundaryFlower">./resources/reanim/Marigold.reanim</Reanimation>
 	<Reanimation name="DawnLotus">./resources/reanim/LilyPad.reanim</Reanimation>
+	<Reanimation name="CarryVine">./resources/reanim/CarryVine.reanim</Reanimation>
 	<Reanimation name="FurnaceCoreFlower">./resources/reanim/SunFlower.reanim</Reanimation>
     <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>
     <Reanimation name="Coffeebean">./resources/reanim/Coffeebean.reanim</Reanimation>

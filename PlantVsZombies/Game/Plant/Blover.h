@@ -9,6 +9,8 @@
 class Blover final : public Plant {
 public:
 	using Plant::Plant;
+	/** 已进入结算动作时禁止搬运，保留原目标及动作提交位置。 */
+	bool CanBeRelocated() const override { return false; }
 
 	void SetBlowDirection(WindDirection direction);
 	WindDirection GetBlowDirection() const { return mBlowDirection; }

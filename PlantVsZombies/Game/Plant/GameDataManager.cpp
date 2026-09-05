@@ -38,6 +38,7 @@
 #include "Squash.h"
 #include "ThreePeater.h"
 #include "TangleKelp.h"
+#include "CarryVine.h"
 #include "Jalapeno.h"
 #include "Caltrop.h"
 #include "Torchwood.h"
@@ -428,6 +429,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_BOUNDARYFLOWER,
 		ResourceKeys::Reanimations::REANIM_BOUNDARYFLOWER,
 		&MakePlant<BoundaryFlower>);
+
+	RegisterPlant(PlantType::PLANT_CARRYVINE, "PLANT_CARRYVINE",
+		ResourceKeys::Textures::IMAGE_CARRYVINE,
+		AnimationType::ANIM_CARRYVINE,
+		ResourceKeys::Reanimations::REANIM_CARRYVINE,
+		&MakePlant<CarryVine>);
 
 	RegisterPlant(PlantType::PLANT_DAWNLOTUS, "PLANT_DAWNLOTUS",
 		ResourceKeys::Textures::IMAGE_DAWNLOTUS,

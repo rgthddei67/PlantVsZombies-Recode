@@ -1706,6 +1706,8 @@ bool Board::OccupyPlantFootprint(PlantType type, int row, int anchorColumn,
 
 bool Board::CanPlantAt(PlantType type, int row, int col)
 {
+	// 工具卡使用来源/目的两段事务，不可作为普通植物落种。
+	if (type == PlantType::PLANT_CARRYVINE) return false;
 	if (!MiniGame::AllowsPlant(mLevel, type)) return false;
 	if (!HasPlantingQuota(type)) return false;
 	int anchorRow = row;
@@ -2170,7 +2172,7 @@ Plant* Board::CreatePlayerPlant(PlantType plantType, int row, int column)
 
 Plant* Board::CreateImitaterPlant(PlantType targetType, int row, int column)
 {
-	if (targetType == PlantType::PLANT_IMITATER
+	if ((targetType == PlantType::PLANT_IMITATER || targetType == PlantType::PLANT_CARRYVINE)
 		|| IsUpgradePlantType(targetType)
 		|| !GameDataManager::GetInstance().HasPlant(targetType)) {
 		return nullptr;
@@ -2182,6 +2184,7 @@ Plant* Board::CreateImitaterPlant(PlantType targetType, int row, int column)
 Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 	int row, int column, bool skipsettings, bool isPreview, bool playerDeployment)
 {
+	if (!isPreview && placementType == PlantType::PLANT_CARRYVINE) return nullptr;
 	if (!isPreview && !MiniGame::AllowsPlant(mLevel, placementType)) return nullptr;
 	const int requestedRow = row;
 	const int requestedColumn = column;
@@ -3626,7 +3629,7 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 Plant* Board::CreateImitaterPlantWithID(
 	PlantType targetType, int row, int col, int id)
 {
-	if (targetType == PlantType::PLANT_IMITATER
+	if ((targetType == PlantType::PLANT_IMITATER || targetType == PlantType::PLANT_CARRYVINE)
 		|| IsUpgradePlantType(targetType)
 		|| !GameDataManager::GetInstance().HasPlant(targetType)) {
 		return nullptr;

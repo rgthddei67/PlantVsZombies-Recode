@@ -385,7 +385,7 @@ namespace {
 		PT(PLANT_LISTENINGGRASS),
 		PT(PLANT_AURORATORCHWOOD),
 		PT(PLANT_NORTHSTARFLOWER), PT(PLANT_ICEMIRRORGRASS),
-		PT(PLANT_BOUNDARYFLOWER), PT(PLANT_DAWNLOTUS),
+		PT(PLANT_BOUNDARYFLOWER), PT(PLANT_DAWNLOTUS), PT(PLANT_CARRYVINE),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -1448,6 +1448,17 @@ bool TestDriver::ExecuteCurrent() {
 		if (board->mBoardState != BoardState::GAME) { Fail("force_survival_round_clear: Board 尚未进入 GAME"); return false; }
 		// 走正式轮清入口，覆盖词条选择、选卡过场及场上对象保留行为。
 		board->OnSurvivalRoundClear();
+		return true;
+	}
+	if (op == "relocate_plant_group") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("relocate_plant_group: no Board"); return false; }
+		Board* board = gs->GetBoard();
+		const int source = board->GetRelocationSourceID(cmd.value("fromRow", -1), cmd.value("fromCol", -1));
+		const bool result = board->RelocatePlantGroup(source, cmd.value("row", -1), cmd.value("col", -1));
+		if (result != cmd.value("expectedSuccess", true)) {
+			Fail("relocate_plant_group: unexpected result"); return false;
+		}
 		return true;
 	}
 	if (op == "plant") {
@@ -5263,6 +5274,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_IMP_ARM1_BONE, false) != nullptr },
 	};
 	out["cards"] = nlohmann::json::array();
+	out["carryVine"] = {
+		{ "reanimLoaded", ResourceManager::GetInstance().HasReanimation(ResourceKeys::Reanimations::REANIM_CARRYVINE) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(ResourceKeys::Textures::IMAGE_CARRYVINE, false) != nullptr },
+		{ "basketLoaded", ResourceManager::GetInstance().GetTexture(ResourceKeys::Textures::IMAGE_CARRYVINE_BASKET, false) != nullptr },
+		{ "sourceID", gs->GetCardSlotManager() ? gs->GetCardSlotManager()->GetRelocationSourceID() : NULL_PLANT_ID },
+	};
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
 			if (!card) continue;
@@ -7333,6 +7350,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				p->GetUnyieldingRootsTimeRemaining() * 1000.0f)) },
 			{ "eaterCount", p->mEaterCount },
 			{ "canBeEaten", p->CanBeEaten() },
+			{ "canBeRelocated", p->CanBeRelocated() },
 			{ "sleeping", p->GetSleepState() },
 			{ "sleepIndicatorVisible", p->HasSleepIndicator() },
 			{ "sleepIndicatorOffsetXOn1000", static_cast<int>(std::lround(

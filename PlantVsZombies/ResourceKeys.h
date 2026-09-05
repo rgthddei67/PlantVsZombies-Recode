@@ -441,6 +441,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_ALARMBELLFLOWER);
 		RKEY(IMAGE_BOUNDARYFLOWER);
 		RKEY(IMAGE_DAWNLOTUS);
+		RKEY(IMAGE_CARRYVINE);
+		RKEY(IMAGE_CARRYVINE_BASKET);
 		RKEY(IMAGE_REANIM_BOUNDARYFLOWER_MONUMENT);
 		RKEY(IMAGE_REANIM_DAWNLOTUS_CROWN);
 		RKEY(IMAGE_FURNACECOREFLOWER);
@@ -799,6 +801,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_ALARMBELLFLOWER = "AlarmBellFlower";
 		inline const std::string REANIM_BOUNDARYFLOWER = "BoundaryFlower";
 		inline const std::string REANIM_DAWNLOTUS = "DawnLotus";
+		inline const std::string REANIM_CARRYVINE = "CarryVine";
 		inline const std::string REANIM_FURNACECOREFLOWER = "FurnaceCoreFlower";
 		inline const std::string REANIM_LISTENINGGRASS = "ListeningGrass";
 		inline const std::string REANIM_NORTHSTARFLOWER = "NorthStarFlower";

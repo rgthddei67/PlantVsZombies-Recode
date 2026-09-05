@@ -121,7 +121,7 @@ namespace AdventureProgression
 		PlantType::PLANT_BOUNDARYFLOWER,
 		PlantType::PLANT_DAWNLOTUS,
 		NO_PLANT_REWARD,
-		NO_PLANT_REWARD, // 9-1地图教学；本轮无新植物
+		PlantType::PLANT_CARRYVINE, // 9-1 通关后解锁整组搬运工具
 	};
 
 	/** 返回内部关卡号对应的大关编号；非正数关卡返回 0。 */

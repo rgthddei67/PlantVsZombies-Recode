@@ -363,6 +363,8 @@ public:
 	bool IsPreview() const { return this->mIsPreview; }
 	bool IsEating() const { return this->mIsEating; }
 	int GetEatingPlantID() const { return mEatPlantID; }
+	/** 搬运提交前解除指向指定植物的啃食关系；其他目标及已结算伤害不变。 */
+	void ReleaseRelocatedPlant(int plantID);
 	/** 是否正在执行由大蒜首口触发的停顿、换行或收尾阶段。 */
 	bool IsGarlicRedirecting() const { return mGarlicRedirectActive; }
 	/** AutoTest 与存档诊断使用的嫌恶反应进度，单位：游戏秒。 */

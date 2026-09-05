@@ -26,6 +26,8 @@ private:
 
 public:
 	using Plant::Plant;
+	/** 动作提交期间不搬运，防止原目标和结算位置失配。 */
+	bool CanBeRelocated() const override { return Plant::CanBeRelocated() && mState != State::BITING; }
 
 	void PlantUpdate() override;
 	void SaveExtraData(nlohmann::json& j) const override;

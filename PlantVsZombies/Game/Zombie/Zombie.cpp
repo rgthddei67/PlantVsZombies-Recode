@@ -2788,6 +2788,11 @@ bool Zombie::IsCurrentPlantEatingTargetValid()
 	return horizontalGap <= kEatingTargetRetentionGap;
 }
 
+void Zombie::ReleaseRelocatedPlant(int plantID)
+{
+	if (mEatPlantID == plantID) StopEatingInvalidPlantTarget(0.0f);
+}
+
 void Zombie::StopEatingInvalidPlantTarget(float blendTime)
 {
 	if (!mIsEating || mEatPlantID == NULL_PLANT_ID) return;

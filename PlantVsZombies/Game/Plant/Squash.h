@@ -7,6 +7,8 @@ class Zombie;
 class Squash : public Plant {
 public:
 	using Plant::Plant;
+	/** 动作提交期间不搬运，防止原目标和结算位置失配。 */
+	bool CanBeRelocated() const override { return Plant::CanBeRelocated() && mState == State::IDLE; }
 
 	/** 推进 C# 原版的观察、起跳、砸落和落地清理状态机。 */
 	void PlantUpdate() override;

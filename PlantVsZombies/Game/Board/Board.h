@@ -1453,6 +1453,12 @@ public:
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
 	bool CanPlantAt(PlantType type, int row, int col);
+	/** 解析可搬组合的稳定锚点 ID；多格植物任一占格均归到同一锚点。 */
+	int GetRelocationSourceID(int row, int col);
+	/** 检查已有整组植物能否原样移入完整空占地，不应用新种配额或升级前置条件。 */
+	bool CanRelocatePlantGroup(int sourceID, int row, int col);
+	/** 校验后原子移动植物、承载和扶梯，并解除旧啃食关系；失败不修改状态。 */
+	bool RelocatePlantGroup(int sourceID, int row, int col);
 	/**
 	 * 把点击格解析为植物左侧逻辑锚点；普通植物原样返回，双格升级可从任一基础植物点击。
 	 */

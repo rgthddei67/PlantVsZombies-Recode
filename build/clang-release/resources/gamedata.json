@@ -24,6 +24,7 @@
     "PLANT_LILYPAD":         { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -19.0], "scale": 1.0, "simulation": { "baseHealth": 300, "supportOnly": true } },
     "PLANT_SQUASH":          { "cost": 50,  "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_THREEPEATER":     { "cost": 275, "cooldown": 10.0,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33, "attackRowRadius": 1 } },
+    "PLANT_CARRYVINE": { "cost": 75, "cooldown": 20.0, "offset": [-37.6, -28.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_TANGLEKELP":      { "cost": 25,  "cooldown": 30.0, "offset": [-37.6, -28.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_JALAPENO":        { "cost": 125, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_SPIKEWEED":       { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 20.0 } },

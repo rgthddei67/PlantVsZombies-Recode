@@ -97,6 +97,11 @@ public:
 	virtual void PlantUpdate();		// 子类重写Update用这个
 	/** 返回占层、占格与落种契约使用的类型；模仿者占位时返回其目标。 */
 	virtual PlantType GetPlacementType() const { return mPlantType; }
+	/** 当前阶段是否允许主动搬运；动作中的品种应在自己的类中收紧资格。 */
+	virtual bool CanBeRelocated() const {
+		return OccupiesGridSlot() && mPlantHealth > 0
+			&& !IsBungeeTargeted() && !IsIceSealed();
+	}
 	/** 绘制需要夹在承载/普通层与本体前层之间的格子背景；默认植物没有这一层。 */
 	virtual void DrawStackBackground(Graphics*) {}
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。

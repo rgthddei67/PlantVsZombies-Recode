@@ -12,6 +12,8 @@
 
 - **资格拒绝断言：** `set_typhoon` 可传 `expectedSuccess=false`，用正式设置入口验证当前地图或天气拒绝台风；缺省仍要求设置成功，保持旧脚本语义。
 
+- **整组搬运夹具：** `relocate_plant_group` 用 `fromRow/fromCol` 选择来源、`row/col` 指定落点，调用正式 Board 入口；`expectedSuccess` 默认 true。卡费与冷却仍须用真实三段 `click` 验证。运行 `smoke_carry_vine` 后执行 `python autotest/verify_carry_vine.py`，比较稳定 ID、生命、生产/装填状态与多格别名；存档截图屏障只允许正常固定步推进。
+
 - **脚本位置：** `autotest/scripts/*.json`（纯数据，不属于编译目标；修改脚本无需重新编译）。
 - **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：** Codex 默认必须让窗口显示在主人当前桌面。GUI 启动属于沙箱外桌面操作，调用 shell 时使用 `sandbox_permissions="require_escalated"`；仅写 `-WindowStyle Normal` 而不提升权限，进程仍可能落入隔离会话、主人看不到。推荐命令：
 

@@ -26,6 +26,7 @@ private:
 
 	Board* mBoard = nullptr;
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
+	int mRelocationSourceID = NULL_PLANT_ID; // 未提交来源只保存稳定 ID，取消/读档不自动执行
 	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
 	bool mPauseGameplayInputBlocked = false; // 普通空格暂停的附加门禁；非 GAME 状态始终禁止玩法输入
 	bool mSuppressCobTargetRelease = false; // 进入瞄准态的同一次左键释放不得立刻提交炮击
@@ -53,6 +54,9 @@ public:
 	/** 地图射界预览只读取当前正式选卡与悬停格，不创建测试目标或参与索敌。 */
 	PlantType GetPlacementPreviewType() const { return selectedCard ? selectedCard->GetGameplayPlantType() : PlantType::NUM_PLANT_TYPES; }
 	const Cell* GetPlacementPreviewCell() const { return mHoveredCell; }
+	int GetRelocationSourceID() const { return mRelocationSourceID; }
+	/** 在场景 UI 阶段提示工具卡当前需要来源或目的地。 */
+	void DrawRelocationHint(Graphics* g);
 
 	// 卡牌操作
 	void AddCard(Card* card);

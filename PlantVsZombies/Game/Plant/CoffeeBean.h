@@ -11,6 +11,8 @@ class CoffeeBean : public Plant
 {
 public:
 	using Plant::Plant;
+	/** 已进入结算动作时禁止搬运，保留原目标及动作提交位置。 */
+	bool CanBeRelocated() const override { return false; }
 
 	bool CanBeEaten() const override { return false; }
 	/** 原版 flying 咖啡豆不参与地面植物伤害结算；等待和碎裂阶段均忽略伤害。 */

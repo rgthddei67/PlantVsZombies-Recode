@@ -12,6 +12,8 @@ class IceShroom : public Shroom
 {
 public:
 	using Shroom::Shroom;
+	/** 动作提交期间不搬运，防止原目标和结算位置失配。 */
+	bool CanBeRelocated() const override { return Plant::CanBeRelocated() && GetSleepState() && !IsWakingUp(); }
 
 	void TakeDamage(int damage, DamageSource source) override;
 	void TakeDeploymentInterceptionDamage(int damage, DamageSource source) override {

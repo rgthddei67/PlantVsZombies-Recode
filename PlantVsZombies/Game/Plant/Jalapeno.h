@@ -8,6 +8,8 @@
 class Jalapeno final : public Plant {
 public:
 	using Plant::Plant;
+	/** 已进入结算动作时禁止搬运，保留原目标及动作提交位置。 */
+	bool CanBeRelocated() const override { return false; }
 
 	/** 蓄力期间免疫啃食伤害，只保留受击闪光。 */
 	void TakeDamage(int damage, DamageSource source) override;

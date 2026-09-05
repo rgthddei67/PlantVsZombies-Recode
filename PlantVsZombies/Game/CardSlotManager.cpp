@@ -280,6 +280,7 @@ void CardSlotManager::SelectCard(Card* card) {
 }
 
 void CardSlotManager::DeselectCard() {
+	mRelocationSourceID = NULL_PLANT_ID;
 	if (selectedCard) {
 		selectedCard->SetSelected(false);
 		selectedCard = nullptr;
@@ -528,6 +529,12 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	Vector mouseWorld = g->LogicalToWorld(mouseScreen.x, mouseScreen.y);
 
 	Cell* hoveredCell = FindCellAtWorldPosition(mouseWorld);
+	if (selected->GetGameplayPlantType() == PlantType::PLANT_CARRYVINE) {
+		DestroyCellPlantPreview();
+		mHoveredCell = hoveredCell;
+		UpdatePreviewToMouse(mouseWorld);
+		return;
+	}
 
 	bool isOverCellWithPlant = false;
 	if (hoveredCell && mBoard) {
@@ -619,6 +626,25 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 
 	Cell* cell = mBoard->GetCell(row, col);
 	if (!cell) return;
+	if (selectedCard->GetGameplayPlantType() == PlantType::PLANT_CARRYVINE) {
+		if (mRelocationSourceID == NULL_PLANT_ID) {
+			mRelocationSourceID = mBoard->GetRelocationSourceID(row, col);
+			if (mRelocationSourceID != NULL_PLANT_ID)
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED, 0.45f);
+			return;
+		}
+		// 来源在等待点击期间可能已死亡或被抓；提交边沿重新校验整组，失败不扣费。
+		if (!selectedCard->IsReady() || !CanAfford(selectedCard->GetSunCost())) return;
+		if (!mBoard->RelocatePlantGroup(mRelocationSourceID, row, col)) return;
+		SpendSun(selectedCard->GetSunCost());
+		selectedCard->StartCooldown();
+		AudioSystem::PlaySound(mBoard->IsPoolSquare(row, col)
+			? ResourceKeys::Sounds::SOUND_PLANT_ONWATER
+			: ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
+		DeselectCard();
+		mBoard->mCursorObjectManager.ClearActive();
+		return;
+	}
 
 	if (CanPlaceInCell(cell)) {
 		PlacePlantInCell(row, col);
@@ -677,4 +703,15 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 PlantType CardSlotManager::GetSelectedPlantType() const {
 	if (selectedCard) return selectedCard->GetGameplayPlantType();
 	return PlantType::NUM_PLANT_TYPES;
+}
+
+void CardSlotManager::DrawRelocationHint(Graphics* g)
+{
+	if (!g || GetSelectedPlantType() != PlantType::PLANT_CARRYVINE) return;
+	const char* message = mRelocationSourceID == NULL_PLANT_ID
+		? u8"搬搬藤：点击要搬运的植物组 · 右键取消"
+		: u8"搬搬藤：点击合法空格 · 75阳光 · 右键取消";
+	const Vector p = g->LogicalToWorld(260.0f, 76.0f);
+	g->DrawGlyphRun(message, ResourceKeys::Fonts::FONT_FZCQ, 18,
+		glm::vec4(255, 239, 156, 255), p.x, p.y);
 }

@@ -483,6 +483,20 @@ void Card::DrawPlantImage(
 {
 	if (!mPlantTexture) return;
 	const PlantType displayType = GetDisplayPlantType();
+	if (displayType == PlantType::PLANT_CARRYVINE) {
+		// 新卡图是紧裁切合成，不能沿用经典贴图含透明边距的左上偏移。
+		constexpr float inset = 4.0f; // 卡图左右安全边距，UI px
+		constexpr float top = 8.0f; // 卡图区域上边距，UI px
+		constexpr float height = 40.0f; // 卡图区域高度，避开底部价格，UI px
+		const float width = static_cast<float>(CARD_WIDTH) - 2.0f * inset;
+		const float scale = std::min(width / mPlantTexture->width,
+			height / mPlantTexture->height);
+		const float w = mPlantTexture->width * scale;
+		const float h = mPlantTexture->height * scale;
+		g->DrawTexture(mPlantTexture, position.x + inset + (width - w) * 0.5f,
+			position.y + top + (height - h) * 0.5f, w, h, 0.0f, color);
+		return;
+	}
 	const bool isMelonFamily = displayType == PlantType::PLANT_MELONPULT
 		|| displayType == PlantType::PLANT_WINTERMELON;
 	const bool isCobCannon = displayType == PlantType::PLANT_COBCANNON;
@@ -656,7 +670,7 @@ PlantType Card::GetGameplayPlantType() const
 bool Card::HasImitaterTarget() const
 {
 	return mPlantType == PlantType::PLANT_IMITATER
-		&& mImitaterTarget != PlantType::PLANT_IMITATER
+		&& mImitaterTarget != PlantType::PLANT_IMITATER && mImitaterTarget != PlantType::PLANT_CARRYVINE
 		&& !IsUpgradePlantType(mImitaterTarget)
 		&& GameDataManager::GetInstance().HasPlant(mImitaterTarget);
 }
@@ -664,7 +678,7 @@ bool Card::HasImitaterTarget() const
 bool Card::SetImitaterTarget(PlantType target)
 {
 	if (mPlantType != PlantType::PLANT_IMITATER
-		|| target == PlantType::PLANT_IMITATER
+		|| (target == PlantType::PLANT_IMITATER || target == PlantType::PLANT_CARRYVINE)
 		|| IsUpgradePlantType(target)
 		|| !GameDataManager::GetInstance().HasPlant(target)) {
 		return false;

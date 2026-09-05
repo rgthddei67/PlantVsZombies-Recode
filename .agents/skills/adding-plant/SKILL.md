@@ -201,6 +201,10 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 `[[project_pvz_gamedata_json]]`（权威单份资源）、`[[project_pvz_autotest_suite]]`、`[[reference_pvz_assets_worktree_autotest_gotchas]]`。
 
+## 主动搬运已有植物
+
+搬搬藤的三段点击由 `CardSlotManager` 保存未提交来源 ID，正式移动走 `Board::RelocatePlantGroup`。来源资格由各品种 `CanBeRelocated()` 声明；目的地校验完整 footprint 与整组承载，不能复用会要求基础株、消费累计名额的升级/新种入口。移动必须保留原实体 ID 和能力状态，先解除旧啃食关系，再一起换 Cell 四层、植物二维格位、排序与扶梯。卡费和冷却只在成功后结算，取消或失效来源不收费；界面未提交选择不跨读档自动执行。专项用真实点击检查支付，另对同 ID、生命、生产/装填余时及存档做前后比较，截图屏障期间允许真实逻辑步推进，不能误判为搬运重置。
+
 ## 矿场岩壁与攻击
 
 `Board::MineBlocksSegment` 按真实 Cell 闭边界判断地形遮挡，角点相切也算阻挡。矿场植物适配须同时检查索敌、发射与正式伤害提交；只挡子弹会让抛射或直接范围伤害穿墙，只挡索敌会让已发攻击泄漏。局部溅射从爆心再检验受害者射线，全场能力按已定规则独立处理。种植路径统一经过 `CanPlantAt` / `CanPlantOnMineCell`，显式构造与存档恢复不能混为同一入口；矿场中按格显示的射界是辅助投影，不能替代真实碰撞判定。

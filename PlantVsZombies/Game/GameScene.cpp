@@ -1902,7 +1902,10 @@ void GameScene::BuildDrawCommands()
 			LAYER_UI + 700);
 		RegisterDrawCommand("PlanternGearMenu",
 			[this](Graphics* g) {
-				if (mCardSlotManager) mCardSlotManager->DrawPlanternGearMenu(g);
+				if (mCardSlotManager) {
+					mCardSlotManager->DrawPlanternGearMenu(g);
+					mCardSlotManager->DrawRelocationHint(g);
+				}
 			},
 			kPlanternGearMenuRenderOrder);
 		RegisterDrawCommand("RoofMarshalBossHealthBar",

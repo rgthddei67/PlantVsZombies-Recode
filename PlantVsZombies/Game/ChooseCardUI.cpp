@@ -460,7 +460,7 @@ std::vector<Card*> ChooseCardUI::ResolveRestorableCards(bool applyImitaterTarget
 			const PlantType target = gameData.StringToPlantType(targetName);
 			if (target == PlantType::NUM_PLANT_TYPES
 				|| gameData.PlantTypeToEnumName(target) != targetName
-				|| target == PlantType::PLANT_IMITATER
+				|| (target == PlantType::PLANT_IMITATER || target == PlantType::PLANT_CARRYVINE)
 				|| IsUpgradePlantType(target)
 				|| !gameData.HasPlant(target)
 				|| !FindCardByType(target)) {
@@ -674,7 +674,7 @@ bool ChooseCardUI::OpenImitaterDialog(Card* imitaterCard)
 		if (!sourceCard) continue;
 		const PlantType target = sourceCard->GetPlantType();
 		// C# SeedPacketsWidget 的模仿模式只遍历前 44 张基础卡，不包含紫卡升级。
-		if (target == PlantType::PLANT_IMITATER || IsUpgradePlantType(target)) continue;
+		if ((target == PlantType::PLANT_IMITATER || target == PlantType::PLANT_CARRYVINE) || IsUpgradePlantType(target)) continue;
 		const int row = optionIndex / IMITATER_DIALOG_CARDS_PER_ROW;
 		const int column = optionIndex % IMITATER_DIALOG_CARDS_PER_ROW;
 		Card* option = GameObjectManager::GetInstance().CreateGameObjectImmediate<Card>(

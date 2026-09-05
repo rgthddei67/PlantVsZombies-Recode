@@ -32,14 +32,14 @@ void Imitater::SetupPlant()
 void Imitater::SetImitaterTarget(PlantType target)
 {
 	auto& gameData = GameDataManager::GetInstance();
-	mImitaterTarget = target != PlantType::PLANT_IMITATER
+	mImitaterTarget = target != PlantType::PLANT_IMITATER && target != PlantType::PLANT_CARRYVINE
 		&& !IsUpgradePlantType(target)
 		&& gameData.HasPlant(target) ? target : PlantType::NUM_PLANT_TYPES;
 }
 
 bool Imitater::HasValidTarget() const
 {
-	return mImitaterTarget != PlantType::PLANT_IMITATER
+	return mImitaterTarget != PlantType::PLANT_IMITATER && mImitaterTarget != PlantType::PLANT_CARRYVINE
 		&& !IsUpgradePlantType(mImitaterTarget)
 		&& GameDataManager::GetInstance().HasPlant(mImitaterTarget);
 }
