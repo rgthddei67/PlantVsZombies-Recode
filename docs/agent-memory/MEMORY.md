@@ -155,6 +155,7 @@
 - [僵尸血量文字thrash→HUD字形图集 ✅完成](project_pvz_zombie_hp_text_thrash.md) — 2026-07-02主人真机验证尖峰消失(已push,feature已删);GlyphAtlas单行白字形+DrawGlyphRun逐字形quad;**关键bug=BeginParallelRecord预留固定4MB被字形×13撑爆→vbo翻倍2GB(b8ab956比例化max(8MB,remain/4))**;+字形基线double-count修(BuildGlyphAtlas按真实墨迹框裁紧致);坑=overflow warning在stdout非run.log
 - [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
 - [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-08-27 轮次、权重、背景、出生行与明确品种排除统一由候选资格查询收口；鎏金冰车是当前唯一额外禁入全部无尽卡池的非零权重类型，普通冰车与其他既有资格不变；最终最多8种和随机±1~2保持
+- [小游戏最后的家底](project_pvz_minigame_last_savings.md) — 2026-09-05 独立 2000 关、主菜单小游戏选关页、3000 阳光七卡守十波；正式扣费/存档与冒险进度隔离，后半程铁门与橄榄球混编，长关卡名避让波次条
 - [GameSelectScene 冒险分页选关+八地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-09-04 生存集中定义表新增 1007 极夜无尽，严格在进度越过 8-9 后解锁，复用极夜环境且隔离冒险教学/特殊终波；第八大关不是最终区域，未来区域仍由 `AdventureProgression` 与集中定义继续扩展
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-03 本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白；方向背击与弹丸主动绕盾统一由 `TakeProjectileDamage` 路由，目标可否决主动绕盾；Animator 轨道覆盖的实例化与 NoInstance 路径已有可见专项基线

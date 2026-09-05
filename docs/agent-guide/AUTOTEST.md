@@ -88,3 +88,7 @@
 投影；截图与 dump 必须使用不同文件名（例如 `.png` 与 `.json`），避免后者覆盖截图。
 
 `smoke_modal_navigation` 覆盖三层弹窗、背景按钮/滑块隔离、逐层取消与图鉴返回；`activeMessageBoxCount` 导出当前活动层数，图鉴索引/植物页的 `almanacReturnLevel` 为游戏来源关卡，首页来源为 -1。往返前后的 dump 与正式 snapshot 用于比较阳光、卡槽、对象和 Board 状态；不要把场景跳转成功当成原局恢复的充分证据。
+
+### 小游戏专项
+
+`smoke_minigame_last_savings.json` 从 `click target=main_menu_minigames` 进入独立选关页，以一次真实卡槽/草坪点击验证扣费，再用总成本 2875 阳光的固定阵型夹具与 125 余款验证卡池限制、无阳光掉落、快照往返、自然十波与奖杯返回；固定阵型夹具不代表完整卡槽布阵操作已被验证。输入阶段用正常倍速，只有等待战斗时加速；可见执行期间保持玩家输入与脚本分开，避免真实操作改变预算。`miniGame` 根投影由关卡号派生，沿用 `sun/normalSunCount/smallSunCount/nextWaveCountdownMs` 等现有权威投影。`smoke_minigame_navigation.json` 覆盖零预算不能落种、失败重开与冒险上次选卡隔离。

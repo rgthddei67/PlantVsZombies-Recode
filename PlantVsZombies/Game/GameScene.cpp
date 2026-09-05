@@ -57,9 +57,8 @@ namespace {
 
 	// 右下角关卡名/轮数显示。
 	// 冒险模式：沿用原左对齐（左端锚点 x=768，阴影 766），不改动既有观感。
-	// 生存模式：右对齐——右端锚点固定，文字越长越向左延伸，避免"第10面旗"等长文本撞到右侧"难度"文字。
-	// 右锚点取 1020：第1轮文本宽约 252px，drawX≈768，与原左对齐位置基本重合，故第1轮观感不变。
-	constexpr float kLevelNameRightAnchor = 865.0f;
+	// 生存/小游戏长名称向左延伸，右边界留在从 870px 开始的波次进度条之前。
+	constexpr float kLevelNameRightAnchor = 865.0f; // 长关卡名称右边界，单位：逻辑像素
 	constexpr float kWeatherPanelWidth = 350.0f;          // 天气面板宽度；为最长风向与阵风中文实况预留安全边距（逻辑像素）
 	constexpr float kWeatherPanelHeight = 72.0f;          // 天气面板高度（逻辑像素）
 	constexpr float kWeatherPanelVisibleX = 12.0f;        // 完全滑入后的左边距（逻辑像素）
@@ -1929,7 +1928,7 @@ void GameScene::BuildDrawCommands()
 			RegisterDrawCommand("LevelName",
 				[this](Graphics* g) {
 					if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;  // 选卡阶段隐藏
-					DrawLevelName(GameAPP::GetInstance(), mBoard->mLevelName, mBoard->mIsSurvival);
+					DrawLevelName(GameAPP::GetInstance(), mBoard->mLevelName, mBoard->mIsSurvival || MiniGame::IsMiniGame(mBoard->mLevel));
 				},
 				LAYER_UI);
 
@@ -1946,6 +1945,17 @@ void GameScene::BuildDrawCommands()
 			ShowSunCount();
 		}
 	}
+
+	RegisterDrawCommand("MiniGameRules", [this](Graphics*) {
+		if (!mBoard || !MiniGame::IsMiniGame(mBoard->mLevel)
+			|| mBoard->mBoardState != BoardState::GAME) return;
+		const std::string text = mBoard->mCurrentWave == 0
+			? u8"布阵剩余 " + std::to_string(static_cast<int>(std::ceil(mBoard->mZombieCountDown))) + u8" 秒 · 本局不再获得阳光"
+			: u8"守住十波 · 阳光用完就没有补给了！";
+		auto& app = GameAPP::GetInstance();
+		app.DrawText(text, Vector(260, 82), {0, 0, 0, 255}, ResourceKeys::Fonts::FONT_FZJZ, 20);
+		app.DrawText(text, Vector(259, 81), {255, 235, 160, 255}, ResourceKeys::Fonts::FONT_FZJZ, 20);
+	}, LAYER_UI + 100);
 
 	RegisterDrawCommand("CrazyDaveDialog",
 		[this](Graphics* g) {
@@ -2132,7 +2142,7 @@ void GameScene::OpenMenu()
 		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0)
 		.Button(u8"重新开始", Vector(485, 330), Vector(213 * 0.9f, 50 * 0.9f), 21,
 			[this]() { this->OpenRestartMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG, false)
-		.Button(u8"主菜单", Vector(485, 371), Vector(213 * 0.9f, 50 * 0.9f), 21,
+		.Button(MiniGame::IsMiniGame(mBoard->mLevel) ? u8"小游戏选关" : u8"主菜单", Vector(485, 371), Vector(213 * 0.9f, 50 * 0.9f), 21,
 			[this]() { this->OpenQuitMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG, false)
 		.Button(u8"查看图鉴", Vector(485, 289), Vector(213 * 0.9f, 50 * 0.9f), 21, [this]() {
 			this->mLendToAlmanacScene = true;
@@ -2215,7 +2225,8 @@ void GameScene::OpenQuitMenu()
 
 	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
 		.Title(u8"退出当前游戏？")
-		.Message(u8"你想要返回主菜单吗？")
+		.Message(MiniGame::IsMiniGame(mBoard->mLevel)
+			? u8"你想要返回小游戏选关吗？" : u8"你想要返回主菜单吗？")
 		.Scale(kCompactDialogScale)
 		.Button(u8"退出", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToBackMenu = true;
@@ -2525,6 +2536,9 @@ void GameScene::Update() {
 			const PlantType reward = mUnlockedPlant;
 			scenes.RegisterScene<PlantAlmanacScene>("PlantRewardScene", reward);
 			scenes.SwitchTo("PlantRewardScene");
+		} else if (MiniGame::IsMiniGame(mBoard->mLevel)) {
+			scenes.SetGlobalData("GameSelectMode", "minigames");
+			scenes.SwitchTo("GameSelectScene");
 		} else {
 			scenes.SwitchTo("MainMenuScene");
 		}
@@ -2987,10 +3001,12 @@ void GameScene::ChooseCardComplete()
 
 	if (mChooseCardUI) {
 		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mLastSelectedCards = mChooseCardUI->GetSelectedCardKeys();
-		// 选卡提交即落盘；即使玩家随后直接退出，下一局也能恢复这组选择。
-		if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
-			LOG_ERROR("GameScene") << "保存上一次选卡失败，将在后续玩家存档点重试。";
+		if (!MiniGame::IsMiniGame(mBoard->mLevel)) {
+			gameApp.mLastSelectedCards = mChooseCardUI->GetSelectedCardKeys();
+			// 选卡提交即落盘；即使玩家随后直接退出，下一局也能恢复这组选择。
+			if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
+				LOG_ERROR("GameScene") << "保存上一次选卡失败，将在后续玩家存档点重试。";
+			}
 		}
 		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager.get());
 		mChooseCardUI->RemoveAllCards();
@@ -3037,7 +3053,7 @@ void GameScene::RegisterSurvivalGameUiOnce()
 	RegisterDrawCommand("LevelName",
 		[this](Graphics* g) {
 			if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;  // 选卡阶段隐藏
-			DrawLevelName(GameAPP::GetInstance(), mBoard->mLevelName, mBoard->mIsSurvival);
+			DrawLevelName(GameAPP::GetInstance(), mBoard->mLevelName, mBoard->mIsSurvival || MiniGame::IsMiniGame(mBoard->mLevel));
 		},
 		LAYER_UI);
 	RegisterDrawCommand("Difficulty",
@@ -3118,7 +3134,7 @@ void GameScene::GameOver()
 		.Title(u8"游戏结束")
 		.Message(u8"僵尸吃掉了你的脑子！")
 		.Scale(kCompactDialogScale)
-		.Button(u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+		.Button(MiniGame::IsMiniGame(mBoard->mLevel) ? u8"返回选关" : u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToBackMenu = true;
 			DeltaTime::SetPaused(false);
 		})

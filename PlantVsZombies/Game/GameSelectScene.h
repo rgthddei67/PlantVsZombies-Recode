@@ -7,12 +7,13 @@
 #include <memory>
 #include <vector>
 
-/** 挑战风格的关卡选择界面，可按入口展示冒险关卡或生存模式。 */
+/** 挑战风格的关卡选择界面，可按入口展示冒险、生存或小游戏。 */
 class GameSelectScene : public Scene {
 public:
 	enum class SelectMode {
 		SURVIVAL,
 		ADVENTURE,
+		MINIGAMES,
 	};
 
 	void OnEnter() override;

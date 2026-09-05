@@ -16,6 +16,7 @@ public:
 	~ChooseCardUI();
 
 	void Update() override;
+	/** 绘制选卡面板；小游戏在面板内补充固定卡组的玩法说明。 */
 	void Draw(Graphics* g) override;
 
 	// 后续添加卡牌的方法
@@ -51,7 +52,7 @@ public:
 	std::shared_ptr<Button> GetPageButton() const { return mPageButton.lock(); }
 	/** 用当前仍拥有且已注册的卡恢复上一次选择，并复用卡片目标位置动画。 */
 	bool RestoreLastSelectedCards();
-	// 添加所有卡牌
+	// 添加冒险拥有卡；小游戏改用独立七卡池并自动预选
 	void AddAllCard();
 	// 转换卡牌所有权给卡槽管理器
 	void TransferSelectedCardsTo(CardSlotManager* manager);

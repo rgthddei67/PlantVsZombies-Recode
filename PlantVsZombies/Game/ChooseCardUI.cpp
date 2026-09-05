@@ -224,6 +224,25 @@ void ChooseCardUI::Draw(Graphics* g) {
 			newpos.x, newpos.y,
 			static_cast<float>(w), static_cast<float>(h));
 	}
+	if (mGameScene && MiniGame::IsMiniGame(mGameScene->GetBoard()->mLevel)) {
+		// 文字与面板背景同属 UI：先转世界坐标，抵消选卡阶段的镜头平移。
+		const Vector logical = GetPosition();
+		const Vector pos = g->LogicalToWorld(logical.x, logical.y);
+		auto& app = GameAPP::GetInstance();
+		app.DrawText(MiniGame::NAME, pos + Vector(105, 155), {255, 221, 130, 255},
+			ResourceKeys::Fonts::FONT_FZJZ, 32);
+		const std::array<const char*, 5> lines = {
+			u8"3000 阳光，就是你全部的家底。",
+			u8"开局 60 秒布阵，守住十波进攻。",
+			u8"整局没有阳光补给，铲除不退款。",
+			u8"七张卡已备好，留些预算用于救场。",
+			u8"准备好了，就一起摇滚吧！"
+		};
+		for (std::size_t i = 0; i < lines.size(); ++i) {
+			app.DrawText(lines[i], pos + Vector(35, 220 + static_cast<float>(i) * 42),
+				{245, 216, 169, 255}, ResourceKeys::Fonts::FONT_FZJZ, 20);
+		}
+	}
 	// 原版 AddOn 属于 SeedChooser 背景：模仿卡飞到卡槽后，右侧木框仍留在原处。
 	if (mImitaterAddOnTexture && mImitaterCard) {
 		const Vector addOn = g->LogicalToWorld(kImitaterAddOnX, kImitaterAddOnY);
@@ -309,6 +328,17 @@ void ChooseCardUI::RemoveCard(Card* card)
 }
 
 void ChooseCardUI::AddAllCard() {
+	// 试玩卡池独立于冒险拥有记录，并预选全部七张，玩家可直接开始。
+	if (mGameScene && MiniGame::IsMiniGame(mGameScene->GetBoard()->mLevel)) {
+		for (PlantType type : MiniGame::CARDS) {
+			AddCard(type);
+			ToggleCardSelection(FindCardByType(type));
+		}
+		RefreshRestoreButtonState();
+		RefreshPageButtonState();
+		SyncCardPageVisibility();
+		return;
+	}
 	const auto& haveCards = GameAPP::GetInstance().mHaveCards;
 	auto& gameData = GameDataManager::GetInstance();
 	for (const auto& card : haveCards) {
@@ -529,7 +559,9 @@ void ChooseCardUI::SyncPageButtonPosition() {
 
 void ChooseCardUI::RefreshRestoreButtonState() {
 	if (auto button = mRestoreButton.lock()) {
-		button->SetEnabled(!ResolveRestorableCards(false).empty());
+		const bool miniGame = mGameScene && MiniGame::IsMiniGame(mGameScene->GetBoard()->mLevel);
+		button->SetSkipDraw(miniGame);
+		button->SetEnabled(!miniGame && !ResolveRestorableCards(false).empty());
 	}
 }
 

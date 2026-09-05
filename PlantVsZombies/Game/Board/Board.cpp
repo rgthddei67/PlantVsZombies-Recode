@@ -231,6 +231,15 @@ Board::Board(BoardPresentation* presentation, Background background, int level)
 		BuildSurvivalSpawnList(mSurvivalRound);
 		UpdateSurvivalLevelName();
 	}
+	else if (MiniGame::IsMiniGame(mLevel)) {
+		mLevelName = std::string(u8"小游戏：") + MiniGame::NAME;
+		mSun = MiniGame::INITIAL_SUN;
+		mMaxWave = MiniGame::WAVES;
+		mZombieCountDown = MiniGame::PREPARATION_SECONDS;
+		mSpawnZombieList = { ZombieType::ZOMBIE_NORMAL, ZombieType::ZOMBIE_TRAFFIC_CONE,
+			ZombieType::ZOMBIE_POLEVAULTER, ZombieType::ZOMBIE_BUCKET,
+			ZombieType::ZOMBIE_NEWSPAPER, ZombieType::ZOMBIE_DOOR, ZombieType::ZOMBIE_FOOTBALL };
+	}
 	else if (mLevel > 0)
 	{
 		LoadSpawnListFromJson();
@@ -1692,6 +1701,7 @@ bool Board::OccupyPlantFootprint(PlantType type, int row, int anchorColumn,
 
 bool Board::CanPlantAt(PlantType type, int row, int col)
 {
+	if (!MiniGame::AllowsPlant(mLevel, type)) return false;
 	if (!HasPlantingQuota(type)) return false;
 	int anchorRow = row;
 	int anchorColumn = col;
@@ -2165,6 +2175,7 @@ Plant* Board::CreateImitaterPlant(PlantType targetType, int row, int column)
 Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 	int row, int column, bool skipsettings, bool isPreview, bool playerDeployment)
 {
+	if (!isPreview && !MiniGame::AllowsPlant(mLevel, placementType)) return nullptr;
 	const int requestedRow = row;
 	const int requestedColumn = column;
 	if (!isPreview && !skipsettings
@@ -2422,6 +2433,7 @@ inline void Board::CleanPlantFromCells(int plantID)
 
 inline void Board::UpdateSunFalling(float deltaTime)
 {
+	if (MiniGame::IsMiniGame(mLevel)) return;
 	mSunCountDown -= deltaTime;
 	if (mSunCountDown <= 0.0f)
 	{
@@ -2555,7 +2567,8 @@ void Board::SummonNextWave()
 	// 在本波任何候选解析前承接冷却，保证整个波次（含稍后的显式正式候选）都保持封锁。
 	AdvanceHijackerSpawnCooldownForNewWave();
 	mZombieCountDown = IsStormyNightActive()
-		? kStormyNightNextWaveSeconds : NEXTWAVE_COUNT_MAX;
+		? kStormyNightNextWaveSeconds : (MiniGame::IsMiniGame(mLevel)
+			? MiniGame::WAVE_SECONDS : NEXTWAVE_COUNT_MAX);
 	if (IsStormyNightActive() && !mStormyNightInitialized) {
 		ActivateStormyNight();
 	}
@@ -2903,11 +2916,38 @@ inline ZombieType Board::PickZombieType(int remainingPoints)
 	return GetCheapestZombie();
 }
 
+/** 按关卡编排创建本波敌人；小游戏固定阵列，冒险/生存保留点数选池。 */
 inline void Board::TrySummonZombie()
 {
 	if (mCurrentWave > mMaxWave) return;
 
 	float x = static_cast<float>(SCENE_WIDTH) + 40;
+	if (MiniGame::IsMiniGame(mLevel)) {
+		// 每路保底进攻，后半程加入纵深；编排只影响本小游戏，复用正式出生入口。
+		const int ranks = mCurrentWave == MiniGame::WAVES ? 4
+			: (mCurrentWave >= 8 ? 3 : (mCurrentWave >= 3 ? 2 : 1));
+		for (int rank = 0; rank < ranks; ++rank) {
+			for (int row = 0; row < mRows; ++row) {
+				ZombieType type = ZombieType::ZOMBIE_NORMAL;
+				if (mCurrentWave >= 3 && (row + mCurrentWave + rank) % 3 == 0)
+					type = ZombieType::ZOMBIE_TRAFFIC_CONE;
+				if (mCurrentWave >= 5 && rank == 0 && row == mCurrentWave % mRows)
+					type = ZombieType::ZOMBIE_POLEVAULTER;
+				if (mCurrentWave >= 7 && rank == ranks - 1 && (row + mCurrentWave) % 2 == 0)
+					type = ZombieType::ZOMBIE_BUCKET;
+				// 铁门迫使玩家动用灰烬/压杀；橄榄球检验是否保留救场预算。
+				if (mCurrentWave >= 4 && rank == 0 && row == (mCurrentWave + 2) % mRows)
+					type = ZombieType::ZOMBIE_NEWSPAPER;
+				if (mCurrentWave >= 6 && rank == 1 && row == (mCurrentWave + 1) % mRows)
+					type = ZombieType::ZOMBIE_DOOR;
+				if (mCurrentWave >= 8 && rank == 0 && (row == mCurrentWave % mRows
+					|| (mCurrentWave == MiniGame::WAVES && row % 2 == 0)))
+					type = ZombieType::ZOMBIE_FOOTBALL;
+				CreateOrQueueWaveZombie(type, row, x + rank * CELL_COLLIDER_SIZE_X);
+			}
+		}
+		return;
+	}
 	// 6-4 第七波是劫持者的整波单体教学，不受正常第九波出怪门槛限制。
 	if (!mIsSurvival && mLevel == kHijackerTutorialLevel
 		&& mCurrentWave == kHijackerTutorialWave) {

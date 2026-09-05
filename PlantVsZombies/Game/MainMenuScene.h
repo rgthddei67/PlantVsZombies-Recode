@@ -22,11 +22,14 @@ public:
 	Vector GetConsoleTooltipPosition() const;
 	/** 返回当前生存模式入口按钮，供 UI 自动化走真实点击链。 */
 	std::shared_ptr<Button> GetSurvivalButton() const;
+	/** 返回小游戏入口，供自动化走真实点击链。 */
+	std::shared_ptr<Button> GetMiniGamesButton() const;
 
 	bool mReadyToSwitchAdventureLevel = false;
 	bool mReadyToSkipToSecondArea = false;
 	bool mReadyToSwitchAlmanac = false;
 	bool mReadyToSwitchSurvival = false;
+	bool mReadyToSwitchMiniGames = false;
 
 private:
 	std::unique_ptr<MainMenuButtons> mMainMenuButtons;
@@ -98,6 +101,10 @@ public:
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_GAME,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_GAME,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_GAME);
+		minigames->SetClickCallBack([this](bool) {
+			DeltaTime::SetPaused(false);
+			mMainMenuScene->mReadyToSwitchMiniGames = true;
+		});
 		auto pizzle = mUIManager->CreateButton(Vector(545, 252), Vector(286 * 1.00f, 122 * 1.00f));
 		mPizzle = pizzle;
 		pizzle->SetAsCheckbox(false);
@@ -141,6 +148,7 @@ public:
 
 	/** 返回当前生存模式入口按钮；场景离开后弱引用自然失效。 */
 	std::shared_ptr<Button> GetSurvivalButton() const { return mSurvival.lock(); }
+	std::shared_ptr<Button> GetMiniGamesButton() const { return mMiniGames.lock(); }
 };
 
 #endif

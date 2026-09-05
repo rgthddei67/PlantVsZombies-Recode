@@ -3252,12 +3252,13 @@ bool TestDriver::ExecuteCurrent() {
 			x = center.x;
 			y = center.y;
 		}
-		else if (target == "main_menu_survival") {
+		else if (target == "main_menu_survival" || target == "main_menu_minigames") {
 			auto* mainMenu = dynamic_cast<MainMenuScene*>(
 				SceneManager::GetInstance().GetCurrentScene());
-			auto button = mainMenu ? mainMenu->GetSurvivalButton() : nullptr;
+			auto button = mainMenu ? (target == "main_menu_minigames"
+				? mainMenu->GetMiniGamesButton() : mainMenu->GetSurvivalButton()) : nullptr;
 			if (!button || !button->IsEnabled()) {
-				Fail("click target=main_menu_survival: 不在主菜单或生存入口不可用");
+				Fail("click: 不在主菜单或指定模式入口不可用");
 				return false;
 			}
 			const Vector center = button->GetCenter();
@@ -4198,7 +4199,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	if (auto* selectScene = dynamic_cast<GameSelectScene*>(currentScene)) {
 		out["gameSelectMode"] = selectScene->GetSelectMode()
-			== GameSelectScene::SelectMode::ADVENTURE ? "ADVENTURE" : "SURVIVAL";
+			== GameSelectScene::SelectMode::ADVENTURE ? "ADVENTURE"
+			: (selectScene->GetSelectMode() == GameSelectScene::SelectMode::MINIGAMES ? "MINIGAMES" : "SURVIVAL");
 		out["gameSelectAvailableLevels"] = selectScene->GetAvailableLevels();
 		out["gameSelectAvailableLevelCount"] = static_cast<int>(
 			selectScene->GetAvailableLevels().size());
@@ -4847,6 +4849,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			? openGLRenderer->LastFrameStats().frameMilliseconds : 0.0 },
 	};
 	out["sun"] = board->mSun;
+	out["miniGame"] = MiniGame::IsMiniGame(board->mLevel);
 	out["skySunCountdownMs"] =
 		static_cast<int>(std::lround(board->mSunCountDown * 1000.0f));
 	out["poolSunCountdownMs"] =

@@ -1,4 +1,5 @@
 #pragma once
+#include "../MiniGameDefinition.h"
 #ifndef _BOARD_H
 #define _BOARD_H
 #include "Game/Cell.h"
@@ -788,8 +789,10 @@ public:
 	/** 返回 Board 是否仍处于关卡存档恢复生命周期。 */
 	bool IsLoadRestoreActive() const { return mIsLoadSave; }
 
+	/** 按模式结算阳光收益；最后的家底不接受任何补给。 */
 	inline void AddSun(int amount)
 	{
+		if (MiniGame::IsMiniGame(mLevel)) return;
 		// 只缩放正常收益入口；开局阳光、AutoTest set_sun 与花费均不走这里。
 		const int scaledAmount = mPerkManager.ScaleSunIncome(amount);
 		if (scaledAmount > MAX_SUN - mSun)

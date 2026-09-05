@@ -26,6 +26,11 @@ std::shared_ptr<Button> MainMenuScene::GetSurvivalButton() const
 	return mMainMenuButtons ? mMainMenuButtons->GetSurvivalButton() : nullptr;
 }
 
+std::shared_ptr<Button> MainMenuScene::GetMiniGamesButton() const
+{
+	return mMainMenuButtons ? mMainMenuButtons->GetMiniGamesButton() : nullptr;
+}
+
 void MainMenuScene::OnEnter()
 {
 	// 首页入口开始新的图鉴导航，不能继承已结束的关卡返回目标。
@@ -79,6 +84,14 @@ void MainMenuScene::Update()
 		auto& SceneMgr = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
 		SceneMgr.SwitchTo("AlmanacScene");
+	}
+	if (mReadyToSwitchMiniGames) {
+		mReadyToSwitchMiniGames = false;
+		auto& scenes = SceneManager::GetInstance();
+		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		scenes.SetGlobalData("GameSelectMode", "minigames");
+		scenes.SwitchTo("GameSelectScene");
+		return;
 	}
 	if (mReadyToSwitchSurvival) {
 		mReadyToSwitchSurvival = false;

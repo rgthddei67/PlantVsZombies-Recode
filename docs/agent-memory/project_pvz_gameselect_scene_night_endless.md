@@ -109,3 +109,7 @@ metadata:
   `gameselect_smoke` 26 条均 exit 0、`status=passed`、`script finished OK`；目验
   `06_area_eight_finished.png` 的八张入口，以及 `06_polar_endless.png` /
   `07_polar_endless_round_22_reloaded.png` 的极夜棋盘、观测站和轮次文字均正确。CTest 3/3 通过。
+
+## 2026-09-05 小游戏选关复用
+
+`GameSelectScene::SelectMode::MINIGAMES` 复用相同卡框和延迟导航，从主菜单小游戏按钮进入；当前仅直接开放 2000「最后的家底」。冒险分页与生存解锁表保持独立，玩法与验证见 [最后的家底](project_pvz_minigame_last_savings.md)。

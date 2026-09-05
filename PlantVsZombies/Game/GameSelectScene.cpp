@@ -1,6 +1,7 @@
 #include "GameSelectScene.h"
 
 #include "AdventureProgression.h"
+#include "MiniGameDefinition.h"
 #include "AudioSystem.h"
 #include "Game/Board/Board.h"
 #include "SceneManager.h"
@@ -70,6 +71,7 @@ PreviewSource GetPreviewSource(int level)
 
 std::string GetLevelLabel(GameSelectScene::SelectMode mode, int level)
 {
+	if (mode == GameSelectScene::SelectMode::MINIGAMES) return MiniGame::NAME;
 	if (mode == GameSelectScene::SelectMode::ADVENTURE) {
 		return std::to_string(AdventureProgression::GetAreaNumber(level)) + "-"
 			+ std::to_string(AdventureProgression::GetLevelNumberInArea(level));
@@ -193,7 +195,8 @@ void GameSelectScene::BuildDrawCommands()
 	RegisterDrawCommand("DrawSelectTexts", [this](Graphics*) {
 		auto& gameApp = GameAPP::GetInstance();
 		const std::string title = mSelectMode == SelectMode::ADVENTURE
-			? u8"选择冒险关卡" : u8"选择生存关卡";
+			? u8"选择冒险关卡" : (mSelectMode == SelectMode::MINIGAMES
+				? u8"选择小游戏" : u8"选择生存关卡");
 		DrawFittedCenteredText(gameApp, title, 552.0f, 82.0f, 500.0f,
 			glm::vec4(0, 0, 0, 255), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
 		DrawFittedCenteredText(gameApp, title, 550.0f, 80.0f, 500.0f,
@@ -219,6 +222,14 @@ void GameSelectScene::BuildDrawCommands()
 				ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 		}
 
+		if (mSelectMode == SelectMode::MINIGAMES) {
+			DrawFittedCenteredText(gameApp, u8"最后的家底：3000 阳光，七种植物，守住十波！",
+				650.0f, 280.0f, 650.0f, glm::vec4(46, 46, 84, 255),
+				ResourceKeys::Fonts::FONT_FZJZ, 25, 18);
+			DrawFittedCenteredText(gameApp, u8"开局 60 秒布阵；全程没有阳光补给，记得留钱救场。",
+				650.0f, 325.0f, 670.0f, glm::vec4(46, 46, 84, 255),
+				ResourceKeys::Fonts::FONT_FZJZ, 21, 16);
+		}
 		if (GetPageCount() > 1) {
 			const std::string pageText = std::to_string(mCurrentPage + 1) + " / "
 				+ std::to_string(GetPageCount());
@@ -233,6 +244,10 @@ void GameSelectScene::BuildDrawCommands()
 void GameSelectScene::BuildAvailableLevels()
 {
 	mAvailableLevels.clear();
+	if (mSelectMode == SelectMode::MINIGAMES) {
+		mAvailableLevels.push_back(MiniGame::LAST_SAVINGS_LEVEL);
+		return;
+	}
 	if (mSelectMode == SelectMode::ADVENTURE) {
 		const int unlockedLevel = std::clamp(GameAPP::GetInstance().mAdventureLevel,
 			1, AdventureProgression::LAST_ADVENTURE_LEVEL);
@@ -362,7 +377,8 @@ void GameSelectScene::OnEnter()
 {
 	const std::string mode = SceneManager::GetInstance().GetGlobalData(
 		"GameSelectMode", "survival");
-	mSelectMode = mode == "adventure" ? SelectMode::ADVENTURE : SelectMode::SURVIVAL;
+	mSelectMode = mode == "adventure" ? SelectMode::ADVENTURE
+		: (mode == "minigames" ? SelectMode::MINIGAMES : SelectMode::SURVIVAL);
 	mCurrentPage = 0;
 	mPendingPageDelta = 0;
 	mPendingEnterLevel = -1;
