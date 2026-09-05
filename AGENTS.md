@@ -4,7 +4,7 @@
 
 ## 任务路由
 
-- 构建、运行、使用 AutoTest，或修改架构、资源、存档行为前，先阅读 `docs/agent-guide/PROJECT_GUIDE.md` 中的相关章节。
+- 构建、运行、使用 AutoTest，或修改架构、资源、存档行为前，先按 `docs/agent-guide/PROJECT_GUIDE.md` 的导航，阅读对应的构建与调试、AutoTest 验证或架构与资源契约主题。
 - 涉及现有子系统或历史决策时，先搜索 `docs/agent-memory/MEMORY.md`，只读取与当前任务匹配的主题文件。记忆属于历史上下文：其中带日期的状态、路径、提交和测试结论必须根据当前仓库重新核实。
 - 涉及任何植物、粒子特效、生存模式词条或僵尸时，必须使用 `.agents/skills/` 下对应的技能，并完整遵循其 `SKILL.md`。
 - 涉及新增或实质重绘可玩地图/背景、Board 网格与 Cell 对齐、背景资源注册或地图缩略图时，必须使用 `.agents/skills/creating-pvz-board-map/SKILL.md`。

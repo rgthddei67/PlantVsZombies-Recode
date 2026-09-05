@@ -10,23 +10,23 @@
 
 | 入口 | 阅读时关注的问题 | 完整说明 |
 |---|---|---|
-| GameObject | 对象共有状态是什么，哪些空间／碰撞／点击附件由宿主显式拥有？ | [对象层次](../agent-guide/PROJECT_GUIDE.md#对象层次)、[显式附件](../agent-guide/PROJECT_GUIDE.md#显式附件) |
-| GameObjectManager | 对象如何进入管理容器，如何安排更新与绘制？ | [游戏循环](../agent-guide/PROJECT_GUIDE.md#游戏循环gameapprun) |
-| SceneManager、Board | 场景生命周期与关卡玩法状态分别由谁管理？ | [所有权与场景边界](../agent-guide/PROJECT_GUIDE.md#所有权与场景边界) |
-| [BoardPresentation.h](../../PlantVsZombies/Game/Board/BoardPresentation.h) | 关卡逻辑如何向宿主场景发出展示请求？ | [关键系统类](../agent-guide/PROJECT_GUIDE.md#关键系统类) |
-| [EntityRegistry.h](../../PlantVsZombies/Game/EntityRegistry.h) | 如何按稳定 ID 引用和查询实体？ | [继承式玩法对象](../agent-guide/PROJECT_GUIDE.md#架构决策继承式玩法对象) |
+| GameObject | 对象共有状态是什么，哪些空间／碰撞／点击附件由宿主显式拥有？ | [对象层次](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#对象层次)、[显式附件](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#显式附件) |
+| GameObjectManager | 对象如何进入管理容器，如何安排更新与绘制？ | [游戏循环](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#游戏循环gameapprun) |
+| SceneManager、Board | 场景生命周期与关卡玩法状态分别由谁管理？ | [所有权与场景边界](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#所有权与场景边界) |
+| [BoardPresentation.h](../../PlantVsZombies/Game/Board/BoardPresentation.h) | 关卡逻辑如何向宿主场景发出展示请求？ | [关键系统类](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#关键系统类) |
+| [EntityRegistry.h](../../PlantVsZombies/Game/EntityRegistry.h) | 如何按稳定 ID 引用和查询实体？ | [继承式玩法对象](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#架构决策继承式玩法对象) |
 
 历史背景：[架构边界与文件拆分](../agent-memory/project_pvz_architecture_boundaries.md)。其中的文件行数和测试结果有各自日期，不能作为当前测量值。
 
 ## 存档
 
-入口为 [GameInfoSaver.h](../../PlantVsZombies/GameInfoSaver.h) 和[存档系统说明](../agent-guide/PROJECT_GUIDE.md#存档系统)。阅读时先区分全局玩家状态与单局状态，再查看对象附加状态的保存／恢复入口，以及 schema 升级发生在恢复流程中的位置。
+入口为 [GameInfoSaver.h](../../PlantVsZombies/GameInfoSaver.h) 和[存档系统说明](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#存档系统)。阅读时先区分全局玩家状态与单局状态，再查看对象附加状态的保存／恢复入口，以及 schema 升级发生在恢复流程中的位置。
 
 新增持久化字段前，沿说明找到对应迁移和测试入口；不要仅根据历史 JSON 样本推断当前格式。具体 schema 版本由实现与项目指南维护，本页不复制版本数字。
 
 ## 资源
 
-入口为 [ResourceManager.h](../../PlantVsZombies/ResourceManager.h) 和[资源与资产说明](../agent-guide/PROJECT_GUIDE.md#资源与资产)。先分清资产所在位置、加载注册方式和运行时查询键，再追踪使用者。
+入口为 [ResourceManager.h](../../PlantVsZombies/ResourceManager.h) 和[资源与资产说明](../agent-guide/ARCHITECTURE_AND_RESOURCES.md#资源与资产)。先分清资产所在位置、加载注册方式和运行时查询键，再追踪使用者。
 
 查找资源问题时按指南中的注册表核对文件、loader、实际资源键和运行断言。API 签名直接看头文件；资源类型的详细注册表只在指南中维护。
 

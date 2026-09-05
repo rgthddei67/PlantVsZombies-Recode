@@ -5,9 +5,9 @@
 ## 从这里开始
 
 - [项目文档导航](docs/README.md)：按阅读目的查找指南、系统说明和历史方案。
-- [构建与运行](docs/agent-guide/PROJECT_GUIDE.md#构建与运行)：环境准备、CMake 预设、运行目录和调试方法。
+- [构建与运行](docs/agent-guide/BUILD_AND_DEBUG.md#构建与运行)：环境准备、CMake 预设、运行目录和调试方法。
 - [核心系统阅读地图](docs/systems/README.md)：对象、场景、关卡、存档和资源的源码入口。
-- [AutoTest 验证指南](docs/agent-guide/PROJECT_GUIDE.md#autotest-测试套件)：自动验证的运行方式和取证要求。
+- [AutoTest 验证指南](docs/agent-guide/AUTOTEST.md#autotest-测试套件)：自动验证的运行方式和取证要求。
 - [Codex 工作规则](AGENTS.md)：开发任务的规则和技能路由。
 
 ## 开发入口
@@ -29,7 +29,7 @@
 | [PlantVsZombies/ResourceManager.h](PlantVsZombies/ResourceManager.h) | 资源加载与查询接口 |
 | [autotest/scripts](autotest/scripts/) | 自动验证脚本 |
 
-玩法对象采用继承式模型；空间、碰撞和点击等能力由宿主显式拥有。具体边界见[架构概览](docs/agent-guide/PROJECT_GUIDE.md#架构概览)。
+玩法对象采用继承式模型；空间、碰撞和点击等能力由宿主显式拥有。具体边界见[架构概览](docs/agent-guide/ARCHITECTURE_AND_RESOURCES.md#架构概览)。
 
 ## 致谢
 

@@ -6,10 +6,10 @@
 
 | 目的 | 从这里开始 |
 |---|---|
-| 构建、运行或调试游戏 | [项目指南：构建与运行](agent-guide/PROJECT_GUIDE.md#构建与运行) |
+| 构建、运行或调试游戏 | [项目指南：构建与运行](agent-guide/BUILD_AND_DEBUG.md#构建与运行) |
 | 理解核心系统、找到代码入口 | [核心系统阅读地图](systems/README.md) |
-| 运行自动验证、查输出 | [项目指南：AutoTest](agent-guide/PROJECT_GUIDE.md#autotest-测试套件) |
-| 查资源加载、资源键与验收要求 | [项目指南：资源与资产](agent-guide/PROJECT_GUIDE.md#资源与资产) |
+| 运行自动验证、查输出 | [项目指南：AutoTest](agent-guide/AUTOTEST.md#autotest-测试套件) |
+| 查资源加载、资源键与验收要求 | [项目指南：资源与资产](agent-guide/ARCHITECTURE_AND_RESOURCES.md#资源与资产) |
 | 开始某类功能开发 | [开发流程技能](../.agents/skills/)；按 [AGENTS.md](../AGENTS.md) 的任务路由选择 |
 | 查一个功能以前为何这样实现 | 搜索 [子系统历史索引](agent-memory/MEMORY.md)，只读命中的主题 |
 | 查设计方案、执行计划及其状态 | [设计与计划阅读说明](superpowers/README.md) |

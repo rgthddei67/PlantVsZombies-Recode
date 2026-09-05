@@ -37,5 +37,5 @@
 
 - `dump_state`/`assert_state` 至少覆盖 `level`、`background`、`maxWave`、`sun`、`spawnTypeCount` 和完整 `spawnList` 数组；按整大关逐关切换，不只测改动最大的末关。
 - 对每个重点威胁首次关与最终综合关截图，检查选卡预览有没有重叠、越界或主题不清。
-- 按 `PROJECT_GUIDE.md` 从 `build/<preset>/` 在主人当前桌面可见运行，保留 exit code、`run.log`、逐关状态 JSON 和截图。
+- 按 [AutoTest 验证](../../../../docs/agent-guide/AUTOTEST.md) 从 `build/<preset>/` 在主人当前桌面可见运行，保留 exit code、`run.log`、逐关状态 JSON 和截图。
 - 验证通过后，把最终关卡表和设计理由更新到项目记忆；若旧主题文件声称“全阵容”或记录了旧首次登场关，同步改掉过期结论。
