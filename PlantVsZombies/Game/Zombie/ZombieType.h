@@ -87,6 +87,7 @@ enum class ZombieType {
 	ZOMBIE_AURORA_PRIEST, // 极光祭司僵尸：在植物阵线内部提交三至四个独立出生裂隙
 	ZOMBIE_POLAR_CLOCKMAKER, // 极夜钟匠僵尸：记录相邻三行并在六秒后回溯目标
 
+	ZOMBIE_EXCAVATOR, // 开凿僵尸：一次永久开墙与主动施工绕行
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。

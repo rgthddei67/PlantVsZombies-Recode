@@ -66,6 +66,7 @@
   },
   "zombies": {
     "ZOMBIE_NORMAL":       { "weight": 1000, "appearWave": 1, "survivalRound": 1, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_EXCAVATOR":    { "weight": 2500, "appearWave": 3, "survivalRound": 33, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_TRAFFIC_CONE": { "weight": 1300, "appearWave": 3, "survivalRound": 2, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_POLEVAULTER":  { "weight": 1400, "appearWave": 5, "survivalRound": 3, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_BUCKET":       { "weight": 1500, "appearWave": 5, "survivalRound": 3, "offset": [-50.0, -85.0], "scale": 1.0 },

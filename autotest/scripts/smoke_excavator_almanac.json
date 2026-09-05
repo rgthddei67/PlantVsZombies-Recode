@@ -1,0 +1,17 @@
+{
+  "commands": [
+    {"op":"set_adventure_level","level":75},
+    {"op":"goto_zombie_almanac"},
+    {"op":"wait_seconds","value":0.3},
+    {"op":"click","x":680,"y":565},
+    {"op":"wait_frames","value":2},
+    {"op":"click","x":668,"y":158},
+    {"op":"wait_seconds","value":0.3},
+    {"op":"assert_state","path":"zombieAlmanacSelected","equals":"ZOMBIE_EXCAVATOR"},
+    {"op":"dump_state","name":"selected.json"},
+    {"op":"screenshot","name":"01_selected.png"},
+    {"op":"wait_seconds","value":1},
+    {"op":"screenshot","name":"02_idle.png"},
+    {"op":"quit"}
+  ]
+}

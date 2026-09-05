@@ -870,6 +870,13 @@ public:
 	/** 矿场地形、施工与查询只有 Board 拥有；预览只读副本不提交地形。 */
 	bool IsMineBackground() const { return mBackGround == Background::GLOOMCRYSTAL_MINE; }
 	MineGrid mMineGrid;
+	std::array<int, MineGrid::Count> mMineWallOwners{}; // 预留索引由有效个体派生，读档时由个体重建
+	/** 取得仍有效的施工预留者；失效 ID 不阻止重新选墙。 */
+	Zombie* GetMineWallOwner(int cell) const;
+	/** 为开凿者查找并原子预留墙体；不会预留玩家已经施工的墙。 */
+	bool ReserveMineExcavation(Zombie* zombie, int start, int& wall, int& stand);
+	/** 统一永久开墙；僵尸抢先完成时退还同格玩家施工费。 */
+	bool CompleteMineExcavation(int wall, bool byZombie);
 	int mMinePlannedWave = -1;
 	std::vector<std::pair<ZombieType, int>> mMineWavePlan;
 	/** 提前锁定下一波的正常点数选池结果，入口预报只投影该计划，不增兵。 */

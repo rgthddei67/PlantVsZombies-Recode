@@ -1,6 +1,7 @@
 #include "Game/Board/Board.h"
 #include "Game/Board/BoardPresentation.h"
 #include "Game/Zombie/Zombie.h"
+#include "Game/Zombie/ExcavatorZombie.h"
 #include "Game/Plant/Plant.h"
 #include "Game/Shovel.h"
 #include "Game/CardSlotManager.h"
@@ -127,11 +128,22 @@ void Board::UpdateMine(float deltaTime)
 	mMineDigRemaining = std::max(0.0f, mMineDigRemaining - deltaTime);
 	if (mMineDigRemaining > 0.0f) return;
 	// 完工只提交一次；岩壁、连通域与路由距离在同一边沿切换。
-	mMineGrid.rock[mMineDigCell] = false;
+	CompleteMineExcavation(mMineDigCell, false);
+}
+
+bool Board::CompleteMineExcavation(int wall, bool byZombie)
+{
+	if (!IsMineBackground() || wall < 0 || wall >= MineGrid::Count || !mMineGrid.rock[wall]) return false;
+	if (wall == mMineDigCell) {
+		if (byZombie) CancelMineExcavation();
+		else { mMineDigCell = -1; mMineDigRemaining = 0.0f; }
+	}
+	mMineGrid.rock[wall] = false;
 	mMineGrid.Rebuild();
-	mMineLastDugCell = mMineDigCell;
+	mMineLastDugCell = wall;
 	mMineRubbleTimer = kRubbleSeconds;
-	mMineDigCell = -1;
+	mMineWallOwners[wall] = NULL_ZOMBIE_ID;
+	return true;
 }
 
 void Board::AdvanceMineZombie(Zombie* zombie, float movement)
@@ -157,9 +169,10 @@ void Board::AdvanceMineZombie(Zombie* zombie, float movement)
 		const int column = std::clamp(static_cast<int>(std::lround(
 			(position.x - GetCellCenterPosition(0, 0).x) / CELL_COLLIDER_SIZE_X)), 0, mColumns - 1);
 		const int cell = MineGrid::Index(zombie->mRow, column);
-		zombie->mMineTargetCell = returning
+		const int special = zombie->SelectMineNextCell(cell);
+		zombie->mMineTargetCell = special != -2 ? special : (returning
 			? mMineGrid.NextExit(cell, (zombie->mZombieID & 1) != 0)
-			: mMineGrid.Next(cell, (zombie->mZombieID & 1) != 0);
+			: mMineGrid.Next(cell, (zombie->mZombieID & 1) != 0));
 	}
 	const int target = zombie->mMineTargetCell;
 	if (target < 0) return;
@@ -290,17 +303,24 @@ void Board::DrawMineWalls(Graphics* g)
 			if (z && z->IsActive() && std::abs(z->GetPosition().x - p.x) < 65.0f) alpha = 95.0f;
 		});
 		if (row > 0 && GetTopPlantAt(row - 1, col)) alpha = 95.0f;
-		const bool digging = cell == mMineDigCell;
+		const auto* worker = dynamic_cast<ExcavatorZombie*>(GetMineWallOwner(cell));
+		const bool digging = cell == mMineDigCell || worker;
 		const std::string* keys[] = { &ResourceKeys::Textures::IMAGE_MINE_ROCK_A,
 			&ResourceKeys::Textures::IMAGE_MINE_ROCK_B, &ResourceKeys::Textures::IMAGE_MINE_ROCK_C };
 		const bool below = mMineGrid.IsRock(row + 1, col);
 		DrawAsset(g, *keys[(row + col) % 3], p.x - 48, p.y - 81, 96, below ? 140 : 132, alpha);
 		if (digging) {
-			const float progress = 1.0f - mMineDigRemaining / kMineSeconds;
+			const float progress = std::max(cell == mMineDigCell ? 1.0f - mMineDigRemaining / kMineSeconds : 0.0f,
+				worker ? worker->GetWorkProgress() : 0.0f);
 			DrawAsset(g, ResourceKeys::Textures::IMAGE_MINE_ROCK_CRACKED, p.x - 48, p.y - 81, 96, 132, alpha * progress);
 			DrawAsset(g, ResourceKeys::Textures::IMAGE_MINE_CHUNKS, p.x - 38, p.y + 14 + progress * 18, 76, 35, 220 * progress);
 		}
 		if (!below) DrawAsset(g, ResourceKeys::Textures::IMAGE_MINE_RUBBLE, p.x - 43, p.y + 29, 86, 24, 255);
+		// 已预留目标用完整矿灯/工具徽记标识，裂纹继续从实际施工进度派生。
+		if (worker) {
+			DrawAsset(g,"IMAGE_EXCAVATOR_HAT",p.x - 20,p.y - 54,40,28,245);
+			DrawAsset(g,"IMAGE_EXCAVATOR_DRILL",p.x - 23,p.y - 33,46,27,245);
+		}
 		if (mMineToolActive && mMineGrid.CanExcavate(row,col)) {
 			g->DrawLine(p.x - 32,p.y + 46,p.x + 32,p.y + 46,
 				cell == mMinePreviewCell ? glm::vec4(255,217,101,255) : glm::vec4(113,229,233,210));

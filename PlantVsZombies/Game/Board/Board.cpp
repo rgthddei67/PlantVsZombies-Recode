@@ -2928,6 +2928,8 @@ inline ZombieType Board::PickZombieType(int remainingPoints, int wave)
 		ZombieType type = GetWeightedRandomZombie();
 		int cost = GameDataManager::GetInstance().GetZombieWeight(type);
 		int minWave = GameDataManager::GetInstance().GetZombieAppearWave(type);
+		if (!mIsSurvival && mLevel == 74 && (type == ZombieType::ZOMBIE_PINK_FOOTBALL
+			|| type == ZombieType::ZOMBIE_ELITE_JACK_IN_THE_BOX)) minWave = 4;
 		if (!mIsSurvival && mLevel == kThermalSniperCompositeLevel
 			&& type == ZombieType::ZOMBIE_THERMAL_SNIPER) minWave = 1;
 		if (remainingPoints >= cost && (mIsSurvival || wave >= minWave))
@@ -3312,10 +3314,25 @@ void Board::PrepareMineWave()
 	mMinePlannedWave = mCurrentWave + 1;
 	if (mMinePlannedWave > mMaxWave) return;
 	int remaining = CalculateWaveZombiePoints(mMinePlannedWave);
-	// 9-1仅沿用基础三类出怪；预算、权重、出场波次与行平滑规则仍走正式公共入口。
+	bool excavatorPlanned = false;
+	// 第三波的保证名额先扣正常预算；后续随机抽取至多占用一个本波名额。
+	if (mLevel == 74 && mMinePlannedWave == 3) {
+		const int row = SelectSpawnRow(ZombieType::ZOMBIE_EXCAVATOR,mMinePlannedWave);
+		if (row >= 0) {
+			mMineWavePlan.emplace_back(ZombieType::ZOMBIE_EXCAVATOR,row);
+			remaining -= GameDataManager::GetInstance().GetZombieWeight(ZombieType::ZOMBIE_EXCAVATOR);
+			excavatorPlanned = true;
+		}
+	}
 	for (int attempt = 0; remaining > 0 && attempt < kWaveCandidateAttemptLimit
 		&& mMineWavePlan.size() < MAX_ZOMBIES_PER_WAVE; ++attempt) {
 		const ZombieType type = PickZombieType(remaining, mMinePlannedWave);
+		if (type == ZombieType::ZOMBIE_EXCAVATOR && excavatorPlanned) continue;
+		// 预报必须包含实际可生成的阵容；沿用精英小丑既有上限，不另设9-2专属限制。
+		if (type == ZombieType::ZOMBIE_ELITE_JACK_IN_THE_BOX
+			&& std::count_if(mMineWavePlan.begin(),mMineWavePlan.end(),[type](const auto& entry) {
+				return entry.first == type;
+			}) >= kEliteJackInTheBoxMaxPerWave) continue;
 		const int cost = GameDataManager::GetInstance().GetZombieWeight(type);
 		if (cost <= 0) break;
 		const int row = SelectSpawnRow(type, mMinePlannedWave);
@@ -3326,6 +3343,7 @@ void Board::PrepareMineWave()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 		mMineWavePlan.emplace_back(type, row);
+		if (type == ZombieType::ZOMBIE_EXCAVATOR) excavatorPlanned = true;
 		remaining -= cost;
 	}
 }

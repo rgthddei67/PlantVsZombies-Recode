@@ -39,6 +39,7 @@
 #include "ThreePeater.h"
 #include "TangleKelp.h"
 #include "CarryVine.h"
+#include "Game/Zombie/ExcavatorZombie.h"
 #include "Jalapeno.h"
 #include "Caltrop.h"
 #include "Torchwood.h"
@@ -518,6 +519,8 @@ void GameDataManager::InitializeHardcodedData() {
 		"FumeShroom", &MakePlant<IceFumeShroom>);
 
 	// ==================== 僵尸注册（仅身份，数值见 gamedata.json） ====================
+	RegisterZombie(ZombieType::ZOMBIE_EXCAVATOR, "ZOMBIE_EXCAVATOR",
+		AnimationType::ANIM_EXCAVATOR_ZOMBIE, "ExcavatorZombie", &MakeZombie<ExcavatorZombie>);
 	RegisterZombie(ZombieType::ZOMBIE_NORMAL, "ZOMBIE_NORMAL",
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE, &MakeZombie<Zombie>);

@@ -312,6 +312,16 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME mine-grid COMMAND MineGridTests)
 
+    add_executable(ExcavationPlannerTests tests/ExcavationPlannerTests.cpp
+        PlantVsZombies/Game/Board/MineGrid.cpp PlantVsZombies/Game/Board/MineGridPlanner.cpp)
+    target_include_directories(ExcavationPlannerTests PRIVATE ${SRC_DIR})
+    target_compile_options(ExcavationPlannerTests PRIVATE /utf-8 /W3 /sdl /EHsc)
+    target_link_libraries(ExcavationPlannerTests PRIVATE $<$<PLATFORM_ID:Windows>:pvz_win7_compat>)
+    if(WIN32)
+        pvz_assert_win7_imports(ExcavationPlannerTests)
+    endif()
+    add_test(NAME excavation-planner COMMAND ExcavationPlannerTests)
+
     # 共享蒙特卡洛器保持纯数值边界，单测无需启动 SDL 或构造 Board。
     add_executable(PlantDefenseMonteCarloTests
         tests/PlantDefenseMonteCarloTests.cpp

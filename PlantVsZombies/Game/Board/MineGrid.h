@@ -30,4 +30,10 @@ public:
 	int NextExit(int cell, bool preferDown) const;
 	/** 检查路径图所有可达格的下降性质，供存档与自动验收使用。 */
 	bool Validate() const;
+	/** 在左侧防守区之外沿已连通四邻接矿道求施工距离，防止绕行穿墙或折返。 */
+	std::array<int, Count> WorkDistances(int start) const;
+	/** 选择净节省格数最多的单墙方案；并列按左上下来向、右向及稳定格序。 */
+	bool FindExcavation(int start, const std::array<bool, Count>& excluded, int& wall, int& stand) const;
+	/** 返回通往已锁定施工点的严格下降相邻节点，或 -1。 */
+	int NextWork(int start, int stand) const;
 };

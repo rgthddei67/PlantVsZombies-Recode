@@ -1,0 +1,9 @@
+{
+  "scripts/assets/excavator_equipment_source.png": "e15acd61350d0c91e999de47c93a0898f40407f32cd78ef320c3b312766c3bce",
+  "build/clang-release/resources/reanim/NormalZombie.reanim": "3d93367ab8d56f9e383671e7cb472432d02526dc2aa8fad7d47c6ca5f8fdd602",
+  "build/clang-release/resources/particles/ZombieHead.png": "8bd2113a2f3125b6b564759f78fe36d5bd7515f05b391c28e3dacea301437efc",
+  "build/clang-release/resources/image/reanim/Excavator_hat.png": "d62e32d74aeab3790626c117c1194268ac20f70002f4b652b9aaf438830125bc",
+  "build/clang-release/resources/image/reanim/Excavator_drill.png": "39920a077704b44fec035ca878067c9500c437b14ecfe93641b631d99baebf43",
+  "build/clang-release/resources/image/reanim/Excavator_broken.png": "4e4254fb2b2b5ff4fa1bbf2ae157aacc1ec551e8cb07e937ee98bd53440c4213",
+  "build/clang-release/resources/particles/ExcavatorHead.png": "fd3da92b911a66b210c650ba75cb5e2c0f0346781041cfdb0752abc3c489ceaf"
+}

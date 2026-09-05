@@ -83,6 +83,7 @@
 #include "../Zombie/IceWallEngineerZombie.h"
 #include "../Zombie/IceCrackDrillZombie.h"
 #include "../Zombie/WeatherJammerZombie.h"
+#include "../Zombie/ExcavatorZombie.h"
 #include "../Zombie/IceStatueExecutionerZombie.h"
 #include "../Zombie/SnowBurrowZombie.h"
 #include "../Zombie/AdaptiveHelmetZombie.h"
@@ -421,6 +422,7 @@ namespace {
 		ZT(ZOMBIE_ADAPTIVE_HELMET),
 		ZT(ZOMBIE_THERMAL_SNIPER),
 		ZT(ZOMBIE_AURORA_PRIEST), ZT(ZOMBIE_POLAR_CLOCKMAKER),
+		ZT(ZOMBIE_EXCAVATOR),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -3789,6 +3791,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ResourceKeys::Sounds::SOUND_DIRT_RISE);
 	out["iceCrackDrillRigDropSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
 		ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP);
+	out["excavatorResourcesReady"] = ResourceManager::GetInstance().HasReanimation("ExcavatorZombie")
+		&& ResourceManager::GetInstance().GetTexture("IMAGE_EXCAVATOR_HAT",false)
+		&& ResourceManager::GetInstance().GetTexture("IMAGE_EXCAVATOR_DRILL",false)
+		&& ResourceManager::GetInstance().GetTexture("IMAGE_EXCAVATOR_BROKEN",false)
+		&& ResourceManager::GetInstance().GetTexture("PARTICLE_EXCAVATORHEAD",false);
 	out["weatherJammerResources"] = {
 		{ "packReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_WEATHER_JAMMER_PACK) },
@@ -7083,6 +7090,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["drillRigVisible"] = drill->IsDrillRigVisible();
 			zombieState["interruptibleSpecialRemainingMs"] = static_cast<int>(std::lround(
 				drill->GetInterruptibleSpecialActionRemaining() * 1000.0f));
+		}
+		if (auto* excavator = dynamic_cast<ExcavatorZombie*>(z)) {
+			const char* names[] = {"READY","APPROACHING","DRILLING","RETRY","SPENT","DISABLED"};
+			zombieState["excavatorPhase"] = names[static_cast<int>(excavator->GetExcavatorPhase())];
+			zombieState["excavatorWall"] = excavator->GetWall();
+			zombieState["excavatorStand"] = excavator->GetStand();
+			zombieState["excavatorToolVisible"] = anim && anim->GetTrackFollowerVisible("anim_innerarm2","excavator_drill");
+			zombieState["excavatorHatVisible"] = anim && anim->GetTrackFollowerVisible("anim_head1","excavator_hat");
+			zombieState["excavatorWorkMs"] = static_cast<int>(std::lround(excavator->GetWorkRemaining()*1000));
+			zombieState["excavatorRetryMs"] = static_cast<int>(std::lround(excavator->GetRetryRemaining()*1000));
 		}
 		if (auto* jammer = dynamic_cast<WeatherJammerZombie*>(z)) {
 			const char* phase = "READY";

@@ -21,6 +21,7 @@ description: Use when adapting an existing PvZ reanim timeline to a new plant or
 - 子 Animator 使用整株绝对坐标的时间线时，`AttachAnimator` 只乘父轨当前姿态，必须在局部变换中再乘 `inverse(basePose)`；单位旋转/缩放可用父轨首帧的 `SetLocalPosition(-baseX, -baseY)` 抵消。时间线没有 `anim_stem`、只有身体包装轨时，可把独立头 Animator 挂在该身体轨，但不能用 `(0,0)` 直挂，否则首帧锚点会重复叠加；待机和动作中段都要截图校对连接点。
 - 当前 Animator 的 `SetTrackOffset` 是在轨道 transform 之后追加的未旋转平移，透明画布内的大额 padding 会在轨道缩放时放大轴心漂移。优先使用紧边界分件，或让附件偏移走父轨仿射变换；需要修改这个约定时先读 `Animator::Draw/DrawBuffered` 的两条路径。
 - 同一轨道可容纳多个命名 follower 槽，按插入顺序绘制。调用方必须使用稳定且唯一的槽名，只更新或移除自己的槽；不要用匿名覆盖，也不要为解决槽冲突把静态贴图升级成子 Animator。宿主若会在派生 `Setup` 之后继续配置 follower，专项要从完整出生入口验证同轨共存，而不能只直接调用派生配置函数。
+- `SetTrackFollowerImage` 配置纹理与变换不等于启用显示；新命名槽必须显式设置 `SetTrackFollowerVisible`，并分别断言资源已加载与槽可见。父轨名必须从实际 reanim 核实（普通僵尸内前臂为 `anim_innerarm2`），不能凭习惯猜名字；出生、断臂和读档截图都要确认真实握持。
 - 静态 follower 默认继承宿主 Animator 的 overlay 效果，装备会随减速、冻结等状态一起着色；黄油等必须保持原色的状态贴花在配置时显式传 `inheritOverlayEffect=false`。所有渲染路径都应保持每个 follower 的 base 后紧跟 overlay，内容验收在默认路径把继承者与退出者放在同一对象上截图。
 - 换姿态贴图要对齐“手握点、颈根、茎秆插口、轮轴”等语义连接点，而不是对齐 Alpha 包围盒。倾斜或伸长的变体通常需要独立画布内偏移。
 - reanim 已经为原版换图编写的 X/Y/缩放补偿仍然生效。替换素材时先观察轨道关键帧，避免贴图内部再做一次相同补偿而产生二次跳动。

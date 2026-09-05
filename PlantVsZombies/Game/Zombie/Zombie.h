@@ -76,6 +76,8 @@ public:
 	bool mNeedDropHead = true;
 	int mZombieID = NULL_ZOMBIE_ID;
 	int mMineTargetCell = -1; // 矿道当前已锁定行进格；-1表示到达决策点
+	/** 矿道决策点的品种路由；-2 沿用普通路线，-1 在节点停步。 */
+	virtual int SelectMineNextCell(int) { return -2; }
 	/** 矿道跨越行中线时复用正式排序/行索引提交。 */
 	void CommitMineRow(int row) { CommitRow(row); }
 

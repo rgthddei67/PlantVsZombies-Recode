@@ -170,4 +170,6 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 ## 关联
 
+头与帽子需要一起飞出时，合成单张透明粒子而不是两套独立随机发射器；最终粒子尺寸必须与戴在身体上的实际尺寸对照，不能直接使用未乘宿主缩放的合成像素尺寸。完成时的冒烟等反馈由一次提交边沿发射，读档重建损坏贴图时不重放；同时保留提交瞬间粒子计数、截图和读档终态取证。
+
 触发端惯例见 adding-plant / adding-zombie skill（帧事件里 EmitEffect）；渲染分层背景见记忆 [[project_pvz_particle_render_layer]]。

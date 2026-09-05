@@ -129,6 +129,7 @@ enum class AnimationType
 	ANIM_BOUNDARYFLOWER, // 界碑花复用金盏花完整摇摆时间线并附加星石界碑
 	ANIM_DAWNLOTUS, // 曙光莲复用睡莲完整浮动时间线并附加多层晨曦花冠
 	ANIM_CARRYVINE, // 搬搬藤复用缠绕海草藤臂时间线与独立叶篮
+	ANIM_EXCAVATOR_ZOMBIE, // 普通僵尸时间线与矿灯/凿岩机附件
 };
 
 #endif

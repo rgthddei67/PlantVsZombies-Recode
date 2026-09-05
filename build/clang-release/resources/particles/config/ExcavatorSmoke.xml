@@ -1,0 +1,11 @@
+<Emitter>
+  <Name>ExcavatorSmoke</Name>
+  <SpawnMinActive>3</SpawnMinActive>
+  <SpawnMaxLaunched>3</SpawnMaxLaunched>
+  <ParticleAlpha>0.8 0</ParticleAlpha>
+  <ParticleScale>0.8 1.4</ParticleScale>
+  <ParticleDuration>0.8</ParticleDuration>
+  <SystemDuration>0.9</SystemDuration>
+  <Image>PARTICLE_ZAMBONISMOKE_PART_0,PARTICLE_ZAMBONISMOKE_PART_1,PARTICLE_ZAMBONISMOKE_PART_2</Image>
+  <Field><FieldType>Position</FieldType><Y>0 -25</Y><X>0 [-10 10]</X></Field>
+</Emitter>
