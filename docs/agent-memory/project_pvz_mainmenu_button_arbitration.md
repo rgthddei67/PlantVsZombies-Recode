@@ -32,6 +32,14 @@ foot-gun：
 同时重跑 `smoke_mainmenu_buttons.json` 并人工查看
 `after_overlap_click_still_menu`，确认原石碑重叠命中仍正确。
 
+## 2026-09-05：Android 图鉴入口误跳小游戏
+
+`SwitchTo("AlmanacScene")` 当场销毁主菜单；原分支没有 return，继续读取已释放对象的
+`mReadyToSwitchMiniGames`，在 Android 暴露为误跳小游戏。进入图鉴后立即返回，其他
+入口保持原有命中与切换逻辑。MuMu Android 12 真实点按图鉴进入正确索引；Windows
+可见 `clang-release` 的 `almanac_click` 增加 `scene == AlmanacScene` 断言并通过，
+exit 0 / passed，截图正确。不要把该生命周期错误误修成触屏坐标偏移。
+
 ## 2026-07-31：右下角全屏控制台
 
 主菜单右下角新增绿色「控制台」按钮，点击后打开覆盖整个 1100×600 逻辑画面的深色

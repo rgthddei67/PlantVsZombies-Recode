@@ -6,12 +6,48 @@
 #include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <unordered_map>
 
 namespace {
 	/** 将 FileManager 约定的 UTF-8 路径转换为本机 filesystem 路径，兼容非 ASCII 用户名。 */
 	std::filesystem::path Utf8Path(const std::string& path) {
 		return std::filesystem::u8path(path);
 	}
+#if defined(__ANDROID__)
+	/** 为经典资源的大小写不敏感引用生成查询键，实际打开仍使用 manifest 的原始名称。 */
+	std::string AssetPathKey(std::string path) {
+		std::replace(path.begin(), path.end(), '\\', '/');
+		while (path.rfind("./", 0) == 0) path.erase(0, 2);
+		std::transform(path.begin(), path.end(), path.begin(),
+			[](unsigned char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c + ('a' - 'A')) : static_cast<char>(c); });
+		return path;
+	}
+
+	/** 只索引 APK 资源清单；直接读 SDL，避免 OpenRead 首次初始化时递归。 */
+	const std::unordered_map<std::string, std::string>& AssetPaths() {
+		static const auto paths = [] {
+			std::unordered_map<std::string, std::string> result;
+			SDL_RWops* rw = SDL_RWFromFile("resources/manifest.txt", "rb");
+			if (!rw) return result;
+			size_t size = 0;
+			void* bytes = SDL_LoadFile_RW(rw, &size, 1);
+			if (!bytes) return result;
+			std::istringstream stream(std::string(static_cast<const char*>(bytes), size));
+			SDL_free(bytes);
+			std::string path;
+			while (std::getline(stream, path)) {
+				if (!path.empty() && path.back() == '\r') path.pop_back();
+				while (path.rfind("./", 0) == 0) path.erase(0, 2);
+				if (path.rfind("resources/", 0) != 0) continue;
+				auto [it, inserted] = result.emplace(AssetPathKey(path), path);
+				// 有歧义时只允许原名精确打开，不任意选择其中一个资源。
+				if (!inserted && it->second != path) it->second.clear();
+			}
+			return result;
+		}();
+		return paths;
+	}
+#endif
 }
 
 SDL_RWops* FileManager::OpenRead(const std::string& path) {
@@ -20,7 +56,16 @@ SDL_RWops* FileManager::OpenRead(const std::string& path) {
 	std::string normalized = path;
 	std::replace(normalized.begin(), normalized.end(), '\\', '/');
 	while (normalized.rfind("./", 0) == 0) normalized.erase(0, 2);
-	return SDL_RWFromFile(normalized.c_str(), "rb");
+	if (SDL_RWops* rw = SDL_RWFromFile(normalized.c_str(), "rb")) return rw;
+	// 原版 reanim 的 IMAGE_REANIM_* 常由大写键拼出路径，APK 路径则区分大小写。
+	// 仅对清单内资源补充解析；绝对存档路径和不存在的资源仍正常报告失败。
+	if (AssetPathKey(normalized).rfind("resources/", 0) == 0) {
+		const auto& paths = AssetPaths();
+		const auto found = paths.find(AssetPathKey(normalized));
+		if (found != paths.end() && !found->second.empty() && found->second != normalized)
+			return SDL_RWFromFile(found->second.c_str(), "rb");
+	}
+	return nullptr;
 #else
 	return SDL_RWFromFile(path.c_str(), "rb");
 #endif

@@ -82,6 +82,10 @@ void CursorManager::CleanupAllCursors() {
 
 bool CursorManager::SetCursor(CursorType type) {
 	if (!mIsInitialized) return false;
+#if defined(__ANDROID__)
+	// Android 未创建系统光标；接受 UI 的光标请求，避免每帧报告不存在的桌面资源。
+	return true;
+#endif
 
 	SDL_Cursor* newCursor = GetSystemCursor(type);
 	if (!newCursor) {

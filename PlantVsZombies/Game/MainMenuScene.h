@@ -15,6 +15,7 @@ public:
 	~MainMenuScene() override;
 	void OnEnter() override;
 	void OnExit() override;
+	/** 消费主菜单操作；切换场景销毁自身后必须立即返回。 */
 	void Update() override;
 	/** 返回控制台当前显示的悬停说明，供 UI 自动化验证。 */
 	std::string GetConsoleTooltipText() const;

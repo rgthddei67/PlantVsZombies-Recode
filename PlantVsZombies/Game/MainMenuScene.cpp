@@ -84,6 +84,8 @@ void MainMenuScene::Update()
 		auto& SceneMgr = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
 		SceneMgr.SwitchTo("AlmanacScene");
+		// SwitchTo 已销毁当前主菜单，不能继续读取其余入口标志。
+		return;
 	}
 	if (mReadyToSwitchMiniGames) {
 		mReadyToSwitchMiniGames = false;

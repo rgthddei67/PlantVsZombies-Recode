@@ -1,6 +1,6 @@
 # 子系统历史索引
 
-- [Android ARM64 首次移植](../../android/README.md) — 2026-09-05 新增 NDK/Gradle APK 构建、GLES 3.0、SDL 触屏工具栏与后台保存；Android 排除 GameMonitor，固定 GLES 不启用 Vulkan；运行验收由主人自行进行，不能把交叉编译当真机证据
+- [Android ARM64 首次移植](../../android/README.md) — 2026-09-05 NDK/Gradle、GLES、触屏工具栏与后台保存；模拟器实测后修复 reanim 路径大小写及图鉴切场景后访问旧对象，1311 张动画纹理恢复；排除 GameMonitor，真机仍待验收
 
 - [第九大关幽晶矿场](project_pvz_gloomcrystal_mine.md) — 2026-09-05 主人逐项批准固定矿道、75阳光/8秒单格开凿、无环最短路径、岩壁射界与精致矿洞美术；已实现9-1与公共地图机制；矿道工具仅开战显示、岩壁不盖选卡、施工进度置于岩壁上方；祭司/钟匠能力跨地图并保留矿道回位、撑杆到行后起跳，clang-release可见专项与独立防环测试通过；9-2开凿僵尸留待另一任务
 

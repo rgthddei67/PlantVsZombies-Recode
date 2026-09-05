@@ -45,6 +45,14 @@ Android 9（API 28）起，arm64-v8a，横屏，OpenGL ES 3.0。当前是首次�
 
 相关技能/reference 已审计：现有资源权威目录、manifest/注册/键闭环和截图验收要求保持有效，Android 暂存仅属构建产物，不改变地图或角色制作契约；本次未修改技能，无需 quick_validate。
 
+## 2026-09-05：首次模拟器问题修复
+
+- 动画分件的 `IMAGE_REANIM_*` 大写引用曾直接拼接文件名；Windows 能打开，APK 的大小写敏感路径打不开。`FileManager::OpenRead` 现优先精确打开，再按资源 manifest 的无歧义 ASCII 大小写索引取得原始路径；JPG 配套透明遮罩共用该入口。真实缺失仍返回失败，不修改资产文件名或填充空纹理。
+- 主菜单进入图鉴后必须立即返回：`SceneManager::SwitchTo` 当场销毁旧场景，继续读小游戏标志属于释放后访问。`almanac_click` 增加最终场景断言。
+- Android 不创建系统光标，`SetCursor` 直接接受请求，避免每帧刷不存在的桌面光标错误。
+- MuMu Android 12 实测：动画图集从 9 张恢复到 1311 张，启动无分件加载失败；真实点按首页图鉴进入正确索引，向日葵、豌豆射手及选卡僵尸可见。小游戏真实点卡种植豌豆射手和坚果，布阵到出怪期间及连续采样截图均正常显示，射击与僵尸运动可见；测试后停在暂停菜单。Windows `clang-release` 构建与 378 项导入审计通过，可见 `almanac_click` exit 0 / passed，场景断言及截图正确。此证据仅代表该模拟器，尚不代表骁龙 835 真机。
+- 技能审计：既有动画/植物技能的文件、manifest、实际键和运行截图闭环仍适用；本次修复文件解析与场景生命周期，不改时间轴、玩法、资源权威目录或存档格式，无需修改技能。
+
 ## Vulkan 后续检查项
 
 哥哥提到的信号可能是 `VK_SUBOPTIMAL_KHR`，目前不能确认。它表示呈现仍可进行，不应被简单理解成必须立即重建整个屏幕。Android 预旋转、surface 的 currentTransform、swapchain 的 preTransform、实际 extent 与同步生命周期需要一起检查，避免按未改变的参数每帧重建；也不能把它作为所有 Android 版本唯一的旋转通知。
