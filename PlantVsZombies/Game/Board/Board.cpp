@@ -2606,10 +2606,7 @@ void Board::SummonNextWave()
 
 	TrySummonZombie();
 	TrySummonAdventureBoss();
-	UpdateZombieMetrics();
-
-	mNextWaveSpawnZombieHP = static_cast<int64_t>
-		(GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
+	FinalizeWaveSpawnThreshold();
 }
 
 /**
@@ -3161,7 +3158,7 @@ int Board::GetCurrentWaveZombiePoints() const
 	return CalculateWaveZombiePoints();
 }
 
-inline void Board::UpdateZombieMetrics()
+void Board::UpdateZombieMetrics()
 {
 	int64_t TotalHP = 0, CurrectWaveHP = 0;
 	int hostileZombieCountForMusic = 0;
@@ -3189,6 +3186,19 @@ inline void Board::UpdateZombieMetrics()
 	mTotalZombieHP = TotalHP;
 	mCurrectWaveZombieHP = CurrectWaveHP;
 	mHostileZombieCountForMusic = hostileZombieCountForMusic;
+}
+
+void Board::FinalizeWaveSpawnThreshold()
+{
+	UpdateZombieMetrics();
+	// 雪穴只延迟创建，不能让尚未入场的本波候选缺席提前出波基准。
+	const bool pendingCurrentWave = std::any_of(
+		mPendingSnowHoleSpawns.begin(), mPendingSnowHoleSpawns.end(),
+		[this](const PendingSnowHoleSpawn& pending) {
+			return pending.spawnWave == mCurrentWave;
+		});
+	mNextWaveSpawnZombieHP = pendingCurrentWave ? 0 : static_cast<int64_t>(
+		GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
 }
 
 void Board::Update()

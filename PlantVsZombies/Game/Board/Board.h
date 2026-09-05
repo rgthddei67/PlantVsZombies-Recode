@@ -1617,7 +1617,9 @@ public:
 	inline void UpdatePoolSunFalling(float deltaTime);
 
 	/** 一次遍历刷新僵尸血量汇总与动态音乐所需的敌对僵尸数。 */
-	inline void UpdateZombieMetrics();
+	void UpdateZombieMetrics();
+	/** 本波候选全部兑现后，用完整实体血量锁定提前出波阈值；预警期间暂缓。 */
+	void FinalizeWaveSpawnThreshold();
 	/** 推进逐行冰道寿命并在到期后恢复空状态。 */
 	void UpdateIceTrails(float deltaTime);
 

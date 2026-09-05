@@ -270,6 +270,8 @@ void Board::UpdateSnowHoles(float deltaTime)
 void Board::UpdatePendingSnowHoleSpawns(float deltaTime)
 {
 	if (deltaTime <= 0.0f || mPendingSnowHoleSpawns.empty()) return;
+	bool committedSpawns = false;
+	bool committedCurrentWave = false;
 	for (auto it = mPendingSnowHoleSpawns.begin();
 		it != mPendingSnowHoleSpawns.end();) {
 		it->timer = std::max(0.0f, it->timer - deltaTime);
@@ -296,7 +298,16 @@ void Board::UpdatePendingSnowHoleSpawns(float deltaTime)
 				mSnowBurrowTutorialHoleSpawnConsumed = true;
 			}
 		}
+		committedSpawns = true;
+		committedCurrentWave |= it->spawnWave == mCurrentWave;
 		it = mPendingSnowHoleSpawns.erase(it);
+	}
+	// 队列清空会立即放开提前出波判断，必须在同一步刷新，不能等待 0.5 秒采样。
+	if (committedCurrentWave) {
+		FinalizeWaveSpawnThreshold();
+	}
+	else if (committedSpawns) {
+		UpdateZombieMetrics();
 	}
 }
 

@@ -4857,6 +4857,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["normalSunCount"] = normalSunCount;
 	out["smallSunCount"] = smallSunCount;
 	out["wave"] = board->mCurrentWave;
+	out["currentWaveZombieHP"] = board->mCurrectWaveZombieHP;
+	out["nextWaveSpawnZombieHP"] = board->mNextWaveSpawnZombieHP;
 	out["maxWave"] = board->mMaxWave;
 	out["nextWaveCountdownMs"] = static_cast<int>(std::lround(
 		board->mZombieCountDown * 1000.0f));
