@@ -45,7 +45,7 @@
     {"op": "spawn_zombie", "type": "ZOMBIE_AURORA_PRIEST", "row": 4, "x": 950, "stationary": true},
     {"op": "wait_seconds", "value": 16.8, "timeout": 15},
     {"op": "assert_state", "path": "zombiesByType.ZOMBIE_AURORA_PRIEST.auroraRitualReleaseCount", "equals": 2},
-    {"op": "spawn_zombie", "type": "ZOMBIE_POLAR_CLOCKMAKER", "row": 4, "x": 1000, "stationary": true},
+    {"op": "spawn_zombie", "type": "ZOMBIE_POLAR_CLOCKMAKER", "row": 4, "x": 950, "stationary": true},
     {"op": "wait_seconds", "value": 5.4, "timeout": 15},
     {"op": "assert_state", "path": "weather.temporalAnchorCount", "equals": 1},
     {"op": "assert_state", "path": "zombiesByType.ZOMBIE_AURORA_PRIEST.auroraRitualReleaseCount", "equals": 2},

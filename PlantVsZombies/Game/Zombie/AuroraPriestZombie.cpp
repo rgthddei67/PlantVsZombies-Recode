@@ -107,6 +107,9 @@ void AuroraPriestZombie::Update()
 
 void AuroraPriestZombie::BeginWindup()
 {
+	// 准备和冷却可在入场途中完成，但必须走进最右列才停步施法。
+	if (!mBoard || GetPosition().x > mBoard->GetCellCenterPosition(
+		mRow, mBoard->mColumns - 1).x + CELL_COLLIDER_SIZE_X * 0.5f) return;
 	if (mRitualPhase == RitualPhase::COMMITTED
 		|| mRitualPhase == RitualPhase::DISABLED
 		|| mRitualReleaseCount >= kMaxRitualReleases) return;

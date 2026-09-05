@@ -59,7 +59,7 @@ protected:
 private:
 	/** 配置不新增时间轴的极光仪器与光谱片 follower。 */
 	void ConfigureFollowers();
-	/** 从首次准备、循环冷却或打断重试边沿抢占啃食并进入完整仪式前摇。 */
+	/** 入场后，从首次准备、循环冷却或打断重试边沿抢占啃食并进入完整前摇。 */
 	void BeginWindup();
 	/** 永久取消尚未提交的仪式，同时保留已经提交的 Board 裂隙。 */
 	void DisableUncommittedRitual();

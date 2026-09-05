@@ -35,3 +35,7 @@
 2026-09-05 极光祭司增加每只累计最多3次释放：只有正式提交至少一道裂隙才增加 `ritualReleaseCount`，前摇被打断不计次数，第三次后进入 DISABLED 但保留正常移动、啃食与仪器表现。次数写入实体存档，并通过 `ZombieTemporalAbilityState.releaseCount` 与 Board 的 `abilityReleaseCount` 存入钟匠记录；按主人明确要求，回溯存活或死亡目标均恢复记录时次数，允许返还额度，独立裂隙仍不回滚。旧档缺字段默认0，新字段可用中性默认值兼容，无需提升 schema。专项为 `smoke_aurora_priest_release_limit.json`，覆盖中断、三次封顶、耗尽往返和钟匠存活/死亡回溯。
 
 本次 `clang-release` 构建零警告；默认 Vulkan 当前桌面可见 `smoke_aurora_priest_release_limit`（73条命令）与 `smoke_area8_finale_contract` 均 exit 0/status passed，已检查实体/时间锚快照中的次数、run.log 与全部同步截图。僵尸技能及相关契约审计完成，补入正式释放计次和时间锚额度语义，`quick_validate.py` 通过；本次没有新增视觉资源或绘图入口。
+
+2026-09-05 主人要求两者入场后再发动技能：`BeginWindup` 现在用 Board 最右列中心加半格宽作为入场边界（九列地图为第九列右缘），逻辑 X 尚在边界外时继续走路，不进入停步前摇。准备和冷却仍正常计时，到期后等入场；未增加存档字段或改变既有次数、前摇和冷却。专项 `smoke_finale_entry_gate` 覆盖边界外到期、快照往返、边界内正常施法及自然行走入场；原释放次数专项把场外静止钟匠移至场内。
+
+本次可见 clang-release 的入场专项（52条命令）及释放次数回归（73条命令）均 exit 0/status passed，已核对 run.log、状态和全部截图。构建成功且 Win7 导入检查通过，但 vcpkg applocal 后处理提示未找到 DLL 扫描工具；实际游戏启动与上述测试通过。本次仅调整前摇资格，无新增视觉资源或绘图入口；相关僵尸技能审计及 quick_validate.py 通过。
