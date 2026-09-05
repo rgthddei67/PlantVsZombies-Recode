@@ -102,3 +102,5 @@ metadata:
 `hasHead=false/RUNNING/hasVaulted=false`，健康起跳后受 465 致命伤则保持
 `isDying=true/anim_death` 并正常回收；`smoke_polevaulter_vault_walk.json` 父类回归仍为 150000 跳距并
 落入 `WALKING`。状态、日志与截图均已检查。
+
+2026-09-05 矿道换行起跳修复：普通与继承该入口的精英撑杆只在实际Y抵达行基线后起跳，不以提前更新的mRow作为完成标志。矿场持续碰撞在到行后重试，避免enter被拒后永久不跳；起跳清理旧矿道节点，落地从新位置规划。没有新增帧事件或修改跳距。

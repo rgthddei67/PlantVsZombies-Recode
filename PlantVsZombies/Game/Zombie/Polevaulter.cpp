@@ -121,6 +121,12 @@ void Polevaulter::StartJump(Plant* target)
 		|| mIsPreview || mIsDying || mIsDead || !IsActive()) {
 		return;
 	}
+	// 矿道行桶在越过中线时已更新，但起跳必须等身体抵达完整行基线。
+	if (mBoard && mBoard->IsMineBackground()
+		&& (target->mRow != mRow || std::abs(GetPosition().y
+			- mBoard->GetZombieSpawnY(mRow, GetPosition().x)) > 0.01f)) return;
+	// 跳跃替代当前水平行进段，落地后应从新位置重新选择矿道节点。
+	mMineTargetCell = -1;
 	mVaultState = VaultState::JUMPING;
 	mLastVaultDistance = 0.0f;
 	mVaultExtraDistanceApplied = 0.0f;
@@ -405,6 +411,11 @@ void Polevaulter::StartEat(ColliderComponent* other)
 			}
 			// C# 在撑杆起跳判定前先检查扶梯；有梯时保留撑杆并直接攀爬。
 			if (TryStartLadderClimb(plant)) return;
+			// 换行期间拒绝的 enter 不会再次触发；持续接触在到达行基线后重试起跳。
+			if (mBoard && mBoard->IsMineBackground() && mVaultState == VaultState::RUNNING) {
+				StartJump(plant);
+				return;
+			}
 		}
 	}
 	// 碰撞对在本帧回调前已经收集完：组合植物的第二个回调即使看到碰撞体已关闭也仍会到达。

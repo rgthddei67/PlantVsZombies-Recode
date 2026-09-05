@@ -53,7 +53,7 @@ long long ThreatScore(const Zombie* zombie)
 
 void Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whiteout)
 {
-	if (!SupportsPolarNightEnvironment() || mTrophySpawned) return;
+	if (mTrophySpawned) return;
 	for (TemporalAnchor& anchor : mTemporalAnchors) {
 		for (TemporalTargetSnapshot& target : anchor.targets) {
 			if (target.zombieID == ownerZombieID) target.specialActionSubmitted = true;
@@ -64,7 +64,7 @@ void Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whit
 	std::vector<Candidate> candidates;
 	for (int row = 0; row < mRows; ++row) {
 		for (int column = 4; column <= std::min(6, mColumns - 1); ++column) {
-			if (HasSnowHoleAt(row, column)) continue;
+			if (HasSnowHoleAt(row, column) || !CanPlantOnMineCell(row, column)) continue;
 			int value = 0;
 			if (const Plant* plant = GetTopPlantAt(row, column)) {
 				value = plant->mPlantMaxHealth + 1000;
@@ -119,7 +119,7 @@ void Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whit
 
 void Board::CommitPolarClockAnchor(int ownerZombieID, int sourceRow)
 {
-	if (!SupportsPolarNightEnvironment() || mTrophySpawned) return;
+	if (mTrophySpawned) return;
 	for (TemporalAnchor& existing : mTemporalAnchors) {
 		for (TemporalTargetSnapshot& target : existing.targets) {
 			if (target.zombieID == ownerZombieID) target.specialActionSubmitted = true;
@@ -162,6 +162,11 @@ void Board::CommitPolarClockAnchor(int ownerZombieID, int sourceRow)
 		target.type = zombie->mZombieType;
 		target.row = zombie->mRow;
 		target.x = zombie->GetPosition().x;
+		if (IsMineBackground()) {
+			// 连续换行的实际位置与已承诺节点必须一起回溯，不能只恢复行桶。
+			target.mineRowOffset = zombie->GetPosition().y - GetZombieSpawnY(target.row, target.x);
+			target.mineTargetCell = zombie->mMineTargetCell;
+		}
 		target.bodyHealth = zombie->mBodyHealth;
 		target.helmType = zombie->mHelmType;
 		target.helmHealth = zombie->mHelmHealth;
@@ -309,6 +314,11 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 				target.bodyHealth, helmType, helmHealth, shieldType, shieldHealth, target.hasHead,
 				target.hasArm, target.slowTimer, target.frozenTimer,
 				target.butterTimer, target.paralysisTimer, !positionRejected);
+			if (IsMineBackground() && !positionRejected) {
+				zombie->SetPosition(Vector(target.x,
+					GetZombieSpawnY(target.row, target.x) + target.mineRowOffset));
+				zombie->mMineTargetCell = target.mineTargetCell;
+			}
 			if (target.abilityStateValid) {
 				// 只回放目标自己的阶段；锚内已提交的裂隙和时间锚仍留在 Board。
 				zombie->RestoreTemporalAbilityState({

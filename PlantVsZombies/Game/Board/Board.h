@@ -277,6 +277,8 @@ private:
 		ZombieType type = ZombieType::NUM_ZOMBIE_TYPES;
 		int row = -1;
 		float x = 0.0f;
+		float mineRowOffset = 0.0f; // 矿道连续换行相对行基线的 Y 偏移，旧档默认为已到行
+		int mineTargetCell = -1; // 矿道已承诺节点，随回位一起恢复
 		int bodyHealth = 0;
 		HelmType helmType = HelmType::HELMTYPE_NONE;
 		int helmHealth = 0;

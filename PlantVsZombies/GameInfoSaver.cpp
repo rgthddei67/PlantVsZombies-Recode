@@ -434,6 +434,7 @@ bool GameInfoSaver::SerializeLevelDocument(Board* board, CardSlotManager* manage
 			targets.push_back({
 				{ "zombieID", target.zombieID }, { "type", static_cast<int>(target.type) },
 				{ "row", target.row }, { "x", target.x },
+				{ "mineRowOffset", target.mineRowOffset }, { "mineTargetCell", target.mineTargetCell },
 				{ "bodyHealth", target.bodyHealth }, { "helmType", static_cast<int>(target.helmType) },
 				{ "helmHealth", target.helmHealth }, { "shieldType", static_cast<int>(target.shieldType) },
 				{ "shieldHealth", target.shieldHealth }, { "slowTimer", target.slowTimer },
@@ -1221,7 +1222,8 @@ bool GameInfoSaver::DeserializeLevelDocument(Board* board, CardSlotManager* mana
 		j.value("nextDiscontinuousTransactionID", 1));
 	board->mDawnNavigationTimer = board->SupportsPolarNightEnvironment()
 		? std::clamp(j.value("dawnNavigationTimer", 0.0f), 0.0f, 8.0f) : 0.0f;
-	if (board->SupportsPolarNightEnvironment()) {
+	// 裂隙和时间锚是僵尸提交的独立事务，任何地图读档都必须恢复。
+	{
 		for (const auto& saved : j.value("pendingAuroraRifts", nlohmann::json::array())) {
 			if (!saved.is_object()) continue;
 			const int type = saved.value("type", -1);
@@ -1253,6 +1255,9 @@ bool GameInfoSaver::DeserializeLevelDocument(Board* board, CardSlotManager* mana
 				target.type = static_cast<ZombieType>(type);
 				target.row = row;
 				target.x = std::clamp(savedTarget.value("x", 1100.0f), -200.0f, 1800.0f);
+				target.mineRowOffset = std::clamp(savedTarget.value("mineRowOffset", 0.0f),
+					-CELL_COLLIDER_SIZE_Y * 0.5f, CELL_COLLIDER_SIZE_Y * 0.5f);
+				target.mineTargetCell = std::clamp(savedTarget.value("mineTargetCell", -1), -1, MineGrid::Count - 1);
 				target.bodyHealth = std::max(1, savedTarget.value("bodyHealth", 1));
 				target.helmType = static_cast<HelmType>(std::clamp(savedTarget.value(
 					"helmType", static_cast<int>(HelmType::HELMTYPE_NONE)),

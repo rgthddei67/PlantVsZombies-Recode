@@ -6241,6 +6241,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
 			{ "mineTargetCell", z->mMineTargetCell },
+			{ "mineRowOffsetOn1000", static_cast<int>(std::lround((z->GetPosition().y
+				- board->GetZombieSpawnY(z->mRow, z->GetPosition().x)) * 1000.0f)) },
 			{ "mistFuelReward", static_cast<int>(std::lround(z->GetMistFuelReward())) },
 			{ "fogObscured", board->IsZombieObscuredByFog(z) },
 			{ "inPool", z->IsInPool() },
