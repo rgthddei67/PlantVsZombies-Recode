@@ -31,3 +31,7 @@
 裂隙、时间锚和导航均由 Board 保存；僵尸保存本地动作阶段，时间锚另复制窄能力快照，植物保存碎片/充能。存档 schema 为 12；v10 活动锚迁移为无能力快照并继续使用旧 submitted 语义，v11 永久 `COMMITTED` 的祭司/钟匠实体及有效能力快照迁移为完整 5/10 秒普通冷却。祭司前摇使用青紫极光旋涡与模仿者 puff，钟匠则使用独立透明钟面、时针、分针三层：时间锚六秒内周期续显，两针按不同负 `ParticleSpinSpeed` 持续逆转，恢复边沿高速倒转并随钟面收缩，视觉语言不再与裂隙共用。裂隙与曙光释放仍组合自定义核心、模仿者 puff 云团和星屑，透明度与半径限定在目标附近。多 Emitter 的首个名称必须保持正式 `EmitEffect` 键；当前引擎无 `Attractor` Field，向内旋转使用负 `Away X` 叠 `Circle X`。
 
 2026-09-05 解除祭司/钟匠能力的极夜地图特判：提交与独立事务读档可在其他地图执行，天气资格仍独立。矿场裂隙排除岩壁/孤立地面；时间锚保存矿道行基线偏移与目标格，回位或复活同步恢复，旧档默认0偏移/-1节点。既有能力周期、召唤池和常规出怪表不变。
+
+2026-09-05 极光祭司增加每只累计最多3次释放：只有正式提交至少一道裂隙才增加 `ritualReleaseCount`，前摇被打断不计次数，第三次后进入 DISABLED 但保留正常移动、啃食与仪器表现。次数写入实体存档，并通过 `ZombieTemporalAbilityState.releaseCount` 与 Board 的 `abilityReleaseCount` 存入钟匠记录；按主人明确要求，回溯存活或死亡目标均恢复记录时次数，允许返还额度，独立裂隙仍不回滚。旧档缺字段默认0，新字段可用中性默认值兼容，无需提升 schema。专项为 `smoke_aurora_priest_release_limit.json`，覆盖中断、三次封顶、耗尽往返和钟匠存活/死亡回溯。
+
+本次 `clang-release` 构建零警告；默认 Vulkan 当前桌面可见 `smoke_aurora_priest_release_limit`（73条命令）与 `smoke_area8_finale_contract` 均 exit 0/status passed，已检查实体/时间锚快照中的次数、run.log 与全部同步截图。僵尸技能及相关契约审计完成，补入正式释放计次和时间锚额度语义，`quick_validate.py` 通过；本次没有新增视觉资源或绘图入口。

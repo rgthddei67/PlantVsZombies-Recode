@@ -6380,6 +6380,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["thermalLockedPlantID"] = thermal->GetLockedPlantID();
 		}
 		if (auto* priest = dynamic_cast<AuroraPriestZombie*>(z)) {
+			zombieState["auroraRitualReleaseCount"] = priest->GetRitualReleaseCount();
 			zombieState["auroraRitualPhase"] = static_cast<int>(priest->GetRitualPhase());
 			zombieState["auroraRitualRemainingMs"] = static_cast<int>(std::lround(
 				priest->GetRitualRemaining() * 1000.0f));

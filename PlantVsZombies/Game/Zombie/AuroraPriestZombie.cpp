@@ -10,6 +10,7 @@
 #include <algorithm>
 
 namespace {
+constexpr int kMaxRitualReleases = 3; // 每只祭司累计释放上限；钟匠回溯可恢复记录时次数
 constexpr int kBodyHealth = 1200; // 极光祭司本体生命
 constexpr int kDeviceHealth = 800; // 非磁性极光仪器生命
 constexpr int kNormalBiteDamage = 50; // 仪器完整时单口伤害
@@ -52,6 +53,7 @@ void AuroraPriestZombie::SetupZombie()
 	mAttackDamage = kNormalBiteDamage;
 	mRitualPhase = mIsPreview ? RitualPhase::COMMITTED : RitualPhase::PREPARING;
 	mRitualRemaining = mIsPreview ? 0.0f : kPreparationSeconds;
+	mRitualReleaseCount = 0;
 	mOverloaded = false;
 	ConfigureFollowers();
 	SyncFollowerPresentation();
@@ -70,7 +72,7 @@ void AuroraPriestZombie::Update()
 	if (!mIsPreview && IsActive() && !mIsDying
 		&& mRitualPhase != RitualPhase::COMMITTED
 		&& mRitualPhase != RitualPhase::DISABLED) {
-		if (!HasHead() || IsMindControlled()
+		if (mRitualReleaseCount >= kMaxRitualReleases || !HasHead() || IsMindControlled()
 			|| mHelmType != HelmType::HELMTYPE_AURORA_DEVICE
 			|| mHelmHealth <= 0) {
 			DisableUncommittedRitual();
@@ -87,11 +89,13 @@ void AuroraPriestZombie::Update()
 				}
 				else if (mRitualPhase == RitualPhase::WINDUP) {
 					const bool whiteout = mBoard && mBoard->IsPolarSnowBlindActive();
-					if (mBoard) mBoard->CommitAuroraPriestRitual(
-						mZombieID, mRow, whiteout);
+					// 仅成功释放裂隙才消费额度，前摇中断和无落点提交不计数。
+					if (mBoard && mBoard->CommitAuroraPriestRitual(
+						mZombieID, mRow, whiteout)) ++mRitualReleaseCount;
 					// 提交边沿立即开始下一轮冷却，不等待裂隙的独立到场事务。
 					mRitualPhase = RitualPhase::COOLDOWN;
 					mRitualRemaining = kCycleCooldownSeconds;
+					if (mRitualReleaseCount >= kMaxRitualReleases) DisableUncommittedRitual();
 					PlayWalkAnimation(0.12f);
 				}
 			}
@@ -104,7 +108,8 @@ void AuroraPriestZombie::Update()
 void AuroraPriestZombie::BeginWindup()
 {
 	if (mRitualPhase == RitualPhase::COMMITTED
-		|| mRitualPhase == RitualPhase::DISABLED) return;
+		|| mRitualPhase == RitualPhase::DISABLED
+		|| mRitualReleaseCount >= kMaxRitualReleases) return;
 	CancelEatingForSpecialAction();
 	mRitualPhase = RitualPhase::WINDUP;
 	mRitualRemaining = kWindupSeconds;
@@ -151,12 +156,15 @@ bool AuroraPriestZombie::CaptureTemporalAbilityState(
 {
 	state.phase = static_cast<int>(mRitualPhase);
 	state.remaining = mRitualRemaining;
+	state.releaseCount = mRitualReleaseCount;
 	return true;
 }
 
 void AuroraPriestZombie::RestoreTemporalAbilityState(
 	const ZombieTemporalAbilityState& state)
 {
+	// 次数随钟匠记录回溯，已提交的独立裂隙不会被撤销。
+	mRitualReleaseCount = std::clamp(state.releaseCount, 0, kMaxRitualReleases);
 	const RitualPhase restoredPhase = static_cast<RitualPhase>(std::clamp(
 		state.phase, static_cast<int>(RitualPhase::PREPARING),
 		static_cast<int>(RitualPhase::COOLDOWN)));
@@ -168,7 +176,7 @@ void AuroraPriestZombie::RestoreTemporalAbilityState(
 	// 磁吸、断头或魅惑不会被核心快照撤销；这些资格丢失时不得复活前摇。
 	if (mRitualPhase != RitualPhase::COMMITTED
 		&& mRitualPhase != RitualPhase::DISABLED
-		&& (!HasHead() || IsMindControlled()
+		&& (mRitualReleaseCount >= kMaxRitualReleases || !HasHead() || IsMindControlled()
 			|| mHelmType != HelmType::HELMTYPE_AURORA_DEVICE || mHelmHealth <= 0)) {
 		DisableUncommittedRitual();
 	}
@@ -279,6 +287,7 @@ void AuroraPriestZombie::SaveExtraData(nlohmann::json& j) const
 {
 	j["ritualPhase"] = static_cast<int>(mRitualPhase);
 	j["ritualRemaining"] = mRitualRemaining;
+	j["ritualReleaseCount"] = mRitualReleaseCount;
 	j["overloaded"] = mOverloaded;
 }
 
@@ -290,10 +299,12 @@ void AuroraPriestZombie::LoadExtraData(const nlohmann::json& j)
 		static_cast<int>(RitualPhase::COOLDOWN)));
 	mRitualRemaining = std::clamp(j.value("ritualRemaining", 0.0f),
 		0.0f, MaxRitualRemaining(mRitualPhase));
+	// 旧档未记录历史释放量，以零作为兼容起点。
+	mRitualReleaseCount = std::clamp(j.value("ritualReleaseCount", 0), 0, kMaxRitualReleases);
 	mOverloaded = j.value("overloaded", false)
 		|| mHelmType != HelmType::HELMTYPE_AURORA_DEVICE || mHelmHealth <= 0;
 	mAttackDamage = mOverloaded ? kOverloadBiteDamage : kNormalBiteDamage;
-	if (!HasHead() || IsMindControlled()) DisableUncommittedRitual();
+	if (mRitualReleaseCount >= kMaxRitualReleases || !HasHead() || IsMindControlled()) DisableUncommittedRitual();
 	ConfigureFollowers();
 	SyncFollowerPresentation();
 	UpdateAnimSpeed();

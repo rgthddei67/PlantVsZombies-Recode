@@ -297,6 +297,7 @@ private:
 		bool abilityStateValid = false;
 		int abilityPhase = -1;
 		float abilityRemaining = 0.0f;
+		int abilityReleaseCount = 0;
 	};
 
 	/** 钟匠提交后与来源生命周期解耦的六秒时间锚。 */
@@ -958,8 +959,8 @@ public:
 	/** 发射时锁定垂直风切变；返回 false 表示越界落空。 */
 	bool ApplyPolarLobbedWind(int sourceRow, int& landingRow, Vector& target,
 		bool guided = false) const;
-	/** 极光祭司提交固定终点与召唤类型；裂隙随后独立展开。 */
-	void CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whiteout);
+	/** 提交固定终点与召唤类型，裂隙随后独立展开；至少提交一个事务才返回 true。 */
+	bool CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whiteout);
 	/** 极夜钟匠提交本行及相邻行的六秒可回溯快照。 */
 	void CommitPolarClockAnchor(int ownerZombieID, int sourceRow);
 	/** 推进裂隙、时间锚与曙光导航；游戏暂停时由 deltaTime=0 自然冻结。 */

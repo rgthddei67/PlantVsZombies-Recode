@@ -20,13 +20,16 @@ public:
 		COOLDOWN,
 	};
 
+	/** 推进可中断仪式，只在成功释放裂隙时计次，达到上限后停止施法。 */
 	void Update() override;
 	void Die() override;
 	void HeadDrop() override;
 	void HelmDrop() override;
 	void ZombieItemUpdate() const override;
 	void OnTemporalCoreStateRestored() override;
+	/** 保存仪式阶段、余时和累计释放次数。 */
 	void SaveExtraData(nlohmann::json& j) const override;
+	/** 恢复仪式与次数，并收敛已耗尽或失去资格的状态。 */
 	void LoadExtraData(const nlohmann::json& j) override;
 	float GetInterruptibleSpecialActionRemaining() const override;
 	bool InterruptUncommittedSpecialAction() override;
@@ -34,10 +37,13 @@ public:
 		return mRitualPhase == RitualPhase::COMMITTED;
 	}
 	void RestoreCommittedIrreversibleSpecialAction(bool submitted) override;
+	/** 钟匠记录阶段、余时与释放次数，回溯时可返还额度。 */
 	bool CaptureTemporalAbilityState(ZombieTemporalAbilityState& state) const override;
+	/** 按时间锚恢复局部仪式及次数，保留已经提交的 Board 裂隙。 */
 	void RestoreTemporalAbilityState(const ZombieTemporalAbilityState& state) override;
 
 	RitualPhase GetRitualPhase() const { return mRitualPhase; }
+	int GetRitualReleaseCount() const { return mRitualReleaseCount; }
 	float GetRitualRemaining() const { return mRitualRemaining; }
 	bool IsOverloaded() const { return mOverloaded; }
 	bool HasFinaleFollowersConfigured() const { return mFollowersConfigured; }
@@ -61,6 +67,7 @@ private:
 	void SyncFollowerPresentation() const;
 
 	RitualPhase mRitualPhase = RitualPhase::PREPARING;
+	int mRitualReleaseCount = 0; // 已释放次数；存档和时间锚共同恢复
 	float mRitualRemaining = 6.0f;
 	float mRitualVisualPulseTimer = 0.0f;
 	bool mOverloaded = false;

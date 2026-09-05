@@ -51,9 +51,9 @@ long long ThreatScore(const Zombie* zombie)
 }
 }
 
-void Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whiteout)
+bool Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whiteout)
 {
-	if (mTrophySpawned) return;
+	if (mTrophySpawned) return false;
 	for (TemporalAnchor& anchor : mTemporalAnchors) {
 		for (TemporalTargetSnapshot& target : anchor.targets) {
 			if (target.zombieID == ownerZombieID) target.specialActionSubmitted = true;
@@ -115,6 +115,7 @@ void Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whit
 				GetCellCenterPosition(target.row, target.column));
 		}
 	}
+	return !chosen.empty();
 }
 
 void Board::CommitPolarClockAnchor(int ownerZombieID, int sourceRow)
@@ -187,6 +188,7 @@ void Board::CommitPolarClockAnchor(int ownerZombieID, int sourceRow)
 			if (target.abilityStateValid) {
 				target.abilityPhase = abilityState.phase;
 				target.abilityRemaining = std::max(0.0f, abilityState.remaining);
+				target.abilityReleaseCount = abilityState.releaseCount;
 			}
 		}
 		anchor.targets.push_back(target);
@@ -322,7 +324,7 @@ void Board::UpdatePolarFinaleRituals(float deltaTime)
 			if (target.abilityStateValid) {
 				// 只回放目标自己的阶段；锚内已提交的裂隙和时间锚仍留在 Board。
 				zombie->RestoreTemporalAbilityState({
-					target.abilityPhase, target.abilityRemaining });
+					target.abilityPhase, target.abilityRemaining, target.abilityReleaseCount });
 			}
 			else if (target.zombieID != it->ownerZombieID) {
 				// v10 旧档非来源目标继续使用只保留 submitted 的兼容语义。
