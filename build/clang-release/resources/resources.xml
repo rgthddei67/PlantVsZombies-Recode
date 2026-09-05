@@ -461,6 +461,7 @@
   <!-- 字体文件 -->
   <Fonts>
     <Font>./font/fzcq.ttf</Font>
+    <Font>./font/fzjt.ttf</Font>
     <Font>./font/fzjz.ttf</Font>
     <Font>./font/ContinuumBold.ttf</Font>
   </Fonts>

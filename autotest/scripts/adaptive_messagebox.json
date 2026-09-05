@@ -16,8 +16,9 @@
     { "op": "assert_state", "path": "gameMessageBox.centerXInt", "equals": 550 },
     { "op": "assert_state", "path": "gameMessageBox.centerYInt", "equals": 300 },
     { "op": "assert_state", "path": "gameMessageBox.widthInt", "atLeast": 600, "atMost": 1020 },
-    { "op": "assert_state", "path": "gameMessageBox.heightInt", "atLeast": 258 },
+    { "op": "assert_state", "path": "gameMessageBox.heightInt", "atLeast": 235 },
     { "op": "assert_state", "path": "gameMessageBox.wrappedMessageLineCount", "atLeast": 2 },
+    { "op": "assert_state", "path": "dialogSkinResources.fontLoaded", "equals": true },
     { "op": "dump_state", "name": "adaptive_messagebox_state.json" },
     { "op": "screenshot", "name": "adaptive_messagebox" },
     { "op": "quit" }

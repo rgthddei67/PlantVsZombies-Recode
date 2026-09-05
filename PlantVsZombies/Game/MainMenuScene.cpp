@@ -269,6 +269,7 @@ void MainMenuScene::OpenMenu()
 	// mShowZombieHP），Builder 写法按项绑定 initChecked，原"按槽位赋值错位"bug 类别不复存在
 	mMenu = GameMessageBox::Builder(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f))
 		.Background(ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK)
+		.ControlFont(ResourceKeys::Fonts::FONT_FZJT)
 		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
 			SetMainMenuButtonsEnabled(true);
 			mOpenMenu = false;

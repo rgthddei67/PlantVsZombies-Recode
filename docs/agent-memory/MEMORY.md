@@ -138,7 +138,7 @@
 - [AutoTest assert_state 命令 ✅已push](project_pvz_autotest_assert_state_todo.md) — 2026-07-04 dump字段断言(path点分+数字段=数组下标,equals严格==,不匹配exit1)；BuildStateJson抽取两op共用；smoke_develop/smoke_perks已补断言,不带-develop假绿已根治；foot-gun=浮点字段勿equals用整数投影字段
 - [AutoTest 同步截图、状态复位与隔离快照](project_pvz_autotest_harness_enhancements.md) — 2026-07-27 截图 ticket 仅在 PNG 成功落盘后完成；显式 `reset_test_state` / `goto_level.resetTestState`；脚本输出目录内复用正式 GameInfoSaver 做新 GameScene 往返，禁止关闭 AutoTest 模式绕过保护；动画子弹存档保留 poolType
 
-- [GameMessageBox Builder 与 UIManager 模态生命周期](project_pvz_messagebox_builder.md) — 2026-09-04 默认 Box 改为原版十分件平铺皮肤，按标题/正文/按钮自适应尺寸、UTF-8 换行、整框居中；`.Background` 主菜单/暂停与 `.Panel` 面板保持旧样式，UIManager 生命周期契约不变
+- [GameMessageBox Builder 与 UIManager 模态生命周期](project_pvz_messagebox_builder.md) — 2026-09-05 标准框 FZJT 字体、黄色黑边、600×353 短确认框与顶部文字布局；两处 OpenMenu 通过 ControlFont 单独换字，其他绘字默认值不变；长文自适应、资源加载与取消按钮验证
 
 - [粒子按RenderOrder分层](project_pvz_particle_render_layer.md) — 世界层粒子走 GameObjectManager pre-overlay hook（非场景槽，因 MessageBox 在 GameObjects 命令内部）；2026-07-21 雨天改为“世界粒子 → 暗幕 → UI”；EmitEffect 默认 LAYER_EFFECTS_WORLD=35000，显式顶层粒子仍走 DrawFrom
 

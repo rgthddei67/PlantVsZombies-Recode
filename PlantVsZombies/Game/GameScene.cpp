@@ -2121,6 +2121,7 @@ void GameScene::OpenMenu()
 	const glm::vec4 labelColor{ 107, 109, 144, 255 };
 	mMenu = GameMessageBox::Builder(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f))
 		.Background(ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK)
+		.ControlFont(ResourceKeys::Fonts::FONT_FZJT)
 		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
 			mOpenMenu = false;
 			DeltaTime::SetPaused(false);

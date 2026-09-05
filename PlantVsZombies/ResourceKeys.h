@@ -599,6 +599,7 @@ namespace ResourceKeys
 
 	namespace Fonts
 	{
+		inline const std::string FONT_FZJT = "./font/fzjt.ttf";
 		inline const std::string FONT_FZCQ = "./font/fzcq.ttf";
 		inline const std::string FONT_FZJZ = "./font/fzjz.ttf";
 		inline const std::string FONT_CONTINUUMBOLD = "./font/ContinuumBold.ttf";

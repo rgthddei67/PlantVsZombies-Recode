@@ -3361,6 +3361,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "loadedVoiceSoundCount", CrazyDaveDialog::GetLoadedRequiredVoiceSoundCount() },
 	};
 	out["dialogSkinResources"] = {
+		{ "fontLoaded", ResourceManager::GetInstance().GetFont(ResourceKeys::Fonts::FONT_FZJT, 26) != nullptr },
 		{ "requiredTextureCount", GameMessageBox::GetStandardSkinRequiredTextureCount() },
 		{ "loadedTextureCount", GameMessageBox::GetLoadedStandardSkinTextureCount() },
 	};

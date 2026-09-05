@@ -37,6 +37,7 @@ public:
 		bool initChecked = false;          // 仅 checkbox 有效：创建时的初始勾选态
 		std::string tooltipText;           // 非空时，悬停该按钮显示说明
 		Vector hitSize{ 0.0f, 0.0f };      // 非零时，以 pos 为左上角扩展独立命中区域
+		std::string font = ResourceKeys::Fonts::FONT_FZCQ;
 	};
 
 	struct SliderConfig {
@@ -124,6 +125,7 @@ private:
 	glm::vec4 m_textColor = { 245, 214, 127, 255 };
 	glm::vec4 m_titleColor = { 53, 191, 61, 255 };
 
+	/** 注册本框按钮和滑块，绑定关闭回调与所属皮肤的文字样式。 */
 	void InitializeControls();
 	void DetachControls();
 	bool IsCloseRequested() const { return m_closeRequested; }
@@ -198,9 +200,13 @@ public:
 		return *this;
 	}
 
+	/** 在 Show 时覆盖本框 Text 标签及非标准皮肤按钮字体；标准皮肤按钮沿用皮肤字体。 */
+	Builder& ControlFont(const std::string& font) { m_controlFont = font; return *this; }
+
 	Builder& Scale(float s) { m_scale = s; return *this; }
 
-	std::shared_ptr<GameMessageBox> Show();   // 实现在 .cpp（注册到当前场景 UIManager）
+	/** 应用本框字体配置并向当前场景 UIManager 注册新弹窗。 */
+	std::shared_ptr<GameMessageBox> Show();
 
 private:
 	Vector m_pos;
@@ -208,6 +214,7 @@ private:
 	std::string m_message;
 	BackgroundMode m_backgroundMode = BackgroundMode::STANDARD_DIALOG;
 	std::string m_bgKey;
+	std::string m_controlFont;
 	float m_scale = 1.0f;
 	Vector m_explicitSize{ 0.0f, 0.0f };
 	std::vector<GameMessageBox::ButtonConfig> m_buttons;

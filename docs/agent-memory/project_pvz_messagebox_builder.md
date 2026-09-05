@@ -44,9 +44,26 @@ Builder 调用接口不变，但 `Show()` 现在把普通 `GameMessageBox` 注�
 PC 素材的 `dialog_centerright` 比上下右角少 3 列透明阴影，绘制时要与 `topright`
 共用左侧内沿；按各自宽度贴右会让暗槽在上下接缝处向右凸出。
 视觉微调沿用素材像素尺度：骷髅 `header` 相对九宫格主体上提 16 px，标准按钮相对
-底座分件顶部下移到 36 px；两者随 MessageBox `scale` 等比变化。文字区继续使用底座顶部
-16 px 的独立原版锚点，禁止复用按钮 Y，否则下移按钮会把标题与正文一起拖出暗色内容区。
+底座分件顶部偏移 28 px；两者随 MessageBox `scale` 等比变化。文字块从框顶 60 px 开始排列，短框多余留白保留在正文下方；高度测量保留底座顶部
+16 px 的独立锚点，禁止复用按钮 Y，以免调整按钮时连带拖动文字。
 
 `.Background()` 仍保留主菜单选项/暂停菜单的旧纹理、旧坐标；`.Panel()` 仍保留词条和开发者面板的纯色尺寸。
 `adaptive_messagebox` 锁定长文扩宽/换行/增高和十分件资源；`adaptive_messagebox_confirm`
-锁定实际重开确认框的 480×386 短文基准。`mainmenu_options_shot`、`pause_menu_shot` 继续是两条旧背景回归。
+锁定实际重开确认框的 600×353 短文基准。`mainmenu_options_shot`、`pause_menu_shot` 继续是两条旧背景回归。
+
+## 2026-09-05 中文弹窗字体与菜单范围
+
+标准弹窗标题、正文、按钮使用主人提供的 `./font/fzjt.ttf`，由 `resources.xml/Fonts`
+注册，`ResourceKeys::Fonts::FONT_FZJT` 取用；AutoTest `dialogSkinResources.fontLoaded`
+实际调用 `GetFont` 校验文件可打开。标题和正文使用亮黄色加黑色描边，八方向绘制复用文字缓存，
+不修改共享 TTF_Font 状态。短框基准 400×235 素材像素、文字顶距 60、标题正文间距 4；
+双按钮仍均分宽度，按钮最小高度 50、最小字号 18、底座顶距 28，均随框 scale 缩放。
+
+Builder `.ControlFont()` 在 `Show()` 时覆盖本框的 Text 标签及非标准皮肤按钮字体。
+`GameScene::OpenMenu` 和 `MainMenuScene::OpenMenu` 两处专用纹理菜单显式传入 FZJT；
+不改 Button/Graphics 全局默认字体，其他 HUD、控制台、图鉴和专用面板仍用原字体。
+标准框自身字体由标准皮肤决定；显式 Text 标签只在指定 ControlFont 时改变。
+验证使用 `adaptive_messagebox_confirm`（含取消按钮关闭断言）、`adaptive_messagebox`、
+`pause_menu_shot` 和 `mainmenu_options_shot` 的可见 clang-release 状态与截图。
+
+本次四项可见 clang-release 用例均 exit 0、status passed，字体加载和取消关闭断言通过，已检查全部四类截图；相关技能与 references 审计无须修改。

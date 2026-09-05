@@ -19,23 +19,38 @@ namespace {
 	const Vector LEGACY_MESSAGE_OFFSET = Vector(-190, -25); // 专用纹理背景的旧正文偏移，单位：逻辑像素
 	constexpr float kDialogHeaderOffset = 24.0f; // 原版九宫格主体为顶部骷髅装饰预留的高度，单位：素材像素
 	constexpr float kDialogHeaderLift = 16.0f; // 骷髅顶盖相对主体向上越界的距离，单位：素材像素
-	constexpr float kDialogMinimumHeight = 257.0f; // 短文框的原版基准高度，单位：素材像素
+	constexpr float kDialogMinimumWidth = 400.0f; // 短框宽度，避免骷髅与边框相对内容过大，单位：素材像素
+	constexpr float kDialogMinimumHeight = 235.0f; // 短文框的原版基准高度，单位：素材像素
 	constexpr float kDialogContentInsetLeft = 40.0f; // 正文左内边距，单位：素材像素
 	constexpr float kDialogContentInsetRight = 46.0f; // 正文右内边距，单位：素材像素
-	constexpr float kDialogContentTop = 82.0f; // 标题/正文区的最小顶部位置，单位：素材像素
-	constexpr float kDialogTitleBodyGap = 8.0f; // 标题与正文间距，单位：素材像素
+	constexpr float kDialogContentTop = 60.0f; // 标题/正文区的最小顶部位置，单位：素材像素
+	constexpr float kDialogTitleBodyGap = 4.0f; // 标题与正文间距，单位：素材像素
 	constexpr float kDialogMessageLineGap = 4.0f; // 正文换行间距，单位：素材像素
 	constexpr float kDialogContentButtonGap = 10.0f; // 文字块与按钮区的最小间距，单位：素材像素
 	constexpr float kDialogContentBottomAnchor = 16.0f; // 文字区下边界相对底座顶部的原版锚点，单位：素材像素
-	constexpr float kDialogButtonTopInset = 36.0f; // 按钮顶部相对底座分件顶部的偏移，单位：素材像素
+	constexpr float kDialogButtonTopInset = 28.0f; // 按钮顶部相对底座分件顶部的偏移，单位：素材像素
 	constexpr float kDialogButtonSideInset = 20.0f; // 双按钮行距石板左右边缘的留白，单位：素材像素
 	constexpr float kDialogButtonGap = 24.0f; // 同行按钮间距，单位：素材像素
 	constexpr float kDialogScreenMargin = 40.0f; // 自适应框与屏幕左右边缘的最小留白，单位：逻辑像素
-	const glm::vec4 STANDARD_DIALOG_TEXT_COLOR(224, 187, 98, 255); // 原版 LawnDialog 标题与正文颜色
+	const glm::vec4 STANDARD_DIALOG_TEXT_COLOR(255, 230, 116, 255); // 参考中文弹窗的亮黄色字面
 	constexpr float kTooltipCursorOffset = 18.0f; // 浮动说明框与鼠标热点的间距，单位：逻辑像素
 	constexpr float kTooltipScreenMargin = 8.0f; // 浮动说明框距屏幕边缘的最小留白，单位：逻辑像素
 	constexpr float kTooltipHorizontalPadding = 24.0f; // 浮动说明框文字左右内边距总和，单位：逻辑像素
 	constexpr float kTooltipMinimumWidth = 120.0f; // 浮动说明框最小宽度，单位：逻辑像素
+
+	/** 标准弹窗先画八方向黑边再画字面；复用文字缓存，不修改共享字体状态。 */
+	void DrawStandardText(const std::string& text, const Vector& world,
+		const glm::vec4& color, const std::string& font, int fontSize)
+	{
+		const float radius = std::max(1.0f, fontSize / 24.0f);
+		for (int y = -1; y <= 1; ++y) {
+			for (int x = -1; x <= 1; ++x) {
+				if (x || y) GameAPP::GetInstance().DrawText(text,
+					world + Vector(x * radius, y * radius), glm::vec4(0, 0, 0, 255), font, fontSize);
+			}
+		}
+		GameAPP::GetInstance().DrawText(text, world, color, font, fontSize);
+	}
 
 	const std::array<const std::string*, 10>& StandardDialogTextureKeys()
 	{
@@ -87,7 +102,7 @@ namespace {
 			const std::string codepoint = text.substr(i, end - i);
 			const std::string candidate = current + codepoint;
 			if (!current.empty() && graphics.MeasureTextWidth(candidate,
-				ResourceKeys::Fonts::FONT_FZCQ, fontSize) > maxWidth) {
+				ResourceKeys::Fonts::FONT_FZJT, fontSize) > maxWidth) {
 				lines.push_back(current);
 				current = codepoint;
 			}
@@ -109,7 +124,7 @@ namespace {
 			const std::string line = text.substr(begin,
 				end == std::string::npos ? std::string::npos : end - begin);
 			width = std::max(width, graphics.MeasureTextWidth(line,
-				ResourceKeys::Fonts::FONT_FZCQ, fontSize));
+				ResourceKeys::Fonts::FONT_FZJT, fontSize));
 			if (end == std::string::npos) break;
 			begin = end + 1;
 		}
@@ -227,9 +242,9 @@ void GameMessageBox::LayoutStandardDialog()
 		ResourceKeys::Textures::IMAGE_DIALOG_TOPMIDDLE, false);
 	const Texture* topRight = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_DIALOG_TOPRIGHT, false);
-	const float minimumWidth = (topLeft && topMiddle && topRight)
+	const float minimumWidth = std::max(kDialogMinimumWidth * scale, (topLeft && topMiddle && topRight)
 		? (topLeft->width + topMiddle->width + topRight->width) * scale
-		: 320.0f * scale;
+		: 320.0f * scale);
 
 	float buttonRowWidth = 0.0f;
 	for (const ButtonConfig& config : m_buttonConfigs) {
@@ -240,7 +255,7 @@ void GameMessageBox::LayoutStandardDialog()
 	}
 
 	const float titleWidth = graphics.MeasureTextWidth(m_title,
-		ResourceKeys::Fonts::FONT_FZCQ, titleFontSize);
+		ResourceKeys::Fonts::FONT_FZJT, titleFontSize);
 	const float messageWidth = MeasureLongestExplicitLine(graphics, m_message, messageFontSize);
 	const float desiredWidth = std::max({ minimumWidth,
 		titleWidth + horizontalInsets, messageWidth + horizontalInsets,
@@ -262,10 +277,10 @@ void GameMessageBox::LayoutStandardDialog()
 		: WrapUtf8Text(graphics, m_message, messageFontSize, contentWidth);
 
 	const float titleHeight = m_title.empty() ? 0.0f
-		: graphics.MeasureTextSize(m_title, ResourceKeys::Fonts::FONT_FZCQ,
+		: graphics.MeasureTextSize(m_title, ResourceKeys::Fonts::FONT_FZJT,
 			titleFontSize).y;
 	const float messageLineHeight = m_messageLines.empty() ? 0.0f
-		: graphics.MeasureTextSize(m_messageLines.front(), ResourceKeys::Fonts::FONT_FZCQ,
+		: graphics.MeasureTextSize(m_messageLines.front(), ResourceKeys::Fonts::FONT_FZJT,
 			messageFontSize).y;
 	const float messageHeight = m_messageLines.empty() ? 0.0f
 		: messageLineHeight * m_messageLines.size()
@@ -285,16 +300,14 @@ void GameMessageBox::LayoutStandardDialog()
 	const float buttonY = top + m_size.y - bottomHeight + kDialogButtonTopInset * scale;
 	float buttonX = m_position.x - buttonRowWidth / 2.0f;
 	for (ButtonConfig& config : m_buttonConfigs) {
+		config.size.y = std::max(config.size.y, 50.0f);
+		config.fontsize = std::max(config.fontsize, 18.0f);
 		config.pos = Vector(buttonX, buttonY);
 		buttonX += config.size.x * scale + kDialogButtonGap * scale;
 	}
 
-	const float contentTop = top + kDialogContentTop * scale;
-	// 按钮可以在底座内独立微调，不能连带拖动暗槽中的标题与正文。
-	const float contentBottom = top + m_size.y - bottomHeight
-		+ (kDialogContentBottomAnchor - kDialogContentButtonGap) * scale;
-	float drawY = contentTop + std::max(0.0f,
-		(contentBottom - contentTop - contentHeight) / 2.0f);
+	// 中文原版文字块靠暗槽上沿排列，短文多余空间留在正文下方；不受按钮位置影响。
+	float drawY = top + kDialogContentTop * scale;
 	if (!m_title.empty()) {
 		m_titleDrawPosition = Vector(
 			m_position.x - titleWidth / 2.0f, drawY);
@@ -303,7 +316,7 @@ void GameMessageBox::LayoutStandardDialog()
 	m_messageLinePositions.clear();
 	for (const std::string& line : m_messageLines) {
 		const float lineWidth = graphics.MeasureTextWidth(line,
-			ResourceKeys::Fonts::FONT_FZCQ, messageFontSize);
+			ResourceKeys::Fonts::FONT_FZJT, messageFontSize);
 		m_messageLinePositions.emplace_back(m_position.x - lineWidth / 2.0f, drawY);
 		drawY += messageLineHeight + kDialogMessageLineGap * scale;
 	}
@@ -332,7 +345,13 @@ void GameMessageBox::InitializeControls()
 		else {
 			button->SetTextColor(m_titleColor);
 			button->SetHoverTextColor(m_titleColor);
-			button->SetText(config.text, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
+			const bool standard = m_backgroundMode == BackgroundMode::STANDARD_DIALOG;
+			button->SetText(config.text, standard ? ResourceKeys::Fonts::FONT_FZJT
+				: config.font, fontSize);
+			if (standard) {
+				button->SetTextColor(glm::vec4(0, 235, 0, 255));
+				button->SetHoverTextColor(glm::vec4(0, 255, 0, 255));
+			}
 			button->SetAsCheckbox(false);
 			button->SetImageKeys
 			(config.texture, config.texture, config.texture, config.texture);
@@ -488,14 +507,14 @@ void GameMessageBox::Draw(Graphics* g)
 		const int messageFontSize = std::max(8, static_cast<int>(BASE_MESSAGE_FONT_SIZE * m_scale));
 		if (!m_title.empty()) {
 			const Vector world = g->LogicalToWorld(m_titleDrawPosition.x, m_titleDrawPosition.y);
-			GameAPP::GetInstance().DrawText(m_title, world, STANDARD_DIALOG_TEXT_COLOR,
-				ResourceKeys::Fonts::FONT_FZCQ, titleFontSize);
+			DrawStandardText(m_title, world, STANDARD_DIALOG_TEXT_COLOR,
+				ResourceKeys::Fonts::FONT_FZJT, titleFontSize);
 		}
 		for (size_t i = 0; i < m_messageLines.size() && i < m_messageLinePositions.size(); ++i) {
 			const Vector world = g->LogicalToWorld(
 				m_messageLinePositions[i].x, m_messageLinePositions[i].y);
-			GameAPP::GetInstance().DrawText(m_messageLines[i], world,
-				STANDARD_DIALOG_TEXT_COLOR, ResourceKeys::Fonts::FONT_FZCQ, messageFontSize);
+			DrawStandardText(m_messageLines[i], world,
+				STANDARD_DIALOG_TEXT_COLOR, ResourceKeys::Fonts::FONT_FZJT, messageFontSize);
 		}
 	}
 	else if (!m_title.empty()) {
@@ -643,6 +662,11 @@ void GameMessageBox::DetachControls()
 
 std::shared_ptr<GameMessageBox> GameMessageBox::Builder::Show()
 {
+	// 覆盖局限于此 Builder 持有的配置，不修改 Button 或 Graphics 的全局字体。
+	if (!m_controlFont.empty()) {
+		for (auto& button : m_buttons) button.font = m_controlFont;
+		for (auto& text : m_texts) text.font = m_controlFont;
+	}
 	auto& ui = SceneManager::GetInstance().GetCurrectSceneUIManager();
 	auto messageBox = std::make_shared<GameMessageBox>(&ui, m_pos, m_message,
 		m_buttons, m_sliders, m_texts, m_title, m_backgroundMode, m_bgKey,
