@@ -75,6 +75,7 @@
   - `key`：`{ "op":"key", "name":"space" }`，可选 `"action"`（`press`，默认，完整点击 / `down`，仅按下沿 / `up`，仅释放沿）。`name` 是键名字符串：`a`–`z`、`0`–`9`、`space` / `enter` / `escape` / `tab` / `backspace`、方向键 `up` / `down` / `left` / `right`、`f1`–`f12` 等；新增键名需要在 `TestDriver.cpp` 的 `kKeyNames` 中添加一行。
 - **隔离性：** AutoTest 模式默认短路所有玩家存档读写（不读取或写入 `saves/`）；每次进入关卡都是确定性的全新关卡；`-Seed N` 固定随机种子。只有必须复现真实关卡存档问题时才显式加 `-AutoTestLoadSave`：此参数允许 `LoadLevelData` 从当前构建目录的 `./saves/` 读取关卡存档，但玩家设置仍用 AutoTest 默认值，且保存和删除入口继续短路，因此是严格只读模式。脚本快照是唯一显式写入例外，只能写当前脚本输出目录；禁止临时关闭 `GameAPP::mAutoTestMode` 绕过保护，否则可能触发真实存档写入、删除或迁移。
 - **植物状态观测：** `dump_state` 根节点提供 `plantCount`、`bulletCount`、`repeatingShootingHeadCount`；Shooter 植物条目另含 `headTrack`、`headAnimPlaying`、`headAnimPlayState`，可配合 `assert_state` 验证附加头部 Animator。`scaredyShroomsByCell.<row_col>.fearState` 按格稳定导出胆小菇四态，不受同格南瓜成为 `topPlantsByCell` 的影响。
+- **累计种植次数：** `plant` 可传 `expectedSuccess=false`，断言正式创建入口拒绝且不生成实体；默认仍要求成功。`eliteScaredyShroomsPlanted` 导出本关累计次数，`loadRestoreActive` 导出读档生命周期是否尚未结束。`smoke_elite_scaredyshroom_quota` 覆盖轮间选卡读档、新局、模仿者预占/变身以及死亡和铲除不返还。
 - **示例：** `autotest/scripts/demo_peashooter.json`（验收脚本）以及各子系统的 `smoke_*.json`。
 
 - **冬季地面冲击夹具：** `resolve_winter_ground_impact` 按 `row/col` 选择当前战斗顶层植物，以 `kind=COLLISION/GROUND_CRACK` 调用植物通用冬季冲击语义；`expectedIntercepted`、`expectedContainsScatter` 与 `expectedDownstreamMultiplierOn1000` 直接断言原子响应。该命令只替代尚未实现威胁的动作提交，不施加伤害或伪造雪橇落点。

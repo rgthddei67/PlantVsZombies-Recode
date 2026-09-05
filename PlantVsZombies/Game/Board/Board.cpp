@@ -2180,7 +2180,9 @@ Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 
 	// 正式创建入口也执行累计次数闸门，覆盖 AutoTest/develop 等绕过 CanPlantAt 的调用者。
 	// 读档实体恢复由已保存的累计计数约束，不能在逐株重建时重复消耗次数。
-	const bool consumesPlantingQuota = !isPreview && !skipsettings && !mIsLoadSave;
+	// 玩家落种始终消费次数；读档生命周期标记只能豁免内部实体恢复，不能豁免玩家输入。
+	const bool consumesPlantingQuota = !isPreview && !skipsettings
+		&& (playerDeployment || !mIsLoadSave);
 	if (consumesPlantingQuota && !HasPlantingQuota(placementType)) {
 		return nullptr;
 	}
@@ -2292,7 +2294,7 @@ Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 		if (placementType == PlantType::PLANT_PLANTERN) {
 			mActivePlanternID = plant->mPlantID;
 		}
-		if (playerDeployment && !mIsLoadSave) {
+		if (playerDeployment) {
 			NotifyPlayerPlantDeployed(*plant, placementType);
 		}
 	}

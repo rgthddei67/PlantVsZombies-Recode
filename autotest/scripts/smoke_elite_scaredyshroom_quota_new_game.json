@@ -1,0 +1,25 @@
+{
+  "commands": [
+    {"op": "goto_level", "level": 66, "resetTestState": true},
+    {"op": "choose_cards", "cards": ["PLANT_ELITE_SCAREDYSHROOM"]},
+    {"op": "wait_state", "state": "GAME", "timeout": 20},
+    {"op": "set_spawn_paused", "value": true},
+    {"op": "set_timescale", "value": 0},
+    {"op": "plant", "type": "PLANT_ELITE_SCAREDYSHROOM", "row": 0, "col": 0},
+    {"op": "plant", "type": "PLANT_ELITE_SCAREDYSHROOM", "row": 1, "col": 0},
+    {"op": "plant", "type": "PLANT_ELITE_SCAREDYSHROOM", "row": 2, "col": 0},
+    {"op": "plant", "type": "PLANT_ELITE_SCAREDYSHROOM", "row": 3, "col": 0},
+    {"op": "plant", "type": "PLANT_ELITE_SCAREDYSHROOM", "row": 4, "col": 0, "expectedSuccess": false},
+    {"op": "assert_state", "path": "eliteScaredyShroomsPlanted", "equals": 4},
+    {"op": "assert_state", "path": "plantCount", "equals": 4},
+    {"op": "set_sun", "value": 5000},
+    {"op": "click", "x": 219, "y": 35},
+    {"op": "wait_frames", "value": 2},
+    {"op": "click", "x": 275, "y": 540},
+    {"op": "wait_frames", "value": 2},
+    {"op": "assert_state", "path": "plantCount", "equals": 4},
+    {"op": "screenshot", "name": "new_game_four.png"},
+    {"op": "dump_state", "name": "new_game_four.json"},
+    {"op": "quit"}
+  ]
+}

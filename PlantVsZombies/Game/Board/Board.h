@@ -1436,6 +1436,7 @@ public:
 	/** 返回升级卡等额外在场种植前提是否满足；普通植物恒为 true。 */
 	bool HasPlantingRequirement(PlantType type) const;
 	int GetEliteScaredyShroomPlantLimit() const;
+	int GetEliteScaredyShroomsPlanted() const { return mEliteScaredyShroomsPlanted; }
 	/** 返回格子最上层战斗目标：南瓜层、普通层、承载层依次优先；铲子另按点击区域选层。 */
 	Plant* GetTopPlantAt(int row, int col) const;
 	/** 返回投篮车篮球在指定格应命中的层：飞行覆盖、普通、南瓜、承载依次优先。 */

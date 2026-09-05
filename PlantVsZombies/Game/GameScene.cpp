@@ -2474,6 +2474,10 @@ void GameScene::Update() {
 				else if (mBoard) {
 					mBoard->StartGame();
 				}
+				// 轮间选卡读档也在开战边沿结束恢复，避免标记残留到后续种植。
+				if (mBoard && mBoard->IsLoadRestoreActive()) {
+					mBoard->CompleteLoadRestore();
+				}
 				mCurrentStage = IntroStage::FINISH;
 			}
 			break;

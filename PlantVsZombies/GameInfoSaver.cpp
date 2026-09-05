@@ -965,23 +965,21 @@ bool GameInfoSaver::DeserializeLevelDocument(Board* board, CardSlotManager* mana
 				: iceRight;
 		}
 	}
-	if (j.contains("eliteScaredyShroomsPlanted")) {
-		board->mEliteScaredyShroomsPlanted = std::clamp(
-			j.value("eliteScaredyShroomsPlanted", 0),
-			0, board->GetEliteScaredyShroomPlantLimit());
-	}
-	else {
-		// 旧档没有累计字段，只能以仍存活的精英胆小菇数作保守下界，避免读档后凭空清零。
-		int legacyCount = 0;
-		for (const auto& plantData : j.value("plants", nlohmann::json::array())) {
-			if (plantData.value("type", -1)
-				== static_cast<int>(PlantType::PLANT_ELITE_SCAREDYSHROOM)) {
-				++legacyCount;
-			}
+	// 历史漏计档即使已有累计字段，也不能低于场上本体及尚未变身模仿者占用的次数。
+	int savedEliteCount = 0;
+	for (const auto& plantData : j.value("plants", nlohmann::json::array())) {
+		int placementType = plantData.value("type", -1);
+		if (placementType == static_cast<int>(PlantType::PLANT_IMITATER)
+			&& plantData.contains("extraData")) {
+			placementType = plantData["extraData"].value("targetType", -1);
 		}
-		board->mEliteScaredyShroomsPlanted = std::min(
-			legacyCount, board->GetEliteScaredyShroomPlantLimit());
+		if (placementType == static_cast<int>(PlantType::PLANT_ELITE_SCAREDYSHROOM)) {
+			++savedEliteCount;
+		}
 	}
+	board->mEliteScaredyShroomsPlanted = std::clamp(
+		std::max(j.value("eliteScaredyShroomsPlanted", 0), savedEliteCount),
+		0, board->GetEliteScaredyShroomPlantLimit());
 	board->mMistFuelDropAccumulator = std::clamp(
 		j.value("mistFuelDropAccumulator", 0.0f), 0.0f, 1.0f);
 	board->mMistFuelAssignedThisWave = 0;
@@ -1537,7 +1535,8 @@ bool GameInfoSaver::DeserializeLevelDocument(Board* board, CardSlotManager* mana
 					static_cast<int>(PlantType::NUM_PLANT_TYPES)));
 			plant = id != NULL_PLANT_ID
 				? board->CreateImitaterPlantWithID(targetType, row, col, id)
-				: board->CreateImitaterPlant(targetType, row, col);
+				: board->CreatePlantInternal(PlantType::PLANT_IMITATER, targetType,
+					row, col, false, false, false);
 		}
 		else if (id != NULL_PLANT_ID) {
 			plant = board->CreatePlantWithID(type, row, col, id);

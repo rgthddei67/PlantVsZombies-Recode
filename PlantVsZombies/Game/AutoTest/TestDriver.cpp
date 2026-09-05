@@ -1460,7 +1460,11 @@ bool TestDriver::ExecuteCurrent() {
 			p = gs->GetBoard()->CreatePlayerPlant(it->second,
 				cmd.value("row", 0), cmd.value("col", 0));
 		}
-		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
+		if ((p != nullptr) != cmd.value("expectedSuccess", true)) {
+			Fail("plant: 创建结果与 expectedSuccess 不符");
+			return false;
+		}
+		if (!p) return true;
 		if (auto* blover = dynamic_cast<Blover*>(p);
 			blover && cmd.contains("bloverDirection")) {
 			auto directionIt = kWindDirectionNames.find(
@@ -5742,6 +5746,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
+	out["loadRestoreActive"] = board->IsLoadRestoreActive();
+	out["eliteScaredyShroomsPlanted"] = board->GetEliteScaredyShroomsPlanted();
 	// 出怪池不分模式都 dump：冒险关卡验证 spawnlists.json 也要抓手（原先只在生存模式导出）
 	out["spawnList"] = nlohmann::json::array();
 	bool spawnListHasBobsledTeam = false;
