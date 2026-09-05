@@ -6,6 +6,8 @@
 
 ## 对象、场景与关卡
 
+使用说明先读 [对象生命周期与所有权](OBJECT_LIFECYCLE.md)：创建和 Start 的时机、停用与移除的区别、实体 ID、附件失效及场景切换边界。
+
 先读 [GameObject.h](../../PlantVsZombies/Game/GameObject.h)，再读 [GameObjectManager.h](../../PlantVsZombies/Game/GameObjectManager.h)、[SceneManager.h](../../PlantVsZombies/Game/SceneManager.h) 和 [Board.h](../../PlantVsZombies/Game/Board/Board.h)。
 
 | 入口 | 阅读时关注的问题 | 完整说明 |

@@ -9,6 +9,14 @@ metadata:
 
 # 继承式玩法对象与组件容器收缩
 
+## 2026-09-05 对象生命周期使用说明
+
+新增 [对象生命周期与所有权](../systems/OBJECT_LIFECYCLE.md)，按当前 GOM、GameObject、EntityRegistry 和 SceneManager 源码说明创建／启动、延迟移除、外部强引用、附件失效与场景切换。特别区分 `DestroyGameObject` 请求与停用，以及注册表普通裸指针查询与当前活动资格。
+
+静态核实的边界：待移除阶段只从 `mGameObjects` 擦除对象，随后仍处理 `mObjectsToAdd`；当前不能把 Start 前的 Destroy 当作可靠取消。这里只记录该限制，没有实现修复或运行 AutoTest。当前用法集中维护在上面的系统说明中。
+
+## 既有架构决策与迁移记录
+
 2026-08-16 主人确认：植物、僵尸及其他有独立生命周期的玩法实体正式采用继承式对象模型。共享流程留在稳定基类，品种差异通过派生类、窄虚接口和 `GameDataManager` 注册式工厂表达；不为形式统一把植物/僵尸改写成 ECS 或复制平行状态。
 
 `GameObject` 早期的 `unordered_map<type_index, unique_ptr<Component>>` 横切附件容器已删除，不再作为玩法系统扩展点。2026-08-16 已把 `CardComponent` 与 `CardDisplayComponent` 的状态、主线程缓存和绘制职责直接并入 `Card`，并把 `CardSlotManager` 从组件改为 `GameScene` 独占的普通控制器；存档 JSON 字段不变。2026-08-22 又依次把 Transform 改为 `GameObject` 内按需创建的 `std::optional<Transform>`，把 Collider、Shadow 与 Clickable 改为 `GameObject` 的显式可选所有权，最后删除 Component 基类、类型表、模板接口和通用生命周期视图。`*Component` 后缀目前只属于三个显式附件的过渡名称。

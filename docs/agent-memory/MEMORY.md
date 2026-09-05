@@ -175,7 +175,7 @@
 - [并行Update phase-1 已REVERT](project_pvz_parallel_update_phase1.md) — Animator帧推进仅占Update12%(plan误判80%),dispatch0.05ms非瓶颈
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
-- [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；手持预览在最终相机后、世界绘制前单次同步；通用 Component 基类、类型表、模板接口和生命周期视图已删除；稳定 ID 注册与查询类已由 EntityManager 语义重命名为 EntityRegistry；Shadow 绘制、Clickable O(可点击对象) 输入仲裁和僵尸行桶 Die/CommitRow 即时失效契约保持
+- [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — 2026-09-05 补充对象生命周期使用说明与 Start 前取消的静态限制（未运行验证）；Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；手持预览在最终相机后、世界绘制前单次同步；通用 Component 基类、类型表、模板接口和生命周期视图已删除；稳定 ID 注册与查询类已由 EntityManager 语义重命名为 EntityRegistry；Shadow 绘制、Clickable O(可点击对象) 输入仲裁和僵尸行桶 Die/CommitRow 即时失效契约保持
 - [高频实体、动画事件与运行时字符串冷热布局](project_pvz_entity_memory_layout.md) — 2026-08-22 不引入 ZombiePool；Collider 回调与 Zombie 稀有状态按需侧车，Animator 帧事件连续化并使用 24B 内联回调，GameObject/轨名共享驻留，Bullet 复用互斥弹道且尖刺固定槽位按需分配；当前 ABI 普通26轨僵尸静态下限约5.24→1.63KiB（-68.9%），只代表布局、不冒充 FPS
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
 - [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim实例化；glow/双队列Z-order、ShadowComponent、冰晶与缺轨黄油均保序；2026-08-27记录收回48B并改per-instance vertex input+4顶点strip，活动Clip回退batch，独立instance descriptor已删除
