@@ -27,6 +27,7 @@
 #include <iterator>
 
 namespace {
+	constexpr float kCompactDialogScale = 1.2f; // 重开、退出和失败弹窗整体缩为原 1.5 倍配置的 80%，含文字与按钮
 	constexpr float kSeedBankX = 130.0f;                  // 卡槽底板左边缘，单位：逻辑 px
 	constexpr float kSeedBankRestY = -10.0f;              // 卡槽停靠后的顶部 Y，单位：逻辑 px
 	constexpr float kSeedBankStartY = -100.0f;            // 卡槽滑入前的顶部 Y，单位：逻辑 px
@@ -2191,7 +2192,7 @@ void GameScene::OpenRestartMenu()
 	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
 		.Title(u8"重新开始游戏？")
 		.Message(u8"你想要重新开始这一关吗？")
-		.Scale(1.5f)
+		.Scale(kCompactDialogScale)
 		.Button(u8"重来", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToRestart = true;
 			this->mOpenRestartMenu = false;
@@ -2214,7 +2215,7 @@ void GameScene::OpenQuitMenu()
 	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
 		.Title(u8"退出当前游戏？")
 		.Message(u8"你想要返回主菜单吗？")
-		.Scale(1.5f)
+		.Scale(kCompactDialogScale)
 		.Button(u8"退出", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToBackMenu = true;
 			this->mOpenQuitMenu = false;
@@ -3094,7 +3095,7 @@ void GameScene::GameOver()
 	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
 		.Title(u8"游戏结束")
 		.Message(u8"僵尸吃掉了你的脑子！")
-		.Scale(1.5f)
+		.Scale(kCompactDialogScale)
 		.Button(u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
 			this->mReadyToBackMenu = true;
 			DeltaTime::SetPaused(false);
