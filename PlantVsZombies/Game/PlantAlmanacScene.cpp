@@ -1,5 +1,6 @@
 #include "PlantAlmanacScene.h"
 #include "SceneManager.h"
+#include "AdventureProgression.h"
 #include "../GameApp.h"
 #include "Plant/Plant.h"
 #include "ClickableComponent.h"
@@ -29,14 +30,16 @@ constexpr int   DESC_FONT_MAX   = 17;            // 默认/最大字号
 constexpr int   DESC_FONT_MIN   = 10;            // 收缩下限（再小不可读）
 constexpr float DESC_LINE_RATIO = 22.0f / 17.0f; // 行高随字号等比（原 17 号配 22px）
 
+/** 普通图鉴保留卡片列表；奖励页居中展示详情，并提供下一关和首页入口。 */
 void PlantAlmanacScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
 	AddTexture("IMAGE_ALMANAC_PLANTBACK", -90.0f, -20.0f, 1.0f, 1.0f, -1200, false);
-	AddTexture("IMAGE_ALMANAC_PLANTCARD", 745.0f, 110.0f, 1.0f, 1.0f, -1000, false);
-	AddTexture("IMAGE_ALMANAC_GROUNDDAY", 808.0f, 128.0f, 1.0f, 1.0f, -1100, false);
+	AddTexture("IMAGE_ALMANAC_PLANTCARD", 745.0f + GetInfoOffsetX(), 110.0f, 1.0f, 1.0f, -1000, false);
+	AddTexture("IMAGE_ALMANAC_GROUNDDAY", 808.0f + GetInfoOffsetX(), 128.0f, 1.0f, 1.0f, -1100, false);
 
-	mBackMenuButton = mUIManager.CreateButton(Vector(7, 560), Vector(162, 26));
+	mBackMenuButton = mUIManager.CreateButton(IsReward() ? Vector(90, 535) : Vector(7, 560),
+		IsReward() ? Vector(230, 37) : Vector(162, 26));
 	mBackMenuButton->SetAsCheckbox(false);
 	mBackMenuButton->SetImageKeys(
 		"IMAGE_ALMANAC_INDEXBUTTON",
@@ -44,24 +47,40 @@ void PlantAlmanacScene::BuildDrawCommands()
 		"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT",
 		"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT");
 
-	mBackMenuButton->SetText(u8"返回索引", ResourceKeys::Fonts::FONT_FZJZ, 18);
+	mBackMenuButton->SetText(IsReward() ? u8"返回主菜单" : u8"返回索引",
+		ResourceKeys::Fonts::FONT_FZJZ, IsReward() ? 22 : 18);
 	mBackMenuButton->SetTextColor(glm::vec4(52, 51, 93, 255));
 	mBackMenuButton->SetHoverTextColor(glm::vec4(52, 51, 93, 255));
 	mBackMenuButton->SetClickCallBack([this](bool) {
 		this->mReadyToSwitchAlmanacScene = true;
 		});
+	if (IsReward()) {
+		auto nextButton = mUIManager.CreateButton(Vector(780, 535), Vector(230, 37));
+		nextButton->SetAsCheckbox(false);
+		nextButton->SetImageKeys("IMAGE_ALMANAC_INDEXBUTTON", "IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT",
+			"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT", "IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT");
+		nextButton->SetText(u8"继续（下一关）", ResourceKeys::Fonts::FONT_FZJZ, 22);
+		nextButton->SetTextColor(glm::vec4(52, 51, 93, 255));
+		nextButton->SetHoverTextColor(glm::vec4(52, 51, 93, 255));
+		nextButton->SetEnabled(AdventureProgression::IsAdventureLevel(GameAPP::GetInstance().mAdventureLevel));
+		nextButton->SetClickCallBack([this](bool) { mReadyForNextLevel = true; });
+	}
 
 	RegisterDrawCommand("PlantInfo",
 		[this](Graphics* g) {
 			auto& app = GameAPP::GetInstance();
+			if (IsReward()) {
+				app.DrawText(u8"获得新植物！", Vector(445, 65),
+					glm::vec4(255, 214, 104, 255), ResourceKeys::Fonts::FONT_FZJT, 32);
+			}
 			if (!mCurrentPlantName.empty())
-				app.DrawText(mCurrentPlantName, Vector(mPlantNameX, 290),
+				app.DrawText(mCurrentPlantName, Vector(mPlantNameX + GetInfoOffsetX(), 290),
 					glm::vec4(221, 157, 42, 255), ResourceKeys::Fonts::FONT_FZJZ, 24);
 
 			float y = DESC_START_Y;
 			for (size_t i = 0; i < mDescriptionLines.size(); i++) {
 				float x = (i == 0) ? DESC_START_X : DESC_WRAP_X;
-				app.DrawText(mDescriptionLines[i], Vector(x, y),
+				app.DrawText(mDescriptionLines[i], Vector(x + GetInfoOffsetX(), y),
 					glm::vec4(52, 51, 93, 255),
 					ResourceKeys::Fonts::FONT_FZJZ, mDescriptionFontSize);
 				y += mDescriptionLineHeight;
@@ -116,12 +135,13 @@ void PlantAlmanacScene::OnCardClicked(PlantType type)
 	UpdatePlantInfo(type);
 }
 
+/** 图鉴与奖励共用无 Board 的展示植物，不触发战斗能力。 */
 void PlantAlmanacScene::CreatePreviewPlant(PlantType type)
 {
 	auto plant = GameAPP::GetInstance().InstantiatePlant(type, nullptr, -1, -1, true);
 	if (!plant) return;
 	mPreviewPlant = plant;
-	plant->SetPosition(Vector(PREVIEW_PLANT_X, PREVIEW_PLANT_Y));
+	plant->SetPosition(Vector(PREVIEW_PLANT_X + GetInfoOffsetX(), PREVIEW_PLANT_Y));
 }
 
 void PlantAlmanacScene::DestroyPreviewPlant()
@@ -132,20 +152,33 @@ void PlantAlmanacScene::DestroyPreviewPlant()
 	}
 }
 
+/** 奖励页可直接进入下一关或返回首页；普通图鉴仍返回索引。 */
 void PlantAlmanacScene::Update()
 {
 	Scene::Update();
+	if (mReadyForNextLevel) {
+		auto& scenes = SceneManager::GetInstance();
+		scenes.SetGlobalData("EnterLevel", std::to_string(GameAPP::GetInstance().mAdventureLevel));
+		scenes.SwitchTo("GameScene");
+		return;
+	}
 
 	if (mReadyToSwitchAlmanacScene) {
 		mReadyToSwitchAlmanacScene = false;
-		SceneManager::GetInstance().SwitchTo("AlmanacScene");
+		SceneManager::GetInstance().SwitchTo(IsReward() ? "MainMenuScene" : "AlmanacScene");
 	}
 }
 
+/** 奖励页直接选中刚解锁的植物，普通入口仍展示全部已拥有卡片。 */
 void PlantAlmanacScene::OnEnter()
 {
 	Scene::OnEnter();
 	LoadInfoFile();
+	if (IsReward()) {
+		CreatePreviewPlant(mRewardPlant);
+		UpdatePlantInfo(mRewardPlant);
+		return;
+	}
 	CreateAllCards();
 
 	const auto& haveCards = GameAPP::GetInstance().mHaveCards;

@@ -14,6 +14,9 @@ class Plant;
 
 class PlantAlmanacScene : public Scene {
 private:
+	PlantType mRewardPlant;
+	bool mReadyForNextLevel = false;
+	float GetInfoOffsetX() const { return IsReward() ? -357.0f : 0.0f; }
 	std::shared_ptr<Button> mBackMenuButton;
 	std::vector<Card*> mCards;
 	std::weak_ptr<Plant> mPreviewPlant;
@@ -37,6 +40,14 @@ private:
 		const std::string& fontKey, int fontSize);
 
 public:
+	/** 无参数为普通图鉴；指定植物为通关奖励页，共用资料与预览。 */
+	explicit PlantAlmanacScene(PlantType reward = PlantType::NUM_PLANT_TYPES)
+		: mRewardPlant(reward) {}
+	bool IsReward() const { return mRewardPlant != PlantType::NUM_PLANT_TYPES; }
+	PlantType GetSelectedPlant() const { return mCurrentPlantType; }
+	const std::string& GetPlantName() const { return mCurrentPlantName; }
+	size_t GetDescriptionLineCount() const { return mDescriptionLines.size(); }
+	bool HasPreviewPlant() const { return !mPreviewPlant.expired(); }
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;

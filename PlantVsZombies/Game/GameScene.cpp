@@ -2,6 +2,7 @@
 #include "CrazyDaveDialog.h"
 #include "CursorObjectManager.h"
 #include "SceneManager.h"
+#include "PlantAlmanacScene.h"
 #include "../ResourceManager.h"
 #include "./CardSlotManager.h"
 #include "../ResourceKeys.h"
@@ -2514,7 +2515,15 @@ void GameScene::Update() {
 
 	if (mReadyToBackMenu) {
 		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
-		SceneManager::GetInstance().SwitchTo("MainMenuScene");
+		auto& scenes = SceneManager::GetInstance();
+		// 奖励已由 Trophy 入账保存；这里只传递一次展示参数，不保留已通关棋盘。
+		if (mUnlockedPlant != PlantType::NUM_PLANT_TYPES) {
+			const PlantType reward = mUnlockedPlant;
+			scenes.RegisterScene<PlantAlmanacScene>("PlantRewardScene", reward);
+			scenes.SwitchTo("PlantRewardScene");
+		} else {
+			scenes.SwitchTo("MainMenuScene");
+		}
 		return;
 	}
 

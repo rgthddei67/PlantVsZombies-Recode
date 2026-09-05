@@ -54,7 +54,8 @@ public:
 	virtual void TogglePlanternGearMenu() = 0;
 	virtual void GameOver() = 0;
 	virtual void BeginSurvivalPerkSelect() = 0;
-	virtual void SetReadyToBackMenu() = 0;
+	/** 奖杯演出结束后离场；仅本次实际解锁的植物需要展示奖励图鉴。 */
+	virtual void SetReadyToBackMenu(PlantType unlockedPlant) = 0;
 
 	/** 激活并按当前 Board 波数建立进度条。 */
 	virtual void ActivateWaveProgress() = 0;

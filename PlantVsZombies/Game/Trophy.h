@@ -6,6 +6,7 @@
 #include "Transform.h"
 #include "ColliderComponent.h"
 #include "ClickableComponent.h"
+#include "Plant/PlantType.h"
 
 class Board;
 
@@ -14,6 +15,7 @@ class Board;
 class Trophy : public GameObject {
 private:
 	Board* mBoard = nullptr;
+	PlantType mUnlockedPlant = PlantType::NUM_PLANT_TYPES;
 
 	// 入场缩放动画（三次缓入 APPEAR_START_SCALE → BASE_SCALE）
 	bool mAppearing = true;

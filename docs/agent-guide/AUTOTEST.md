@@ -82,4 +82,8 @@
 
 ### 全局模态与图鉴往返
 
+`smoke_plant_reward_almanac` 覆盖真实奖杯结算后的新植物奖励页、无奖励/重打/已有卡跳过，
+以及下一关选卡和返回首页两条导航。植物图鉴与奖励页共享 `plantAlmanacReward/Selected/Name/DescriptionLineCount/PreviewReady`
+投影；截图与 dump 必须使用不同文件名（例如 `.png` 与 `.json`），避免后者覆盖截图。
+
 `smoke_modal_navigation` 覆盖三层弹窗、背景按钮/滑块隔离、逐层取消与图鉴返回；`activeMessageBoxCount` 导出当前活动层数，图鉴索引/植物页的 `almanacReturnLevel` 为游戏来源关卡，首页来源为 -1。往返前后的 dump 与正式 snapshot 用于比较阳光、卡槽、对象和 Board 状态；不要把场景跳转成功当成原局恢复的充分证据。

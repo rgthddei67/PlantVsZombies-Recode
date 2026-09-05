@@ -232,7 +232,11 @@ public:
 	/** 返回当前屋脊督军及底部血条的纯派生展示状态。 */
 	RoofMarshalBossHealthBarState GetRoofMarshalBossHealthBarState() const;
 
-	void SetReadyToBackMenu() override { mReadyToBackMenu = true; }
+	/** 延后到安全的场景切换阶段展示新植物，或直接返回首页。 */
+	void SetReadyToBackMenu(PlantType unlockedPlant) override {
+		mUnlockedPlant = unlockedPlant;
+		mReadyToBackMenu = true;
+	}
 
 	void ShowShovel() override;
 
@@ -327,6 +331,7 @@ private:
 	bool mSpacePauseActive = false;  // 空格触发的轻量暂停；只显示顶部文字，不创建遮挡战场的菜单
 
 	bool mReadyToBackMenu = false;
+	PlantType mUnlockedPlant = PlantType::NUM_PLANT_TYPES;
 	bool mReadyToRestart = false;
 	bool mSurvivalRoundTransition = false;  // true=正处于同会话轮间转场（ChooseCardComplete 走轻量路径）
 	bool mGameUiRegistered = false;         // 防止 ZombieNumber/LevelName/Difficulty 绘制命令重复注册

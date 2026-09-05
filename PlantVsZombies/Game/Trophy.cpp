@@ -86,6 +86,7 @@ void Trophy::AdvanceAdventureProgress()
 	if (std::find(gameApp.mHaveCards.begin(), gameApp.mHaveCards.end(), reward) ==
 		gameApp.mHaveCards.end()) {
 		gameApp.mHaveCards.push_back(reward);
+		mUnlockedPlant = reward;
 	}
 }
 
@@ -112,7 +113,7 @@ void Trophy::Update()
 
 	if (mGrowTimer >= GROW_DURATION) {
 		if (mBoard && mBoard->GetPresentation())
-			mBoard->GetPresentation()->SetReadyToBackMenu();
+			mBoard->GetPresentation()->SetReadyToBackMenu(mUnlockedPlant);
 		GameObjectManager::GetInstance().DestroyGameObject(this);
 	}
 }

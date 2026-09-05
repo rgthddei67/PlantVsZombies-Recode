@@ -19,6 +19,7 @@
 #include "../GameSelectScene.h"
 #include "../MainMenuScene.h"
 #include "../ZombieAlmanacScene.h"
+#include "../PlantAlmanacScene.h"
 #include "../ChooseCardUI.h"
 #include "Game/Board/Board.h"
 #include "../Ladder.h"
@@ -4362,7 +4363,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		return true;
 	}
 
-	if (currentScene->name == "AlmanacScene" || currentScene->name == "PlantAlmanacScene") {
+	if (auto* almanac = dynamic_cast<PlantAlmanacScene*>(currentScene)) {
+		out["plantAlmanacReward"] = almanac->IsReward();
+		out["plantAlmanacSelected"] = GameDataManager::GetInstance().PlantTypeToEnumName(almanac->GetSelectedPlant());
+		out["plantAlmanacName"] = almanac->GetPlantName();
+		out["plantAlmanacDescriptionLineCount"] = almanac->GetDescriptionLineCount();
+		out["plantAlmanacPreviewReady"] = almanac->HasPreviewPlant();
+		out["almanacReturnLevel"] = gameApp.mGameInfoSaver.GetAlmanacReturnLevel();
+		return true;
+	}
+	if (currentScene->name == "AlmanacScene") {
 		out["almanacReturnLevel"] = gameApp.mGameInfoSaver.GetAlmanacReturnLevel();
 		return true;
 	}

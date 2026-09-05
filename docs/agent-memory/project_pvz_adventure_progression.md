@@ -9,6 +9,24 @@ metadata:
 
 # 九关制冒险进度与植物奖励表
 
+## 2026-09-05 通关新植物图鉴
+
+`Trophy::AdvanceAdventureProgress` 只在实际追加新卡时记录本次奖励；进度和卡片仍在奖杯点击时保存。
+奖杯演出结束后经 `BoardPresentation::SetReadyToBackMenu(unlockedPlant)` 传给 GameScene，
+在安全的离场阶段创建 `PlantAlmanacScene(reward)`，场景名为 `PlantRewardScene`。
+无植物奖励、重打旧关或已经拥有奖励卡时直接返回首页，不重复展示，也不新增玩家存档字段。
+
+奖励页共用普通图鉴的 `info.txt`、无 Board 预览和描述自动折行/缩字号，详情居中，
+标题使用 `FONT_FZJT`（fzjt.ttf）。“继续（下一关）”按已推进的冒险进度进入下一关选卡，
+“返回主菜单”返回首页；登记边界外不提供可点击的下一关。普通图鉴仍显示卡片列表并返回索引。
+`smoke_plant_reward_almanac` 走真实奖杯点击，覆盖早期/后期奖励、无奖励、重打、已有卡、
+下一关选卡与首页入口；普通图鉴往返回归用 `smoke_modal_navigation`。
+
+最终 `clang-release` 构建退出 0；上述两项默认 Vulkan 可见 AutoTest 分别完成 81/109 条命令，
+均退出 0、status passed、run.log 为 script finished OK。向日葵与听雪草奖励截图确认 FZJT 标题、
+浅金色图鉴按钮和完整可读的说明，普通图鉴往返后仍恢复原局暂停菜单。相关 adding-plant 技能已审计更新，
+quick_validate 通过；未新增美术占位资源或改动植物战斗能力。
+
 主人删除原版铲子关后，冒险模式固定为每大关 9 小关。此前三个口径互相漂移：
 
 - `Board` / `MainMenuScene` 用 `/9`、`%9` 显示关卡；
