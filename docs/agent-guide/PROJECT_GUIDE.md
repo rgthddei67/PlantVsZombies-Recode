@@ -2,6 +2,8 @@
 
 本文件是 Codex 在本仓库中工作的详细按需参考。根目录 `AGENTS.md` 只保留始终生效的规则和任务路由；两者如有冲突，以根目录 `AGENTS.md` 为准。
 
+[返回文档导航](../README.md) · [核心系统阅读地图](../systems/README.md)
+
 ## 项目记忆
 
 从 Claude Code 迁移而来的项目记忆保存在 `docs/agent-memory/`，现作为面向 Codex 的项目文档维护。

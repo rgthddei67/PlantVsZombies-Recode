@@ -1,4 +1,8 @@
-# Memory Index
+# 子系统历史索引
+
+[返回文档导航](../README.md) · [当前系统入口](../systems/README.md)
+
+> 本页摘要用于定位历史主题。带日期的实现、测试和性能数字需要按当前源码与证据复核；索引中的完成标记不等于今天重新验收通过。
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
@@ -164,7 +168,6 @@
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn；2026-08-12 将35处 `GameAPP.h` 引用统一为索引/磁盘的 `GameApp.h`，clang-release 复核无编译器警告；验证须用clang(msvc默认不报)
 - [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — 2026-08-28 四个 preset 统一为 `clang-cl + lld-link`；常规编译、F5、AutoTest 与交付仍默认 `clang-release`，独立 `clang-asan` 仅供 Windows 8.1+ 内存诊断并自动部署 runtime、让出首机会异常给 ASan；非默认 preset 以 NTFS Junction 共享单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
-- [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest
 - [perf optimization](project_pvz_perf_optimization.md) — 最新2026-08-27:2万真实存档须`-AutoTestLoadSave`并只取小推车事件前稳定窗；保留自适应48有序slot、2048点插值trig表、常规Animator连续直写、48B per-instance vertex input和4顶点strip、无裁剪实例免clip分支、IMMEDIATE优先及GPU查询；满血整行后完整Profile稳定约137-138FPS，单窗140.1不算稳定达标
 - [Collaboration style](feedback_collaboration_style.md) — measure-first, steady-state numbers, honest framing, user builds in VS, responds in Chinese
