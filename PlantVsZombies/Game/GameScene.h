@@ -341,6 +341,7 @@ private:
 	// 轮间空槽重选时，快照冷却中卡牌的 {植物类型 → (已计时, 总时长)}，选完后还原到重选回的同种卡
 	SurvivalCardCooldownMap mSurvivalCardCooldowns;
 	bool mLendToAlmanacScene = false;
+	bool mResumeMenuAfterAlmanac = false;
 
 	IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
 
@@ -390,8 +391,11 @@ private:
 	bool mShakeCameraApplied = false;
 	int mPoolEffectCounter = 0;        // 原版水面按 Update 递增的动画相位；不受游戏倍速影响
 
+	/** 打开暂停父菜单；确认按钮在其上追加子弹窗。 */
 	void OpenMenu();
+	/** 追加重开确认，取消时保留父菜单与暂停状态。 */
 	void OpenRestartMenu();
+	/** 追加退出确认，确认后才离开当前关卡。 */
 	void OpenQuitMenu();
 	/** 切换空格键轻量暂停；其他模态暂停打开时不抢占其所有权。 */
 	void ToggleSpacePause();

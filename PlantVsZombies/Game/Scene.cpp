@@ -78,16 +78,22 @@ void Scene::Update()
 		}
 	}
 	auto input = &GameAPP::GetInstance().GetInputHandler();
+	// 关闭最后一层弹窗的释放事件也不能穿透到场景对象。
+	const bool hadModalInput = mUIManager.GetTopActiveMessageBox() != nullptr;
+	input->SetSceneMouseBlocked(false);
 	{
 		PROFILE_SCOPE("1a.UIManager");
 		mUIManager.ProcessMouseEvent(input);
 		mUIManager.UpdateAll(input);
 	}
+	input->SetSceneMouseBlocked(hadModalInput || mUIManager.GetTopActiveMessageBox() != nullptr);
 	GameObjectManager::GetInstance().Update();
 	UpdateAfterGameObjects();
 	{
 		PROFILE_SCOPE("1b.Clickable");
-		ClickableComponent::ProcessMouseEvents();
+		if (!hadModalInput && !mUIManager.GetTopActiveMessageBox()) {
+			ClickableComponent::ProcessMouseEvents();
+		}
 	}
 	{
 		PROFILE_SCOPE("3.Collision_Update");

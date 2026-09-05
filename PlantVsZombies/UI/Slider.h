@@ -13,6 +13,7 @@ class ResourceManager;
 
 class Slider
 {
+	bool mModalInputBlocked = false;
 private:
 	Vector position = Vector::zero();
 	Vector size = Vector(135, 10);
@@ -51,13 +52,17 @@ public:
 	void SetIntegerOnly(bool enabled);
 
 	// 是否能拖动
+	/** 被上层模态框遮挡时取消拖动，保留原有 canDrag 配置。 */
+	void SetModalInputBlocked(bool blocked) { mModalInputBlocked = blocked; if (blocked) isDragging = false; }
 	void SetDrag(bool canDrag);
 
 	void SetImageKeys(const std::string& background, const std::string& knob);
 
 	void SetChangeCallBack(std::function<void(float)> callback);
 
+	/** 未被模态遮挡时响应滑轨点击与拖动起止。 */
 	void ProcessMouseEvent(InputHandler* input);
+	/** 按当前鼠标位置更新允许输入的滑块拖动值。 */
 	void Update(InputHandler* input);
 
 	void Draw(Graphics* g) const;

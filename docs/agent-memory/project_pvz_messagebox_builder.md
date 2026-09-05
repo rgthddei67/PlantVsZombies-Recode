@@ -22,7 +22,7 @@ Builder 调用接口不变，但 `Show()` 现在把普通 `GameMessageBox` 注�
 
 绘制契约同步固定为“普通 Button/Slider → 活动 GameMessageBox”；弹框自有控件保持
 `skipDraw`，由 `GameMessageBox::Draw()` 在背景和文字之后自行提交。这样模态框稳定盖住
-其他 UI，调用方只需禁用背景控件的输入，不应再把背景控件从绘制路径删掉。
+其他 UI；2026-09-05 起背景输入由 UIManager 统一隔离，调用方不再逐个禁用背景控件。
 
 ## 2026-08-28 浮动 Tooltip 与独立命中区
 
@@ -71,3 +71,26 @@ Builder `.ControlFont()` 在 `Show()` 时覆盖本框的 Text 标签及非标准
 后续尺寸微调：`GameScene` 重开、退出和失败短弹窗共用 `kCompactDialogScale=1.2`，相对前一版 1.5 缩小至 80%；框体、字体和按钮一起缩放，中心仍为 (550,300)。两处完整设置菜单及其他面板尺寸不变。
 
 80% 尺寸版本通过可见 clang-release `adaptive_messagebox_confirm`：exit 0、status passed，480×282/居中/字体加载/取消关闭断言与截图检查通过；技能与 references 无契约变化。
+
+## 2026-09-05 全局模态输入与图鉴返回
+
+`UIManager` 按创建顺序绘制活动框，最后一个独占按钮与滑块输入。独立的 modal gate
+不改变 Button enabled 或 Slider canDrag；遮挡时清理按压/悬停及拖动，关闭顶层后下层
+从下一轮输入恢复。ButtonManager 用 shared_ptr 帧快照遍历，回调中新建的子框按钮不处理
+本次释放，也不会因 vector 扩容使当前回调宿主失效。Scene 在 UI 后屏蔽世界鼠标查询和
+Clickable，防止点到框后卡片/格子；关闭最后一层当帧同样不穿透。
+
+GameScene 重开/退出按钮 `autoClose=false`，确认层取消只清自身标记，父菜单继续暂停；
+MainMenuScene 与 MainMenuButtons 的手动 SetEnabled 分组开关已删除。
+
+从游戏菜单进入图鉴前，GameInfoSaver 在内存捕获正式关卡 JSON；图鉴索引显示“返回游戏”，
+植物/僵尸详情回索引后仍保留目标。返回时一次性优先恢复内存快照，首次 GameScene Update
+再打开暂停菜单（OnEnter 时 SceneManager 尚未挂入新场景）。进入首页清除旧返回目标，
+因此从首页打开图鉴仍返回首页。文件存档与内存快照共用 Serialize/DeserializeLevelDocument，
+既有磁盘存档门禁和 AutoTest 隔离不变；临时快照无需磁盘文件。
+
+`smoke_modal_navigation` 覆盖三层输入隔离、父菜单 Button/Slider 恢复、重开/退出取消、
+植物与僵尸图鉴往返、原局阳光/对象/卡槽恢复、正式文件快照回读以及首页图鉴返回。
+`adaptive_messagebox_confirm` 的取消断言更新为父菜单仍活动且暂停。
+
+可见 clang-release 最终验证：`smoke_modal_navigation`、`adaptive_messagebox_confirm`、`mainmenu_options_shot`、`smoke_mainmenu_console`、`smoke_perk_select_cob_input_modal`、`smoke_space_pause` 均 status passed、退出 0；图鉴前后完整正式关卡 JSON 逐项一致，截图检查通过。对比中补齐了空动画轨道对象的 animSpeed 恢复，避免待机小推车返回后重新随机速度。技能审计更新 adding-survival-perk 并通过 quick_validate。控制台首轮入口未打开，增加现场 dump 后同源码重跑通过。

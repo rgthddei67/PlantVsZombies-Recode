@@ -33,30 +33,32 @@ void ButtonManager::UpdateAll(InputHandler* input)
 {
 	if (!input) return;
 
+	// 回调可创建子弹窗；快照保活当前按钮，新增按钮从下一帧开始接收输入。
+	const auto frameButtons = buttons;
 	// 命中仲裁：多个按钮判定框重叠时（如主菜单紧贴的斜石碑），
 	// 鼠标点只判给中心距离最近的那一个，其余按钮本帧视为未命中
 	Vector mousePos = input->GetMousePosition();
 	Button* winner = nullptr;
 	float bestDistSq = 0.0f;
-	for (size_t i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < frameButtons.size(); i++)
 	{
-		if (!buttons[i] || !buttons[i]->CanReceiveHit(mousePos)) continue;
-		Vector center = buttons[i]->GetCenter();
+		if (!frameButtons[i] || !frameButtons[i]->CanReceiveHit(mousePos)) continue;
+		Vector center = frameButtons[i]->GetCenter();
 		float dx = mousePos.x - center.x;
 		float dy = mousePos.y - center.y;
 		float distSq = dx * dx + dy * dy;
 		if (!winner || distSq < bestDistSq)
 		{
-			winner = buttons[i].get();
+			winner = frameButtons[i].get();
 			bestDistSq = distSq;
 		}
 	}
 
-	for (size_t i = 0; i < buttons.size(); i++)
+	for (size_t i = 0; i < frameButtons.size(); i++)
 	{
-		if (buttons[i])
+		if (frameButtons[i])
 		{
-			buttons[i]->Update(input, winner == nullptr || buttons[i].get() == winner);
+			frameButtons[i]->Update(input, winner == nullptr || frameButtons[i].get() == winner);
 		}
 	}
 }

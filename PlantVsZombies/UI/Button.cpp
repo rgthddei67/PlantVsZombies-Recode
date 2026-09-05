@@ -85,7 +85,7 @@ void Button::SetClickCallBack(std::function<void(bool)> callback)
 
 void Button::ProcessMouseEvent(InputHandler* input)
 {
-	if (input == nullptr || !canClick || !mEnabled) return;
+	if (input == nullptr || !canClick || !mEnabled || mModalInputBlocked) return;
 
 	if (input->IsMouseButtonPressed(SDL_BUTTON_LEFT))
 	{
@@ -106,7 +106,7 @@ void Button::ResetFrameState()
 
 void Button::Update(InputHandler* input, bool hitAllowed)
 {
-	if (!input || !mEnabled) return;
+	if (!input || !mEnabled || mModalInputBlocked) return;
 
 	Vector mousePos = input->GetMousePosition();
 	this->isHovered = hitAllowed && this->ContainsPoint(mousePos);

@@ -152,6 +152,10 @@ namespace {
 	}
 
 	void RestoreAnimState(const nlohmann::json& j, AnimatedObject* obj) {
+		// 无命名轨道的待机对象也保存基础速度，必须在空轨道早退之前恢复。
+		if (j.contains("animSpeed")) {
+			obj->SetAnimationSpeed(j.value("animSpeed", 1.0f));
+		}
 		std::string track = j.value("animTrack", std::string{});
 		if (track.empty()) return;
 
@@ -286,8 +290,13 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
 		(board->mIsSurvival && board->mBoardState == BoardState::CHOOSE_CARD);
 	if (!stateOk) return false;
+	nlohmann::json document;
+	return SerializeLevelDocument(board, manager, document) && FileManager::SaveJsonFile(filename, document);
+}
 
-	nlohmann::json j;
+bool GameInfoSaver::SerializeLevelDocument(Board* board, CardSlotManager* manager, nlohmann::json& j)
+{
+	j = nlohmann::json::object();
 	j["schemaVersion"] = SaveSchema::kCurrentLevelVersion;
 
 	// Board 状态
@@ -842,7 +851,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		j["survivalCardCooldowns"] = cooldownArr;
 	}
 
-	return FileManager::SaveJsonFile(filename, j);
+	return true;
 }
 
 bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
@@ -860,16 +869,21 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
+	return DeserializeLevelDocument(board, manager, std::move(j));
+}
+
+bool GameInfoSaver::DeserializeLevelDocument(Board* board, CardSlotManager* manager, nlohmann::json j)
+{
 	std::string schemaError;
 	if (!SaveSchema::UpgradeLevelDocument(j, schemaError)) {
-		LOG_WARN("Save") << "拒绝加载关卡存档 " << filename << ": " << schemaError;
+		LOG_WARN("Save") << "拒绝加载关卡快照: " << schemaError;
 		return false;
 	}
 	// 旧 3-1~3-9 存档使用五行或上移 40px 的泳池坐标；保留文件但拒绝加载，
 	// 避免绝对 Y 入档的清洁车、子弹等对象与新网格错层。
 	if (board->mLevel >= 19 && board->mLevel <= 27
 		&& j.value("poolGridVersion", 0) != kPoolGridSaveVersion) {
-		LOG_WARN("Save") << "忽略旧版泳池坐标存档: " << filename;
+		LOG_WARN("Save") << "忽略旧版泳池坐标存档";
 		return false;
 	}
 
@@ -1880,6 +1894,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 
 bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 {
+	// 临时图鉴返回在 AutoTest 与正式游戏走同一内存恢复路径，不依赖磁盘存档。
+	if (mAlmanacReturnQueued) {
+		mAlmanacReturnQueued = false;
+		if (board->mLevel != mAlmanacReturnLevel) return false;
+		const bool restored = DeserializeLevelDocument(board, manager, mAlmanacReturnDocument);
+		if (restored) ClearAlmanacReturn();
+		return restored;
+	}
 	// 显式快照覆盖只消费一次：先清路径再解析，任何返回或异常都不会污染后续场景。
 	if (GameAPP::mAutoTestMode && !mAutoTestSnapshotLoadPath.empty()) {
 		const std::string filename = mAutoTestSnapshotLoadPath;
@@ -2009,4 +2031,35 @@ void GameInfoSaver::CancelAutoTestLevelSnapshotLoad()
 	mAutoTestSnapshotLoadAttempted = false;
 	mAutoTestSnapshotLoadSucceeded = false;
 	mAutoTestSnapshotLoadError.clear();
+}
+
+bool GameInfoSaver::CaptureAlmanacReturn(Board* board, CardSlotManager* manager)
+{
+	if (!board || !manager) return false;
+	try {
+		nlohmann::json document;
+		if (!SerializeLevelDocument(board, manager, document)) return false;
+		mAlmanacReturnDocument = std::move(document);
+		mAlmanacReturnLevel = board->mLevel;
+		mAlmanacReturnQueued = false;
+		return true;
+	}
+	catch (const std::exception& e) {
+		LOG_ERROR("GameInfoSaver") << "无法保存图鉴返回现场，保留当前游戏: " << e.what();
+		return false;
+	}
+}
+
+bool GameInfoSaver::QueueAlmanacReturn()
+{
+	if (mAlmanacReturnLevel < 0 || !mAlmanacReturnDocument.is_object()) return false;
+	mAlmanacReturnQueued = true;
+	return true;
+}
+
+void GameInfoSaver::ClearAlmanacReturn()
+{
+	mAlmanacReturnDocument = nullptr;
+	mAlmanacReturnLevel = -1;
+	mAlmanacReturnQueued = false;
 }

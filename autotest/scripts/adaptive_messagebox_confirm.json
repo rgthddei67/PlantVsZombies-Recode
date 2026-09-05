@@ -19,7 +19,9 @@
     { "op": "screenshot", "name": "restart_confirmation" },
     { "op": "click", "x": 670, "y": 370, "hold_frames": 2 },
     { "op": "wait_frames", "value": 5 },
-    { "op": "assert_state", "path": "gameMessageBox", "equals": null },
+    { "op": "assert_state", "path": "activeMessageBoxCount", "equals": 1 },
+    { "op": "assert_state", "path": "gameMessageBox.adaptiveStandardSkin", "equals": false },
+    { "op": "assert_state", "path": "paused", "equals": true },
     { "op": "quit" }
   ]
 }

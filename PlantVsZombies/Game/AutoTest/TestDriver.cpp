@@ -3365,6 +3365,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "requiredTextureCount", GameMessageBox::GetStandardSkinRequiredTextureCount() },
 		{ "loadedTextureCount", GameMessageBox::GetLoadedStandardSkinTextureCount() },
 	};
+	out["activeMessageBoxCount"] = currentScene->GetUIManager().GetActiveMessageBoxCount();
 	out["gameMessageBox"] = nullptr;
 	if (auto messageBox = currentScene->GetUIManager().GetTopActiveMessageBox()) {
 		const Vector position = messageBox->GetPosition();
@@ -4358,6 +4359,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			}
 			out["zombieAlmanacPreview"] = std::move(previewState);
 		}
+		return true;
+	}
+
+	if (currentScene->name == "AlmanacScene" || currentScene->name == "PlantAlmanacScene") {
+		out["almanacReturnLevel"] = gameApp.mGameInfoSaver.GetAlmanacReturnLevel();
 		return true;
 	}
 

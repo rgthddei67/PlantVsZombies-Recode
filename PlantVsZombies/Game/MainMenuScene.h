@@ -45,8 +45,6 @@ private:
 
 	/** 补齐第一大关进度与植物奖励，然后从 2-1 开始游戏。 */
 	void SkipToSecondArea();
-	/** 统一控制主菜单入口的命中状态，防止模态窗口打开时点击到背景按钮。 */
-	void SetMainMenuButtonsEnabled(bool enabled);
 	/** 打开原版风格的音量、画面和难度选项面板。 */
 	void OpenMenu();
 	/** 打开仅承载高级玩法开关的控制台设置面板。 */
@@ -120,20 +118,6 @@ public:
 			DeltaTime::SetPaused(false);
 			mMainMenuScene->mReadyToSwitchSurvival = true;
 			});
-	}
-
-	/** 切换四个入口的命中能力；禁用时同步清除残留的悬停和按压状态。 */
-	void SetEnabled(bool enabled) {
-		auto setEnabled = [enabled](const std::weak_ptr<Button>& weakButton) {
-			if (auto button = weakButton.lock()) {
-				button->SetEnabled(enabled);
-				if (!enabled) button->ForceResetHoverState();
-			}
-		};
-		setEnabled(mAdventure);
-		setEnabled(mMiniGames);
-		setEnabled(mPizzle);
-		setEnabled(mSurvival);
 	}
 
 	void Draw(Graphics* g) {

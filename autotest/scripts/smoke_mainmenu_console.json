@@ -10,6 +10,7 @@
     { "op": "wait_frames", "value": 2 },
     { "op": "click", "x": 995, "y": 568, "hold_frames": 2 },
     { "op": "wait_frames", "value": 20 },
+    { "op": "dump_state", "name": "console_open_state.json" },
     { "op": "screenshot", "name": "console_monte_carlo_enabled" },
     { "op": "move_mouse", "x": 700, "y": 248 },
     { "op": "wait_frames", "value": 2 },

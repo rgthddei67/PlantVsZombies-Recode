@@ -16,7 +16,8 @@ void AlmanacScene::BuildDrawCommands()
 		"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT",
 		"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT");
 
-	mBackMenuButton->SetText(u8"返回菜单", ResourceKeys::Fonts::FONT_FZJZ, 18);
+	mBackMenuButton->SetText(GameAPP::GetInstance().mGameInfoSaver.GetAlmanacReturnLevel() >= 0
+		? u8"返回游戏" : u8"返回菜单", ResourceKeys::Fonts::FONT_FZJZ, 18);
 	mBackMenuButton->SetTextColor(glm::vec4(52, 51, 93, 255));
 	mBackMenuButton->SetHoverTextColor(glm::vec4(52, 51, 93, 255));
 	mBackMenuButton->SetClickCallBack([this](bool) {
@@ -54,13 +55,22 @@ void AlmanacScene::BuildDrawCommands()
 	SortDrawCommands();
 }
 
+/** 处理图鉴页导航；索引返回按入口恢复原局或回到首页。 */
 void AlmanacScene::Update()
 {
 	Scene::Update();
 
 	if (mReadyToSwitchMainMenu) {
 		mReadyToSwitchMainMenu = false;
-		SceneManager::GetInstance().SwitchTo("MainMenuScene");
+		auto& saver = GameAPP::GetInstance().mGameInfoSaver;
+		auto& scenes = SceneManager::GetInstance();
+		if (saver.QueueAlmanacReturn()) {
+			scenes.SetGlobalData("EnterLevel", std::to_string(saver.GetAlmanacReturnLevel()));
+			scenes.SwitchTo("GameScene");
+		}
+		else {
+			scenes.SwitchTo("MainMenuScene");
+		}
 		return;
 	}
 	if (mReadyToSwitchPlantScene) {

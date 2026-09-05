@@ -71,7 +71,7 @@ void Slider::SetChangeCallBack(std::function<void(float)> callback)
 
 void Slider::ProcessMouseEvent(InputHandler* input)
 {
-	if (!input || !canDrag) return;
+	if (!input || !canDrag || mModalInputBlocked) return;
 
 	Vector mousePos = input->GetMousePosition();
 
@@ -99,7 +99,7 @@ void Slider::ProcessMouseEvent(InputHandler* input)
 
 void Slider::Update(InputHandler* input)
 {
-	if (!input) return;
+	if (!input || mModalInputBlocked) return;
 
 	Vector mousePos = input->GetMousePosition();
 

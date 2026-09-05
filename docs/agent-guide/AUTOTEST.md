@@ -79,3 +79,7 @@
 
 - **冬季地面冲击夹具：** `resolve_winter_ground_impact` 按 `row/col` 选择当前战斗顶层植物，以 `kind=COLLISION/GROUND_CRACK` 调用植物通用冬季冲击语义；`expectedIntercepted`、`expectedContainsScatter` 与 `expectedDownstreamMultiplierOn1000` 直接断言原子响应。该命令只替代尚未实现威胁的动作提交，不施加伤害或伪造雪橇落点。
 - **寒潮预报依赖夹具：** `disrupt_cold_wave_forecast` 只调用 Board 正式干扰入口；`set_melt_snow_pult_shoot_cycle` 与 `set_melt_snow_pult_salt_state` 分别固定融雪投手本次出手和库存/蓄力状态。`meltSnowPultsByCell` 导出库存、蓄力与观测预报状态，bullet 条目的 `winterCorrosionDamage` 只投影盐晶携带的独立目标层腐蚀值；脚本仍须断言普通目标只承受基础 20 点本体伤害，并覆盖干扰前已离手盐晶的存档往返。
+
+### 全局模态与图鉴往返
+
+`smoke_modal_navigation` 覆盖三层弹窗、背景按钮/滑块隔离、逐层取消与图鉴返回；`activeMessageBoxCount` 导出当前活动层数，图鉴索引/植物页的 `almanacReturnLevel` 为游戏来源关卡，首页来源为 -1。往返前后的 dump 与正式 snapshot 用于比较阳光、卡槽、对象和 Board 状态；不要把场景跳转成功当成原局恢复的充分证据。

@@ -2020,8 +2020,10 @@ void GameScene::OnEnter() {
 	}
 
 	// 原版在选卡前铺好屋顶初始花盆；只给没有关卡存档的新局生成，避免读档重复叠加。
+	mResumeMenuAfterAlmanac = GameAPP::GetInstance().mGameInfoSaver.IsAlmanacReturnQueued();
 	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(
 		mBoard.get(), mCardSlotManager.get());
+	if (mResumeMenuAfterAlmanac) DeltaTime::SetPaused(true);
 	// AutoTest 的无存档路径按契约返回 true，但不会置 mIsLoadSave；以读档生命周期标记判定新局。
 	if (!mBoard->IsLoadRestoreActive()) {
 		mBoard->InitializeStartingFlowerPots();
@@ -2128,13 +2130,12 @@ void GameScene::OpenMenu()
 			DeltaTime::SetPaused(false);
 		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0)
 		.Button(u8"重新开始", Vector(485, 330), Vector(213 * 0.9f, 50 * 0.9f), 21,
-			[this]() { this->OpenRestartMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG)
+			[this]() { this->OpenRestartMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG, false)
 		.Button(u8"主菜单", Vector(485, 371), Vector(213 * 0.9f, 50 * 0.9f), 21,
-			[this]() { this->OpenQuitMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG)
+			[this]() { this->OpenQuitMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG, false)
 		.Button(u8"查看图鉴", Vector(485, 289), Vector(213 * 0.9f, 50 * 0.9f), 21, [this]() {
-			DeltaTime::SetPaused(false);
 			this->mLendToAlmanacScene = true;
-		}, ResourceKeys::Textures::IMAGE_BUTTONBIG)
+		}, ResourceKeys::Textures::IMAGE_BUTTONBIG, false)
 		.Checkbox(Vector(455, 250), Vector(42, 39), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mShowPlantHP = !app.mShowPlantHP;
@@ -2200,9 +2201,8 @@ void GameScene::OpenRestartMenu()
 			DeltaTime::SetPaused(false);
 		})
 		.Button(u8"取消", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
-			this->mOpenMenu = false;
+			// 只关闭确认层，父菜单继续拥有暂停。
 			this->mOpenRestartMenu = false;
-			DeltaTime::SetPaused(false);
 		})
 		.Show();
 }
@@ -2223,14 +2223,18 @@ void GameScene::OpenQuitMenu()
 			DeltaTime::SetPaused(false);
 		})
 		.Button(u8"取消", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
-			this->mOpenMenu = false;
+			// 只关闭确认层，父菜单继续拥有暂停。
 			this->mOpenQuitMenu = false;
-			DeltaTime::SetPaused(false);
 		})
 		.Show();
 }
 
 void GameScene::Update() {
+	// OnEnter 时新场景尚未挂到 SceneManager；等首次 Update 再注册返回后的暂停菜单。
+	if (mResumeMenuAfterAlmanac) {
+		mResumeMenuAfterAlmanac = false;
+		OpenMenu();
+	}
 	// 戴夫闲聊独占本帧输入和逻辑更新；结束输入不会穿透到选卡、暂停或战场。
 	if (mCrazyDaveDialog && mCrazyDaveDialog->IsActive()) {
 		mCrazyDaveDialog->Update();
@@ -2515,7 +2519,12 @@ void GameScene::Update() {
 	}
 
 	if (mLendToAlmanacScene) {
-		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		mLendToAlmanacScene = false;
+		auto& app = GameAPP::GetInstance();
+		// 先捕获完整正式关卡数据；失败时留在父菜单，不销毁这局游戏。
+		if (!app.mGameInfoSaver.CaptureAlmanacReturn(mBoard.get(), mCardSlotManager.get())) return;
+		app.GetGraphics().SetCameraPosition(0, 0);
+		DeltaTime::SetPaused(false);
 		SceneManager::GetInstance().SwitchTo("AlmanacScene");
 		return;
 	}

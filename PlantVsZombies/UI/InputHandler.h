@@ -22,6 +22,7 @@ class InputHandler
 {
 private:
 	Graphics* mGraphics = nullptr;
+	bool mSceneMouseBlocked = false;
 
 	std::map<SDL_Keycode, KeyState> m_keyStates;
 
@@ -60,6 +61,8 @@ public:
 
 	Vector GetMouseDelta() const;
 
+	/** Scene 在 UI 处理后屏蔽世界鼠标查询，原始事件状态保留给下一轮 UI。 */
+	void SetSceneMouseBlocked(bool blocked) { mSceneMouseBlocked = blocked; }
 	KeyState GetMouseButtonState(Uint8 button) const;
 
 	bool IsMouseButtonDown(Uint8 button) const;

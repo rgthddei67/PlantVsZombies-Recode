@@ -39,6 +39,7 @@ private:
 	bool m_wasMouseDown = false;
 
 	bool mEnabled = true;
+	bool mModalInputBlocked = false;
 	bool m_skipDraw = false;
 	float mImageRotationDegrees = 0.0f;
 	bool mHasCustomHitBounds = false;
@@ -50,6 +51,7 @@ public:
 	static void SetDefaultFontPath(const std::string& path);
 	static std::string GetDefaultFontPath();
 
+	/** 仅在控件允许输入时采集本帧鼠标按下/释放边沿。 */
 	void ProcessMouseEvent(InputHandler* input);
 	void ResetFrameState();
 
@@ -62,6 +64,8 @@ public:
 	void SetHoverTextColor(const glm::vec4& color);
 	void SetAsCheckbox(bool checkbox);
 	void SetCanClick(bool canClick);
+	/** 模态遮挡只阻止输入，不修改控件原有启用状态或外观。 */
+	void SetModalInputBlocked(bool blocked) { mModalInputBlocked = blocked; if (blocked) { ForceResetHoverState(); ResetFrameState(); } }
 	void SetEnabled(bool enabled) { this->mEnabled = enabled; }
 	bool IsEnabled() const { return mEnabled; }
 	bool IsCheckBox() const { return this->isCheckbox; }
@@ -79,11 +83,12 @@ public:
 	void SetClickCallBack(std::function<void(bool)> callback);
 
 	// hitAllowed=false 表示本帧命中仲裁判给了别的按钮：不 hover、不响应按下/释放
+	/** 根据命中仲裁与模态门禁更新悬停、按压并触发点击回调。 */
 	void Update(InputHandler* input, bool hitAllowed = true);
 	void Draw(Graphics* g) const;
 
 	// 命中仲裁用：可点击且判定框包含该点
-	bool CanReceiveHit(Vector point) const { return mEnabled && canClick && ContainsPoint(point); }
+	bool CanReceiveHit(Vector point) const { return !mModalInputBlocked && mEnabled && canClick && ContainsPoint(point); }
 	Vector GetCenter() const {
 		const Vector& hitPos = mHasCustomHitBounds ? mHitPosition : position;
 		const Vector& hitSize = mHasCustomHitBounds ? mHitSize : size;

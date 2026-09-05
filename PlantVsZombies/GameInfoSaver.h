@@ -3,6 +3,7 @@
 #define _GAMEINFOSAVER_H
 #include "FileManager.h"
 #include <string>
+#include <nlohmann/json.hpp>
 
 class Board;
 class CardSlotManager;
@@ -15,6 +16,15 @@ public:
 	bool SaveLevelData(Board* board, CardSlotManager* manager);
 	bool LoadLevelData(Board* board, CardSlotManager* manager);
 	bool DeleteLevelData(Board* board);
+
+	/** 为临时图鉴访问捕获当前局的内存快照，不写磁盘；成功后才允许离开关卡。 */
+	bool CaptureAlmanacReturn(Board* board, CardSlotManager* manager);
+	int GetAlmanacReturnLevel() const { return mAlmanacReturnLevel; }
+	/** 标记一次性恢复；下一次 GameScene 加载优先消费内存快照。 */
+	bool QueueAlmanacReturn();
+	bool IsAlmanacReturnQueued() const { return mAlmanacReturnQueued; }
+	/** 丢弃已消费或已离开关卡的图鉴返回上下文。 */
+	void ClearAlmanacReturn();
 
 	/**
 	 * @brief 将当前关卡用正式序列化逻辑写入显式 AutoTest 快照路径。
@@ -45,6 +55,12 @@ private:
 	static bool DeserializeLevelDataFromPath(Board* board, CardSlotManager* manager,
 		const std::string& filename);
 
+	/** 文件存档与临时图鉴快照共用的 JSON 数据契约。 */
+	static bool SerializeLevelDocument(Board* board, CardSlotManager* manager, nlohmann::json& document);
+	static bool DeserializeLevelDocument(Board* board, CardSlotManager* manager, nlohmann::json document);
+	nlohmann::json mAlmanacReturnDocument;
+	int mAlmanacReturnLevel = -1;
+	bool mAlmanacReturnQueued = false;
 	std::string mAutoTestSnapshotLoadPath;
 	bool mAutoTestSnapshotLoadAttempted = false;
 	bool mAutoTestSnapshotLoadSucceeded = false;

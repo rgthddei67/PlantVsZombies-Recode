@@ -147,6 +147,7 @@ Vector InputHandler::GetMouseDelta() const
 
 KeyState InputHandler::GetMouseButtonState(Uint8 button) const
 {
+	if (mSceneMouseBlocked) return KeyState::UP;
 	if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2)
 	{
 		int index = button - 1;

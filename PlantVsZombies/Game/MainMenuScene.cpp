@@ -28,6 +28,8 @@ std::shared_ptr<Button> MainMenuScene::GetSurvivalButton() const
 
 void MainMenuScene::OnEnter()
 {
+	// 首页入口开始新的图鉴导航，不能继承已结束的关卡返回目标。
+	GameAPP::GetInstance().mGameInfoSaver.ClearAlmanacReturn();
 	Scene::OnEnter();
 	mMainMenuButtons = std::make_unique<MainMenuButtons>(&mUIManager, this);
 	mMainMenuButtons->Initialize();
@@ -241,28 +243,12 @@ void MainMenuScene::SkipToSecondArea()
 	sceneManager.SwitchTo("GameScene");
 }
 
-void MainMenuScene::SetMainMenuButtonsEnabled(bool enabled)
-{
-	auto setEnabled = [enabled](const std::shared_ptr<Button>& button) {
-		if (!button) return;
-		button->SetEnabled(enabled);
-		if (!enabled) button->ForceResetHoverState();
-	};
-	setEnabled(mAlmanacButton);
-	setEnabled(mOpitionButton);
-	setEnabled(mConsoleButton);
-	setEnabled(mExitButton);
-	setEnabled(mSkipToSecondAreaButton);
-	if (mMainMenuButtons) mMainMenuButtons->SetEnabled(enabled);
-}
-
 void MainMenuScene::OpenMenu()
 {
 	if (mOpenMenu || mOpenConsole) return;
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
-	SetMainMenuButtonsEnabled(false);
 	auto& gameApp = GameAPP::GetInstance();
 	const glm::vec4 labelColor{ 107, 109, 144, 255 };
 	// 四个复选框初始态来自各自不同的状态变量（mVsync / IsFullscreen / mShowPlantHP /
@@ -271,7 +257,6 @@ void MainMenuScene::OpenMenu()
 		.Background(ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK)
 		.ControlFont(ResourceKeys::Fonts::FONT_FZJT)
 		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
-			SetMainMenuButtonsEnabled(true);
 			mOpenMenu = false;
 			DeltaTime::SetPaused(false);
 		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0)
@@ -314,7 +299,6 @@ void MainMenuScene::OpenConsole()
 
 	mOpenConsole = true;
 	DeltaTime::SetPaused(true);
-	SetMainMenuButtonsEnabled(false);
 
 	auto& gameApp = GameAPP::GetInstance();
 	const Vector panelCenter(SCENE_WIDTH / 2.0f, SCENE_HEIGHT / 2.0f);
@@ -384,7 +368,6 @@ Vector MainMenuScene::GetConsoleTooltipPosition() const
 
 void MainMenuScene::CloseConsole()
 {
-	SetMainMenuButtonsEnabled(true);
 	mOpenConsole = false;
 	DeltaTime::SetPaused(false);
 }
