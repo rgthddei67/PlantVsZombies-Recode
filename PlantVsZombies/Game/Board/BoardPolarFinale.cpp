@@ -63,7 +63,7 @@ void Board::CommitAuroraPriestRitual(int ownerZombieID, int sourceRow, bool whit
 	struct Candidate { int row; int column; int plantValue; };
 	std::vector<Candidate> candidates;
 	for (int row = 0; row < mRows; ++row) {
-		for (int column = 2; column <= std::min(6, mColumns - 1); ++column) {
+		for (int column = 4; column <= std::min(6, mColumns - 1); ++column) {
 			if (HasSnowHoleAt(row, column)) continue;
 			int value = 0;
 			if (const Plant* plant = GetTopPlantAt(row, column)) {
