@@ -299,8 +299,6 @@ void Board::DrawMineWalls(Graphics* g)
 			const float progress = 1.0f - mMineDigRemaining / kMineSeconds;
 			DrawAsset(g, ResourceKeys::Textures::IMAGE_MINE_ROCK_CRACKED, p.x - 48, p.y - 81, 96, 132, alpha * progress);
 			DrawAsset(g, ResourceKeys::Textures::IMAGE_MINE_CHUNKS, p.x - 38, p.y + 14 + progress * 18, 76, 35, 220 * progress);
-			g->FillRect(p.x - 30, p.y + 37, 60, 6, glm::vec4(27,25,25,240));
-			g->FillRect(p.x - 30, p.y + 37, 60 * progress, 6, glm::vec4(255,193,78,255));
 		}
 		if (!below) DrawAsset(g, ResourceKeys::Textures::IMAGE_MINE_RUBBLE, p.x - 43, p.y + 29, 86, 24, 255);
 		if (mMineToolActive && mMineGrid.CanExcavate(row,col)) {
@@ -318,6 +316,13 @@ void Board::DrawMineWalls(Graphics* g)
 void Board::DrawMineUI(Graphics* g)
 {
 	if (!IsMineBackground() || mBoardState != BoardState::GAME) return;
+	// 施工进度独立在 UI 层绘制，避免被后绘制的前排岩壁和碎石遮挡。
+	if (mMineDigCell >= 0) {
+		const Vector p = GetCellCenterPosition(mMineDigCell / mColumns, mMineDigCell % mColumns);
+		const float progress = 1.0f - mMineDigRemaining / kMineSeconds;
+		g->FillRect(p.x - 30, p.y + 37, 60, 6, glm::vec4(27,25,25,240));
+		g->FillRect(p.x - 30, p.y + 37, 60 * progress, 6, glm::vec4(255,193,78,255));
+	}
 	const Vector tool = g->LogicalToWorld(kMineToolX,kMineToolY);
 	DrawAsset(g, ResourceKeys::Textures::IMAGE_SHOVELBANK, tool.x,tool.y,70,72);
 	const Vector pick = mMineToolActive ? GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition()
