@@ -10,8 +10,6 @@
 #include "../ResourceKeys.h"
 #include "../Graphics.h"
 
-#include <algorithm>
-
 Trophy::Trophy(Board* board, const Vector& position)
 	: GameObject(ObjectType::OBJECT_NONE)
 	, mBoard(board)
@@ -72,22 +70,8 @@ void Trophy::AdvanceAdventureProgress()
 	if (!mBoard) return;
 
 	auto& gameApp = GameAPP::GetInstance();
-	const int completedLevel = mBoard->mLevel;
-	if (!AdventureProgression::IsAdventureLevel(completedLevel) ||
-		gameApp.mAdventureLevel != completedLevel) {
-		return;
-	}
-
-	// 无植物奖励的关卡也必须推进；植物解锁则完全由表决定，不再依赖枚举整数值。
-	++gameApp.mAdventureLevel;
-	const PlantType reward = AdventureProgression::GetPlantReward(completedLevel);
-	if (reward == AdventureProgression::NO_PLANT_REWARD) return;
-
-	if (std::find(gameApp.mHaveCards.begin(), gameApp.mHaveCards.end(), reward) ==
-		gameApp.mHaveCards.end()) {
-		gameApp.mHaveCards.push_back(reward);
-		mUnlockedPlant = reward;
-	}
+	mUnlockedPlant = AdventureProgression::AdvanceProgress(mBoard->mLevel,
+		gameApp.mAdventureLevel, gameApp.mHaveCards);
 }
 
 void Trophy::Update()

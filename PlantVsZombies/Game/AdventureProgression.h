@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstddef>
+#include <vector>
 
 namespace AdventureProgression
 {
@@ -24,6 +25,9 @@ namespace AdventureProgression
 
 	// NUM_PLANT_TYPES 在奖励表中表示“该关正常推进，但不解锁植物”。
 	inline constexpr PlantType NO_PLANT_REWARD = PlantType::NUM_PLANT_TYPES;
+
+	/** 只推进当前待通关关卡并去重发卡；返回本次新卡或 NO_PLANT_REWARD，由调用方保存玩家信息。 */
+	PlantType AdvanceProgress(int completedLevel, int& adventureLevel, std::vector<PlantType>& haveCards);
 
 	// TODO: 修改每关获得植物改这里
 

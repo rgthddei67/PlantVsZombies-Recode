@@ -114,7 +114,7 @@
 - [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-08-01 当前源码为270本体/1030门；持门正面植物普通伤害最多10、灰烬最多320、仙人掌正面尖刺帧伤1且免化灰/直杀，背击子弹绕门并取消持门上限；4-5加入双向射手即时反制教学，4-6继续综合复习；水草束缚、免魅惑与大喷截断契约保持
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；2026-08-22 改为宿主显式 Shadow 附件且对象池复用仍按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，宿主固定绘制阶段不能跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见默认/NoInstance `smoke_bullet_shadow.json` 验本体在上、影子在下
 - [单一 Bullet 与分型对象池](project_pvz_bullet_pool_architecture.md) — 2026-08-22 所有已接入弹型统一创建 `Bullet final`；池/GOM 共同强所有权、Bullet 内稳定运行时槽位取代指针哈希，稠密活跃表 O(1) 回收；GOM 并行阈值扣除休眠池弹丸，512→0→64 同口径压力下休眠/低活跃 dispatch 热点消失，clang-release 与可见 torchwood/projectile/melon 存档回归通过
-- [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-09-05 奖杯实际解锁新卡后展示共用资料的奖励图鉴，FZJT 标题，支持继续下一关选卡或返回首页；无奖励、重打或已有卡跳过，进度仍在奖杯点击时保存；奖励映射以当前 AdventureProgression.h 为准
+- [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-09-05 奖杯与选关跳过共用 AdvanceProgress 推进及去重发卡；实际解锁新卡后展示共用资料的奖励图鉴，FZJT 标题，支持继续下一关选卡或返回首页；无奖励、重打或已有卡跳过，进度仍在奖杯点击时保存；奖励映射以当前 AdventureProgression.h 为准
 - [5-9 屋脊督军完整首领](project_pvz_roof_marshal_prototype.md) — 2026-08-30 正式绑定第15波；15000生命、250啃食、1/6/4秒固定36种前五大关白名单，高威胁概率在11000～5400血间由30%线性升至100%、狂暴阶段不出普通杂兵；黄油1.25秒后免疫5秒；每两批跑向兵力最多行并强化10秒，目标带原版红旗且有中央警报；屏幕下方560×18黑金首领血条同步显示实际血量与11000/5400阶段线；5-9 通关后以固定遭遇映射解锁图鉴，不进入随机池
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
 - [原版 MO3 动态分轨音乐 ✅异步预构建已验证](project_pvz_adaptive_mo3_music.md) — 2026-08-23 选卡期间单 worker 预构建最新地形 Playback，`StartGame` 只接管完成结果，极快提交/读档直入先 OGG 后安全切 MO3；DAY→POOL 可见 Release 专项记录准备335ms、接管3us并通过跨场景/存档 harness。仍沿用 libopenmpt interactive 分轨、原版 order/channel、敌对数 burst 与宽松许可 overlay，MO3 资源不入 Git
@@ -140,7 +140,7 @@
 - [AutoTest assert_state 命令 ✅已push](project_pvz_autotest_assert_state_todo.md) — 2026-07-04 dump字段断言(path点分+数字段=数组下标,equals严格==,不匹配exit1)；BuildStateJson抽取两op共用；smoke_develop/smoke_perks已补断言,不带-develop假绿已根治；foot-gun=浮点字段勿equals用整数投影字段
 - [AutoTest 同步截图、状态复位与隔离快照](project_pvz_autotest_harness_enhancements.md) — 2026-07-27 截图 ticket 仅在 PNG 成功落盘后完成；显式 `reset_test_state` / `goto_level.resetTestState`；脚本输出目录内复用正式 GameInfoSaver 做新 GameScene 往返，禁止关闭 AutoTest 模式绕过保护；动画子弹存档保留 poolType
 
-- [GameMessageBox Builder 与 UIManager 模态生命周期](project_pvz_messagebox_builder.md) — 2026-09-05 最后创建的活动框独占 Button/Slider 与世界鼠标输入、底层正常绘制；父子框取消保留菜单，移除 MainMenuScene 输入特判；图鉴通过内存关卡快照返回原局暂停菜单；FZJT 与 480×282 短框保留
+- [GameMessageBox Builder 与 UIManager 模态生命周期](project_pvz_messagebox_builder.md) — 2026-09-05 模态绘制移至 Scene 全部命令之后，避免主菜单入口/选关文字遮挡；最后创建的活动框独占 Button/Slider 与世界鼠标输入、底层正常绘制；父子框取消保留菜单，移除 MainMenuScene 输入特判；图鉴通过内存关卡快照返回原局暂停菜单；FZJT 与 480×282 短框保留
 
 - [粒子按RenderOrder分层](project_pvz_particle_render_layer.md) — 世界层粒子走 GameObjectManager pre-overlay hook（非场景槽，因 MessageBox 在 GameObjects 命令内部）；2026-07-21 雨天改为“世界粒子 → 暗幕 → UI”；EmitEffect 默认 LAYER_EFFECTS_WORLD=35000，显式顶层粒子仍走 DrawFrom
 
@@ -158,7 +158,7 @@
 - [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
 - [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-08-27 轮次、权重、背景、出生行与明确品种排除统一由候选资格查询收口；鎏金冰车是当前唯一额外禁入全部无尽卡池的非零权重类型，普通冰车与其他既有资格不变；最终最多8种和随机±1~2保持
 - [小游戏最后的家底](project_pvz_minigame_last_savings.md) — 2026-09-05 独立 2000 关、主菜单小游戏选关页、3000 阳光七卡守十波；正式扣费/存档与冒险进度隔离，后半程铁门与橄榄球混编，长关卡名避让波次条
-- [GameSelectScene 冒险分页选关+八地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-09-04 生存集中定义表新增 1007 极夜无尽，严格在进度越过 8-9 后解锁，复用极夜环境且隔离冒险教学/特殊终波；第八大关不是最终区域，未来区域仍由 `AdventureProgression` 与集中定义继续扩展
+- [GameSelectScene 冒险分页选关+八地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-09-05 冒险当前关所在页新增跳过按钮，标准模态确认后保存进度并发卡；2026-09-04 生存集中定义表新增 1007 极夜无尽，严格在进度越过 8-9 后解锁，复用极夜环境且隔离冒险教学/特殊终波；第八大关不是最终区域，未来区域仍由 `AdventureProgression` 与集中定义继续扩展
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-03 本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白；方向背击与弹丸主动绕盾统一由 `TakeProjectileDamage` 路由，目标可否决主动绕盾；Animator 轨道覆盖的实例化与 NoInstance 路径已有可见专项基线
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)

@@ -123,3 +123,9 @@ exit 0、`status=passed`。完整中断、动画和资源合同见 `project_pvz_
 exit 0、`status=passed`。完整充能、冰封阻断、资源和存档合同见 `project_pvz_furnace_core_flower.md`。
 
 2026-08-03 将毒囊射手从 4-8 前移至 3-8，4-8 恢复为无植物奖励。玩家 schema 升至 v2：旧档 `adventureLevel >= 27` 且卡组尚无毒囊射手时补发一次，26 不提前发、已有卡不重复，`save-schema` 纯测试 1/1 通过。`clang-release` 配置与最终构建退出 0；桌面可见 `smoke_adventure_progression.json` 共 94 条命令、窗口标题“植物大战僵尸中文版”、exit 0。`run.log` 证明 3-8 奖杯结算后冒险进度变为 27、卡片数增至 5 且新卡为 `PLANT_TOXICPEASHOOTER`；随后 4-8 结算只把进度推进到 36，卡片数仍为 5。同步截图 `reward_toxic_peashooter_3_8.png` 显示泳池背景、3-8 关卡标签与奖杯。
+
+## 2026-09-05 选关跳过与共用发卡入口
+
+Trophy::AdvanceAdventureProgress 与 GameSelectScene 的确认跳关共用 AdventureProgression::AdvanceProgress(completedLevel, adventureLevel, haveCards)：仅推进当前待通关的已登记冒险关，并按奖励表去重发卡；返回值只表示新卡，NO_PLANT_REWARD 也可能已成功推进。调用方负责 SavePlayerInfo。跳关有新卡时沿用 PlantRewardScene，无新卡则刷新选关页；正常奖杯的展示/返回流程保持不变。
+
+GameInfoSaver::DeleteLevelData 新增关卡号重载，原 Board 指针入口转发；两个入口都保留 AutoTest 不删除真实存档的门禁。跳关先保存进度，失败恢复内存原值并保留续局，成功后再清理该关续局。新增专项 smoke_adventure_skip，正常通关回归使用 smoke_plant_reward_almanac。

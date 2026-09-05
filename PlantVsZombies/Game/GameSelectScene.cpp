@@ -5,6 +5,8 @@
 #include "AudioSystem.h"
 #include "Game/Board/Board.h"
 #include "SceneManager.h"
+#include "PlantAlmanacScene.h"
+#include "UI/GameMessageBox.h"
 #include "../GameApp.h"
 
 #include <SDL2/SDL_ttf.h>
@@ -16,9 +18,9 @@ namespace {
 constexpr int SELECT_COLUMNS = 6; // 每页卡片列数
 constexpr int SELECT_ROWS = 3; // 每页卡片行数
 constexpr int SELECT_ENTRIES_PER_PAGE = SELECT_COLUMNS * SELECT_ROWS; // 每页最多关卡数
-constexpr float CARD_SCALE = 0.95f; // Challenge_Window 原图的显示倍率
-constexpr float CARD_WIDTH = 118.0f * CARD_SCALE; // 关卡卡片宽度，单位：逻辑像素
-constexpr float CARD_HEIGHT = 120.0f * CARD_SCALE; // 关卡卡片高度，单位：逻辑像素
+constexpr float SELECT_CARD_SCALE = 0.95f; // Challenge_Window 原图的显示倍率
+constexpr float SELECT_CARD_WIDTH = 118.0f * SELECT_CARD_SCALE; // 关卡卡片宽度，单位：逻辑像素
+constexpr float SELECT_CARD_HEIGHT = 120.0f * SELECT_CARD_SCALE; // 关卡卡片高度，单位：逻辑像素
 constexpr float CARD_START_X = 115.0f; // 第一列卡片左上角 X
 constexpr float CARD_START_Y = 125.0f; // 第一行卡片左上角 Y
 constexpr float CARD_PITCH_X = 150.0f; // 相邻卡片列间距，单位：逻辑像素
@@ -29,6 +31,7 @@ constexpr float PAGE_BUTTON_Y = 535.0f; // 翻页按钮 Y，避开第三行卡�
 constexpr float PAGE_BUTTON_SIZE = 60.0f; // 复用 Zen_NextGarden 原图尺寸
 constexpr float PAGE_BACK_ROTATION = 180.0f; // 上一页箭头朝向，单位：度
 constexpr float PAGE_FORWARD_ROTATION = 0.0f; // 下一页箭头朝向，单位：度
+constexpr float SKIP_DIALOG_SCALE = 1.2f; // 跳关确认框沿用游戏短弹窗倍率
 constexpr float FALLBACK_CROP_LEFT_RATIO = 0.56f; // 无缩略图时正式背景裁剪区的归一化左边界
 constexpr float FALLBACK_CROP_TOP_RATIO = 0.12f; // 无缩略图时正式背景裁剪区的归一化上边界
 constexpr float FALLBACK_CROP_WIDTH_RATIO = 0.19f; // 无缩略图时正式背景裁剪区的归一化宽度
@@ -154,6 +157,16 @@ void GameSelectScene::BuildDrawCommands()
 		mPendingPageDelta = 1;
 	});
 
+	mSkipLevelButton = mUIManager.CreateButton(Vector(800, 552), Vector(190, 32));
+	mSkipLevelButton->SetAsCheckbox(false);
+	mSkipLevelButton->SetImageKeys("IMAGE_ALMANAC_INDEXBUTTON",
+		"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT", "IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT",
+		"IMAGE_ALMANAC_INDEXBUTTONHIGHLIGHT");
+	mSkipLevelButton->SetText(u8"跳过本关", ResourceKeys::Fonts::FONT_FZJZ, 20);
+	mSkipLevelButton->SetTextColor(glm::vec4(52, 51, 93, 255));
+	mSkipLevelButton->SetHoverTextColor(glm::vec4(52, 51, 93, 255));
+	mSkipLevelButton->SetClickCallBack([this](bool) { ConfirmSkipLevel(); });
+
 	CreateCurrentPageCards();
 	RefreshPageButtonState();
 
@@ -167,10 +180,10 @@ void GameSelectScene::BuildDrawCommands()
 			if (!texture) continue;
 
 			constexpr float bleed = 2.0f; // 预览略伸入卡框，避免透明开口边缘出现缝隙
-			const float offsetX = 20.0f * CARD_SCALE - bleed;
-			const float offsetY = 8.0f * CARD_SCALE - bleed;
-			const float width = 77.0f * CARD_SCALE + 2.0f * bleed;
-			const float height = 59.0f * CARD_SCALE + 2.0f * bleed;
+			const float offsetX = 20.0f * SELECT_CARD_SCALE - bleed;
+			const float offsetY = 8.0f * SELECT_CARD_SCALE - bleed;
+			const float width = 77.0f * SELECT_CARD_SCALE + 2.0f * bleed;
+			const float height = 59.0f * SELECT_CARD_SCALE + 2.0f * bleed;
 			const float previewX = cardPosition.x + offsetX;
 			const float previewY = cardPosition.y + offsetY;
 
@@ -211,16 +224,16 @@ void GameSelectScene::BuildDrawCommands()
 					ResourceKeys::Textures::IMAGE_MINIGAME_TROPHY)) {
 					// 沿用经典 MiniGamesWidget 的左上角原生奖杯覆盖位置，并随卡框等比缩放。
 					gameApp.GetGraphics().DrawTexture(trophy,
-						cardPosition.x + 3.0f * CARD_SCALE,
-						cardPosition.y + 6.0f * CARD_SCALE,
-						trophy->width * CARD_SCALE, trophy->height * CARD_SCALE);
+						cardPosition.x + 3.0f * SELECT_CARD_SCALE,
+						cardPosition.y + 6.0f * SELECT_CARD_SCALE,
+						trophy->width * SELECT_CARD_SCALE, trophy->height * SELECT_CARD_SCALE);
 				}
 			}
 			DrawFittedCenteredText(gameApp,
 				GetLevelLabel(mSelectMode, mCurrentPageLevels[index]),
-				cardPosition.x + CARD_WIDTH * 0.5f,
-				cardPosition.y + CARD_HEIGHT * 0.73f,
-				CARD_WIDTH * 0.82f, glm::vec4(46, 46, 84, 255),
+				cardPosition.x + SELECT_CARD_WIDTH * 0.5f,
+				cardPosition.y + SELECT_CARD_HEIGHT * 0.73f,
+				SELECT_CARD_WIDTH * 0.82f, glm::vec4(46, 46, 84, 255),
 				ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 		}
 
@@ -302,7 +315,7 @@ void GameSelectScene::CreateCurrentPageCards()
 	for (std::size_t index = 0; index < mCurrentPageLevels.size(); ++index) {
 		const int enterLevel = mCurrentPageLevels[index];
 		const Vector position = GetCardPosition(index);
-		auto card = mUIManager.CreateButton(position, Vector(CARD_WIDTH, CARD_HEIGHT));
+		auto card = mUIManager.CreateButton(position, Vector(SELECT_CARD_WIDTH, SELECT_CARD_HEIGHT));
 		card->SetAsCheckbox(false);
 		card->SetImageKeys(ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW,
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT,
@@ -331,6 +344,71 @@ void GameSelectScene::RefreshPageButtonState()
 		mNextPageButton->SetSkipDraw(!visible);
 		mNextPageButton->SetImageRotationDegrees(PAGE_FORWARD_ROTATION);
 	}
+	if (mSkipLevelButton) {
+		const bool visible = GetSkippableLevel() > 0;
+		mSkipLevelButton->SetEnabled(visible);
+		mSkipLevelButton->SetSkipDraw(!visible);
+	}
+}
+
+int GameSelectScene::GetSkippableLevel() const
+{
+	const int level = GameAPP::GetInstance().mAdventureLevel;
+	return mSelectMode == SelectMode::ADVENTURE
+		&& AdventureProgression::IsAdventureLevel(level)
+		&& std::find(mCurrentPageLevels.begin(), mCurrentPageLevels.end(), level)
+			!= mCurrentPageLevels.end() ? level : -1;
+}
+
+void GameSelectScene::ConfirmSkipLevel()
+{
+	const int level = GetSkippableLevel();
+	if (level < 0) return;
+	const std::string message = u8"跳过第 " + GetLevelLabel(mSelectMode, level)
+		+ u8" 关，领取本关奖励并解锁下一关？";
+	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
+		.Title(u8"跳过本关")
+		.Message(message)
+		.Scale(SKIP_DIALOG_SCALE)
+		.Button(u8"确认跳过", Vector::zero(), Vector(100, 42), 18,
+			[this, level]() { mPendingSkipLevel = level; })
+		.Button(u8"取消", Vector::zero(), Vector(100, 42), 18, []() {})
+		.Show();
+}
+
+void GameSelectScene::CompleteSkippedLevel(int level)
+{
+	// 只提交确认框里显示的关卡；即使进度在确认期间变化，也不能顺带跳下一关。
+	if (level != GetSkippableLevel()) return;
+	auto& app = GameAPP::GetInstance();
+	const auto oldCardCount = app.mHaveCards.size();
+	const PlantType reward = AdventureProgression::AdvanceProgress(level,
+		app.mAdventureLevel, app.mHaveCards);
+	if (!app.mGameInfoSaver.SavePlayerInfo()) {
+		// 保存失败不消耗跳关，不删除原续局；允许玩家关闭提示后重试。
+		app.mAdventureLevel = level;
+		app.mHaveCards.resize(oldCardCount);
+		GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
+			.Title(u8"保存失败")
+			.Message(u8"未能保存进度，本关尚未跳过，请重试。")
+			.Scale(SKIP_DIALOG_SCALE)
+			.Button(u8"确定", Vector::zero(), Vector(100, 42), 18, []() {})
+			.Show();
+		return;
+	}
+	app.mGameInfoSaver.DeleteLevelData(level);
+	if (reward != AdventureProgression::NO_PLANT_REWARD) {
+		auto& scenes = SceneManager::GetInstance();
+		scenes.RegisterScene<PlantAlmanacScene>("PlantRewardScene", reward);
+		scenes.SwitchTo("PlantRewardScene");
+		return;
+	}
+
+	// 没有新卡时留在选关页；跨页解锁后自动定位新的待挑战关。
+	BuildAvailableLevels();
+	mCurrentPage = GetPageCount() - 1;
+	CreateCurrentPageCards();
+	RefreshPageButtonState();
 }
 
 std::shared_ptr<Button> GameSelectScene::GetCardButton(int level) const
@@ -346,6 +424,13 @@ std::shared_ptr<Button> GameSelectScene::GetCardButton(int level) const
 void GameSelectScene::Update()
 {
 	Scene::Update();
+
+	if (mPendingSkipLevel > 0) {
+		const int level = mPendingSkipLevel;
+		mPendingSkipLevel = -1;
+		CompleteSkippedLevel(level);
+		return; // 奖励页切换可能已经销毁本场景，禁止继续访问成员。
+	}
 
 	// 按钮回调只登记翻页请求；离开 ButtonManager 遍历后再安全替换当前页按钮。
 	if (mPendingPageDelta != 0) {
@@ -385,6 +470,7 @@ void GameSelectScene::OnEnter()
 	mPendingPageDelta = 0;
 	mPendingEnterLevel = -1;
 	mReadyToSwitchMainMenu = false;
+	mPendingSkipLevel = -1;
 	BuildAvailableLevels();
 	if (mSelectMode == SelectMode::ADVENTURE && !mAvailableLevels.empty()) {
 		// 冒险入口默认展示当前可挑战关所在页；全部通关后自然停在最后一页。
@@ -400,6 +486,7 @@ void GameSelectScene::OnExit()
 	mBackMenuButton.reset();
 	mPreviousPageButton.reset();
 	mNextPageButton.reset();
+	mSkipLevelButton.reset();
 	mCards.clear();
 	mAvailableLevels.clear();
 	mCurrentPageLevels.clear();

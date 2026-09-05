@@ -146,11 +146,16 @@ public:
 		FlushClosedMessageBoxes();
 	}
 
-	void DrawAll(Graphics* g) const
+	/** 绘制普通控件；场景自定义绘制结束后再单独提交模态框。 */
+	void DrawControls(Graphics* g) const
 	{
-		// 普通控件先绘制；模态框连同其自有控件最后提交，稳定覆盖场景内其他 UI。
 		buttonManager.DrawAll(g);
 		sliderManager.DrawAll(g);
+	}
+
+	/** 按创建顺序绘制活动框及自有控件，必须位于场景所有普通绘制命令之后。 */
+	void DrawMessageBoxes(Graphics* g) const
+	{
 		for (const auto& messageBox : messageBoxes) {
 			if (messageBox && messageBox->IsActive()) messageBox->Draw(g);
 		}

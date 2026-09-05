@@ -29,6 +29,9 @@ public:
 	bool IsAdventureLevelCompleted(int level) const;
 	std::shared_ptr<Button> GetPreviousPageButton() const { return mPreviousPageButton; }
 	std::shared_ptr<Button> GetNextPageButton() const { return mNextPageButton; }
+	std::shared_ptr<Button> GetSkipLevelButton() const { return mSkipLevelButton; }
+	/** 当前页有待通关冒险关时返回其编号，否则返回 -1。 */
+	int GetSkippableLevel() const;
 	/** 返回当前页指定关卡的按钮；锁定关卡和其他页关卡均返回空。 */
 	std::shared_ptr<Button> GetCardButton(int level) const;
 
@@ -39,6 +42,7 @@ private:
 	std::shared_ptr<Button> mBackMenuButton;
 	std::shared_ptr<Button> mPreviousPageButton;
 	std::shared_ptr<Button> mNextPageButton;
+	std::shared_ptr<Button> mSkipLevelButton;
 	std::vector<std::shared_ptr<Button>> mCards;
 	std::vector<int> mAvailableLevels;
 	std::vector<int> mCurrentPageLevels;
@@ -47,6 +51,12 @@ private:
 	int mPendingEnterLevel = -1;
 	int mCurrentPage = 0;
 	int mPendingPageDelta = 0;
+	int mPendingSkipLevel = -1;
+
+	/** 打开标准模态确认框，捕获玩家实际确认的关卡号。 */
+	void ConfirmSkipLevel();
+	/** 在 UI 遍历后结算跳过、保存进度，并刷新选关或进入新植物奖励页。 */
+	void CompleteSkippedLevel(int level);
 
 	/** 按当前入口和玩家进度生成实际存在的关卡编号。 */
 	void BuildAvailableLevels();

@@ -113,3 +113,11 @@ metadata:
 ## 2026-09-05 小游戏选关复用
 
 `GameSelectScene::SelectMode::MINIGAMES` 复用相同卡框和延迟导航，从主菜单小游戏按钮进入；当前仅直接开放 2000「最后的家底」。冒险分页与生存解锁表保持独立，玩法与验证见 [最后的家底](project_pvz_minigame_last_savings.md)。
+
+## 2026-09-05 冒险跳过本关
+
+- 冒险选关右下 (800,552)、190×32 的“跳过本关”仅在当前页包含待通关冒险关时可见并启用；旧页、生存、小游戏及越过当前登记关卡边界时隐藏。沿用图鉴导航按钮纹理，不新增资源。
+- 标准 GameMessageBox 使用 1.2 倍率与 FZJT 字体，正文明确显示关卡号。UIManager 统一隔离卡片/翻页输入，取消不改进度；确认只登记捕获的关卡号，Update 复核后再结算，不能在按钮回调中销毁场景。
+- 奖励/进度复用 AdventureProgression::AdvanceProgress 与 SavePlayerInfo。保存失败恢复原进度/卡数并提示重试；成功后按关卡号删除续局存档。有新卡进入共用 PlantRewardScene，无新卡留在选关页并定位新关所在页。
+- AutoTest smoke_adventure_skip 覆盖取消、背景卡片/翻页拦截、新卡与重复卡、无奖励跨页、当前登记末关、生存/小游戏隐藏；状态新增 gameSelectSkippableLevel 与 gameSelectSkipLevelButton，haveCards/haveCardCount 提升为跨场景投影。AutoTest 仍不写入或删除真实玩家存档。
+验收：clang-release 编译及 Win7 378 项导入审计通过；可见默认 Vulkan 的 smoke_adventure_skip（最终 156 条）、smoke_plant_reward_almanac（81 条）、mainmenu_options_shot（15 条）和 adaptive_messagebox_confirm（23 条）均 exit 0、status passed，日志 script finished OK，相关截图已逐张检查。中途补拍遇到合成点击偶发未触发，增加移动后的处理帧、场景稳定等待及可选 click trace 后，最终跳关全流程通过；没有更改真实输入逻辑或玩家存档隔离。构建的 vcpkg applocal 阶段报告缺少依赖检查工具，但全静态主程序链接、Win7 导入审计和实际运行均成功。技能审计更新 adding-plant 的共用推进合同并通过 quick_validate；未新增植物美术或运行时视觉占位。

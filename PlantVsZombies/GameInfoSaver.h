@@ -16,6 +16,8 @@ public:
 	bool SaveLevelData(Board* board, CardSlotManager* manager);
 	bool LoadLevelData(Board* board, CardSlotManager* manager);
 	bool DeleteLevelData(Board* board);
+	/** 按关卡号清除续局存档，供没有 Board 的选关结算使用；仍遵守 AutoTest 隔离。 */
+	bool DeleteLevelData(int level);
 
 	/** 为临时图鉴访问捕获当前局的内存快照，不写磁盘；成功后才允许离开关卡。 */
 	bool CaptureAlmanacReturn(Board* board, CardSlotManager* manager);

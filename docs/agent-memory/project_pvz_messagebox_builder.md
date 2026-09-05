@@ -94,3 +94,11 @@ MainMenuScene 与 MainMenuButtons 的手动 SetEnabled 分组开关已删除。
 `adaptive_messagebox_confirm` 的取消断言更新为父菜单仍活动且暂停。
 
 可见 clang-release 最终验证：`smoke_modal_navigation`、`adaptive_messagebox_confirm`、`mainmenu_options_shot`、`smoke_mainmenu_console`、`smoke_perk_select_cob_input_modal`、`smoke_space_pause` 均 status passed、退出 0；图鉴前后完整正式关卡 JSON 逐项一致，截图检查通过。对比中补齐了空动画轨道对象的 animSpeed 恢复，避免待机小推车返回后重新随机速度。技能审计更新 adding-survival-perk 并通过 quick_validate。控制台首轮入口未打开，增加现场 dump 后同源码重跑通过。
+
+## 2026-09-05 场景末尾模态绘制
+
+主人指出主菜单进入游戏栏遮挡 MessageBox：旧 UIManager::DrawAll 虽然在普通 Button/Slider 后画框，但它整体仍注册在 LAYER_UI，自定义主菜单入口、选关标签/奖杯和 HUD 的更高层命令会随后覆盖弹窗。
+
+现在普通控件由 UIManager::DrawControls 留在原 UI 层，Scene::Draw 在全部注册命令执行完后唯一调用 DrawMessageBoxes；活动框仍按创建顺序连同自有按钮/滑块绘制。不能靠继续提高一个普通层号代替场景末尾提交。输入门禁、关闭清理和父子框顺序保持原合同。验证须同时看满页选关确认框、主菜单设置框和暂停菜单之上的确认框，单张稀疏选关页无法暴露此遮挡。
+
+验收：可见 clang-release 的满页 smoke_adventure_skip、mainmenu_options_shot 和 adaptive_messagebox_confirm 均 exit 0、status passed；已检查满页弹窗遮住卡片文字/奖杯、主菜单入口在设置框下方，以及二级确认框覆盖父菜单。输入门禁断言通过，相关技能审计无额外合同缺失。

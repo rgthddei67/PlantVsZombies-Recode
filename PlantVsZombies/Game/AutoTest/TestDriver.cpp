@@ -3305,6 +3305,21 @@ bool TestDriver::ExecuteCurrent() {
 		if (bit == kMouseButtonNames.end()) { Fail("未知鼠标按钮: " + btnName); return false; }
 		const Uint8 button = bit->second;
 		const int holdFrames = std::max(1, cmd.value("hold_frames", 1));
+		// 可见测试被真实鼠标干扰时，按下后/释放前记录实际命中状态，区分布局错误与输入丢失。
+		if (cmd.value("trace", false) && (mInputPhase == holdFrames || mInputPhase == 0)) {
+			const auto mouse = GameAPP::GetInstance().GetInputHandler().GetMousePosition();
+			Log("click trace phase=" + std::to_string(mInputPhase) + " mouse="
+				+ std::to_string(mouse.x) + "," + std::to_string(mouse.y));
+			if (auto* scene = SceneManager::GetInstance().GetCurrentScene()) {
+				auto& ui = scene->GetUIManager();
+				for (size_t i = 0; i < ui.GetButtonCount(); ++i) {
+					const auto b = ui.GetButton(i);
+					if (b && b->ContainsPoint(Vector(x, y)))
+						Log("click trace button=" + std::to_string(i) + " pressed="
+							+ std::to_string(b->IsPressed()) + " hovered=" + std::to_string(b->IsHovered()));
+				}
+			}
+		}
 		auto pushMouseMotion = [x, y]() {
 			SDL_Event move{};
 			move.type = SDL_MOUSEMOTION;
@@ -3355,6 +3370,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	auto& gameApp = GameAPP::GetInstance();
 	out["scene"] = currentScene->name;
 	out["adventureLevel"] = gameApp.mAdventureLevel;
+	// 奖励页和选关页同样需要验证发卡结果，不依赖正在运行的 Board。
+	out["haveCardCount"] = static_cast<int>(gameApp.mHaveCards.size());
+	out["haveCards"] = nlohmann::json::array();
+	for (PlantType type : gameApp.mHaveCards)
+		out["haveCards"].push_back(PlantTypeName(type));
 	out["difficulty"] = gameApp.Difficulty;
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
@@ -4251,6 +4271,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			selectScene->GetPreviousPageButton());
 		out["gameSelectNextPageButton"] = exportPageButton(
 			selectScene->GetNextPageButton());
+		out["gameSelectSkipLevelButton"] = exportPageButton(selectScene->GetSkipLevelButton());
+		out["gameSelectSkippableLevel"] = selectScene->GetSkippableLevel();
 		return true;
 	}
 
@@ -4950,10 +4972,6 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["timeScaleOn1000"] =
 		static_cast<int>(std::lround(DeltaTime::GetTimeScale() * 1000.0f));
 	out["adventureLevel"] = gameApp.mAdventureLevel;
-	out["haveCardCount"] = static_cast<int>(gameApp.mHaveCards.size());
-	out["haveCards"] = nlohmann::json::array();
-	for (PlantType type : gameApp.mHaveCards)
-		out["haveCards"].push_back(PlantTypeName(type));
 	out["plantDefinitions"] = nlohmann::json::object();
 	for (PlantType type : GameDataManager::GetInstance().GetAllPlantTypes()) {
 		const PlantSimulationProfile& simulation =

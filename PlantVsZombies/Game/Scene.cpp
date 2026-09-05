@@ -33,7 +33,7 @@ void Scene::BuildDrawCommands() {
 
 	// 添加UI绘制命令
 	RegisterDrawCommand("UI",
-		[this](Graphics* g) { this->mUIManager.DrawAll(g); },
+		[this](Graphics* g) { this->mUIManager.DrawControls(g); },
 		LAYER_UI);
 }
 
@@ -66,6 +66,9 @@ void Scene::Draw(Graphics* g) {
 			cmd.drawFunc(g);
 		}
 	}
+	// 模态框不参与普通层号排序：主菜单入口、选关标签和 HUD 都可能晚于 LAYER_UI。
+	// 在所有场景命令结束后提交，保证最后创建的活动框在视觉上也位于顶层。
+	mUIManager.DrawMessageBoxes(g);
 }
 
 void Scene::Update()

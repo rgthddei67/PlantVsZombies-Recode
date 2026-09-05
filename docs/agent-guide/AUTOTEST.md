@@ -92,3 +92,6 @@
 ### 小游戏专项
 
 `smoke_minigame_last_savings.json` 从 `click target=main_menu_minigames` 进入独立选关页，以一次真实卡槽/草坪点击验证扣费，再用总成本 2875 阳光的固定阵型夹具与 125 余款验证卡池限制、无阳光掉落、快照往返、自然十波与奖杯返回；固定阵型夹具不代表完整卡槽布阵操作已被验证。输入阶段用正常倍速，只有等待战斗时加速；可见执行期间保持玩家输入与脚本分开，避免真实操作改变预算。`miniGame` 根投影由关卡号派生，沿用 `sun/normalSunCount/smallSunCount/nextWaveCountdownMs` 等现有权威投影。`smoke_minigame_navigation.json` 覆盖零预算不能落种、失败重开与冒险上次选卡隔离。
+
+
+- **可见点击诊断：** `click` 命令可选 `trace=true`，在按下后与释放前将实际鼠标位置、目标矩形内按钮的 pressed/hovered 状态写入 `run.log`；仅增加日志，不绕过 SDL 输入和模态命中。`smoke_adventure_skip` 保留此取证，并覆盖满页选关确认框的最终绘制层级。

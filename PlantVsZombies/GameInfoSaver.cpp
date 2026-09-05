@@ -1971,8 +1971,13 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 
 bool GameInfoSaver::DeleteLevelData(Board* board)
 {
+	return board && DeleteLevelData(board->mLevel);
+}
+
+bool GameInfoSaver::DeleteLevelData(int level)
+{
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest（包括读档复现模式）绝不删除真实存档
-	return DeleteSaveFile("level" + std::to_string(board->mLevel) + "_data.json");
+	return DeleteSaveFile("level" + std::to_string(level) + "_data.json");
 }
 
 // ── 异常安全边界 ──────────────────────────────────────────────────────────────
