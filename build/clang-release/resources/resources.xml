@@ -137,6 +137,17 @@
     <Image>./resources/image/background_nightroof_rain.png</Image>
     <Image>./resources/image/background_wintergarden.png</Image>
     <Image>./resources/image/background_polar_night.png</Image>
+    <Image>./resources/image/background_gloomcrystal_mine.png</Image>
+    <Image>./resources/image/mine_rock_a.png</Image>
+    <Image>./resources/image/mine_rock_b.png</Image>
+    <Image>./resources/image/mine_rock_c.png</Image>
+    <Image>./resources/image/mine_rock_cracked.png</Image>
+    <Image>./resources/image/mine_rubble.png</Image>
+    <Image>./resources/image/mine_chunks.png</Image>
+    <Image>./resources/image/mine_pickaxe.png</Image>
+    <Image>./resources/image/mine_entrance.png</Image>
+    <Image>./resources/image/mine_route_button.png</Image>
+
     <Image>./resources/image/snow_hole.png</Image>
     <Image>./resources/image/winter_frost_overlay_v2.png</Image>
     <Image>./resources/image/winter_frost_frontier_variant_1.png</Image>

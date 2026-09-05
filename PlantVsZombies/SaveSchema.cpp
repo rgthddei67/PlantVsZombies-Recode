@@ -335,6 +335,11 @@ namespace {
 				version = 12;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 12:
+				// v13新增矿道存档；旧关的玩法字段保持原样，缺省行进格由 Zombie 加载时补 -1。
+				version = 13;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

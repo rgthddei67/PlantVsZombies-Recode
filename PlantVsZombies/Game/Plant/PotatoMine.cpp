@@ -115,7 +115,8 @@ void PotatoMine::KillZombiesInBlastRadius()
 
 	// 镜像原版 KillAllZombiesInRadius：同排、圆形爆区，一次结算全部目标而非只杀碰撞触发者。
 	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
-		if (zombie->IsMindControlled() || zombie->IsDying()
+		if (mBoard->MineBlocksSegment(blastCenter, zombie->GetPosition())
+			|| zombie->IsMindControlled() || zombie->IsDying()
 			|| !zombie->CanBeTargetedByProjectile(false)) return;
 		auto* collider = zombie->GetColliderComponent();
 		if (!collider || !collider->mEnabled) return;

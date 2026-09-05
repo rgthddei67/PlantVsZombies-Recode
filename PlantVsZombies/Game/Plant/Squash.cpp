@@ -157,6 +157,7 @@ bool Squash::IsValidTarget(Zombie* zombie, float& score) const
 		|| !zombie->CanBeTargetedByProjectile(false)) {
 		return false;
 	}
+	if (mBoard->MineBlocksSegment(GetPosition(), zombie->GetPosition())) return false;
 	auto* collider = zombie->GetColliderComponent();
 	if (!collider || !collider->mEnabled || IsTargetedByOtherSquash(zombie->mZombieID)) {
 		return false;

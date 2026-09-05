@@ -627,6 +627,7 @@ namespace {
 		case Background::ROOF:             return "ROOF";
 		case Background::NIGHT_ROOF:       return "NIGHT_ROOF";
 		case Background::WINTER_GARDEN:    return "WINTER_GARDEN";
+		case Background::GLOOMCRYSTAL_MINE: return "GLOOMCRYSTAL_MINE";
 		case Background::POLAR_NIGHT_SNOWFIELD: return "POLAR_NIGHT_SNOWFIELD";
 		}
 		return "UNKNOWN";
@@ -639,7 +640,7 @@ namespace {
 			|| name == "ROOF"
 			|| name == "NIGHT_ROOF"
 			|| name == "WINTER_GARDEN"
-			|| name == "POLAR_NIGHT_SNOWFIELD";
+			|| name == "POLAR_NIGHT_SNOWFIELD" || name == "GLOOMCRYSTAL_MINE";
 	}
 	const char* BossSlotName(AdventureProgression::BossSlot slot) {
 		switch (slot) {
@@ -997,6 +998,15 @@ bool TestDriver::ExecuteCurrent() {
 		auto it = kBoardStateNames.find(cmd.value("state", ""));
 		if (it == kBoardStateNames.end()) { Fail("未知 BoardState: " + cmd.value("state", "")); return false; }
 		return gs->GetBoard()->mBoardState == it->second;
+	}
+	if (op == "mine_dig" || op == "mine_cancel") {
+		GameScene* gs = CurrentGameScene();
+		Board* board = gs ? gs->GetBoard() : nullptr;
+		if (!board) { Fail("No board"); return false; }
+		const bool result = op == "mine_cancel" ? board->CancelMineExcavation()
+			: board->BeginMineExcavation(cmd.value("row", -1), cmd.value("col", -1));
+		if (result != cmd.value("expectedSuccess", true)) { Fail("Unexpected mine excavation result"); return false; }
+		return true;
 	}
 	if (op == "set_sun") {
 		GameScene* gs = CurrentGameScene();
@@ -4528,6 +4538,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);
+	if (board->IsMineBackground()) {
+		bool resourcesReady = true;
+		for (const char* key : {"IMAGE_BACKGROUND_GLOOMCRYSTAL_MINE", "IMAGE_MINE_ROCK_A", "IMAGE_MINE_ROCK_B",
+			"IMAGE_MINE_ROCK_C", "IMAGE_MINE_ROCK_CRACKED", "IMAGE_MINE_RUBBLE", "IMAGE_MINE_CHUNKS", "IMAGE_MINE_PICKAXE", "IMAGE_MINE_ENTRANCE", "IMAGE_MINE_ROUTE_BUTTON"}) {
+			resourcesReady = resourcesReady && ResourceManager::GetInstance().GetTexture(key, false) != nullptr;
+		}
+		out["mine"] = { {"rocks", board->mMineGrid.rock}, {"distances", board->mMineGrid.distance},
+			{"connected", board->mMineGrid.connected}, {"entrances", board->mMineGrid.entrance},
+			{"pathValid", board->mMineGrid.Validate()}, {"digCell", board->mMineDigCell},
+			{"digRemainingMs", static_cast<int>(std::lround(board->mMineDigRemaining * 1000))},
+			{"toolActive", board->mMineToolActive},
+			{"cursorObjectType", static_cast<int>(board->mCursorObjectManager.GetActiveType())}, {"routesVisible", board->mMineRoutesVisible},
+			{"previewCell", board->mMinePreviewCell}, {"resourcesReady", resourcesReady},
+			{"forecastWave", board->mMinePlannedWave}, {"forecastMask", board->GetMineForecastEntranceMask()},
+			{"wavePlan", board->mMineWavePlan} };
+	}
 	out["winterGardenBackgroundLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, false) != nullptr;
 	out["polarNightBackgroundLoaded"] = ResourceManager::GetInstance().GetTexture(
@@ -6214,6 +6240,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
+			{ "mineTargetCell", z->mMineTargetCell },
 			{ "mistFuelReward", static_cast<int>(std::lround(z->GetMistFuelReward())) },
 			{ "fogObscured", board->IsZombieObscuredByFog(z) },
 			{ "inPool", z->IsInPool() },

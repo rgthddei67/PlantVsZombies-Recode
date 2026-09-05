@@ -757,6 +757,8 @@ Background GameAPP::GetBackgroundID(int level) const
 	case 7:
 		// 第七大关使用平地冬日花园；寒潮、冻融线与雨雪表现由 Board 独立管理。
 		return Background::WINTER_GARDEN;
+	case 9:
+		return Background::GLOOMCRYSTAL_MINE;
 	case 8:
 		// 第八大关是极夜开放雪原；本地三仪表与白毛风不复用旧天气状态。
 		return Background::POLAR_NIGHT_SNOWFIELD;
@@ -769,7 +771,8 @@ bool GameAPP::GetBackgroundIsNight(Background background) const
 {
 	if (background == Background::GROUND_NIGHT || background == Background::NIGHT_WATER_POOL
 		|| background == Background::NIGHT_ROOF
-		|| background == Background::POLAR_NIGHT_SNOWFIELD)
+		|| background == Background::POLAR_NIGHT_SNOWFIELD
+		|| background == Background::GLOOMCRYSTAL_MINE)
 	{
 		return true;
 	}

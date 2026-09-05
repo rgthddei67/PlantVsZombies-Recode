@@ -74,6 +74,9 @@ public:
 	bool mNeedDropArm = true;
 	bool mNeedDropHead = true;
 	int mZombieID = NULL_ZOMBIE_ID;
+	int mMineTargetCell = -1; // 矿道当前已锁定行进格；-1表示到达决策点
+	/** 矿道跨越行中线时复用正式排序/行索引提交。 */
+	void CommitMineRow(int row) { CommitRow(row); }
 
 	int mSpawnWave = -1;	// 多少波刷新的
 

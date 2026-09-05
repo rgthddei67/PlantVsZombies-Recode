@@ -296,6 +296,16 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME save-schema COMMAND SaveSchemaTests)
 
+    add_executable(MineGridTests tests/MineGridTests.cpp
+        PlantVsZombies/Game/Board/MineGrid.cpp)
+    target_include_directories(MineGridTests PRIVATE ${SRC_DIR})
+    target_compile_options(MineGridTests PRIVATE /utf-8 /W3 /sdl /EHsc)
+    target_link_libraries(MineGridTests PRIVATE $<$<PLATFORM_ID:Windows>:pvz_win7_compat>)
+    if(WIN32)
+        pvz_assert_win7_imports(MineGridTests)
+    endif()
+    add_test(NAME mine-grid COMMAND MineGridTests)
+
     # 共享蒙特卡洛器保持纯数值边界，单测无需启动 SDL 或构造 Board。
     add_executable(PlantDefenseMonteCarloTests
         tests/PlantDefenseMonteCarloTests.cpp

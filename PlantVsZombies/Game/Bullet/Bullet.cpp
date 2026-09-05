@@ -455,6 +455,11 @@ void Bullet::Update()
 				GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
 		}
 		const Vector position = transform->GetPosition();
+		if (mBoard && !IsLobbedMotion() && !IsCobCannonMotion()
+			&& mBoard->MineBlocksSegment(previousPosition, position)) {
+			Die();
+			return;
+		}
 		if (mRotationSpeedDegrees != 0.0f) {
 			mRotationDegrees = std::fmod(
 				mRotationDegrees + mRotationSpeedDegrees * deltaTime, 360.0f);
@@ -859,6 +864,7 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 	for (int row = firstRow; row <= lastRow; ++row) {
 		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* candidate) {
 			if (!candidate || candidate == zombie || !candidate->IsActive()
+				|| mBoard->MineBlocksSegment(GetPosition(), candidate->GetPosition())
 				|| candidate->IsDying() || candidate->IsMindControlled()
 				|| !candidate->CanBeTargetedByProjectile(false)) {
 				return;
@@ -1071,6 +1077,7 @@ void Bullet::ConfigureLobbedMotion(
 	bool targetsIceWall, bool polarGuided)
 {
 	if (!GetTransform()) return;
+	if (mBoard && mBoard->MineBlocksSegment(GetTransform()->GetPosition(), target)) { Die(); return; }
 	Vector adjustedTarget = target;
 	const int sourceRow = mRow;
 	int landingRow = sourceRow;
@@ -1098,6 +1105,7 @@ void Bullet::ConfigureCobCannonMotion(
 	const Vector& target, int targetRow, float durationSeconds, bool polarGuided)
 {
 	if (!GetTransform()) return;
+	if (mBoard && mBoard->MineBlocksSegment(GetPosition(), target)) { Die(); return; }
 	Vector adjustedTarget = target;
 	int adjustedRow = targetRow;
 	const bool landsOnBoard = !mBoard
@@ -1437,7 +1445,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 	}
 
 	auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
-	if (!zombie || zombie->mRow != mRow
+	if (!zombie || (zombie->mRow != mRow && (!mBoard || !mBoard->IsMineBackground()))
 		|| !zombie->CanBeTargetedByProjectile(mTargetsFlying)) return;
 	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
 
@@ -1819,6 +1827,7 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	if (mBoard) {
 		mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
 			if (!candidate || candidate == zombie || !candidate->IsActive()
+				|| mBoard->MineBlocksSegment(GetPosition(), candidate->GetPosition())
 				|| candidate->IsDying() || candidate->IsMindControlled()
 				|| candidate->IsFireResistant()) {
 				return;

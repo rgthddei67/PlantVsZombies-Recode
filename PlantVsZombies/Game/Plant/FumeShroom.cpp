@@ -69,6 +69,7 @@ float FumeShroom::FumeAttack()
 	const float thisX = GetPosition().x;
 	std::vector<Zombie*> targets;
 	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+		if (mBoard->MineBlocksSegment(GetPosition(), zombie->GetPosition())) return;
 		const float dx = zombie->GetPosition().x - thisX;
 		// 豁免魅惑僵尸：原版 DoRowAreaDamage(20, 2U) 的 damageRangeFlags 不含 bit7（不炸魅惑目标）
 		if (dx >= 0 && dx <= mFumeReach && zombie->HasHead()

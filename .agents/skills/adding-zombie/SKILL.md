@@ -213,3 +213,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 ## 关联记忆
 
 `[[project_pvz_dancer_zombie]]`（本 skill 起源+全部 foot-gun 现场）、`[[project_pvz_pink_football_zombie]]`（同构父类初始化复用+可见桌面测试）、`[[project_pvz_zombie_eat_walk_state_machine]]`（走路权威/啃食钩子）、`[[project_pvz_charmed_zombie_feature]]`（魅惑契约）、`[[project_pvz_gamedata_json]]`（权威单份资源）。
+
+## 矿道运动兼容
+
+幽晶矿场把普通 `ZombieMove` 的既有根运动距离交给 `Board::AdvanceMineZombie`，不能再额外平移一次。`mMineTargetCell` 是已承诺的相邻节点，开凿/读档/魅惑后先完成当前边，再在节点选择新方向；实际 Y 越过行中线时通过 `CommitMineRow` 同步行桶与排序。普通敌人用左/上/下有向下降距离；魅惑单位沿四邻接通路返回右侧入口，以免左侧安全区或死胡同困住单位。新品种的跳跃、钻地、入场等特殊运动不得推定已经兼容此公共步行入口。用独立地形穷举验证防环，再以可见专项验证竖向啃食与中途读档，不能用纯图测试替代实体运动验收。

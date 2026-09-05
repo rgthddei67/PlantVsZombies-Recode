@@ -200,3 +200,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 ## 关联记忆
 
 `[[project_pvz_gamedata_json]]`（权威单份资源）、`[[project_pvz_autotest_suite]]`、`[[reference_pvz_assets_worktree_autotest_gotchas]]`。
+
+## 矿场岩壁与攻击
+
+`Board::MineBlocksSegment` 按真实 Cell 闭边界判断地形遮挡，角点相切也算阻挡。矿场植物适配须同时检查索敌、发射与正式伤害提交；只挡子弹会让抛射或直接范围伤害穿墙，只挡索敌会让已发攻击泄漏。局部溅射从爆心再检验受害者射线，全场能力按已定规则独立处理。种植路径统一经过 `CanPlantAt` / `CanPlantOnMineCell`，显式构造与存档恢复不能混为同一入口；矿场中按格显示的射界是辅助投影，不能替代真实碰撞判定。

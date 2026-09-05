@@ -16,7 +16,8 @@ ShovelBank::ShovelBank(Board* board)
 	mIsUI = true;
 	SetRenderOrder(LAYER_UI + 49000);
 
-	CreateTransform(850.0f, 30.0f);
+	// 矿场给铲子、镐子和矿道图各留完整工具位。
+	CreateTransform(mBoard && mBoard->IsMineBackground() ? 815.0f : 850.0f, 30.0f);
 }
 
 void ShovelBank::Start()

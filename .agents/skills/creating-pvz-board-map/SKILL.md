@@ -90,3 +90,7 @@ description: Use when creating or substantially reworking a playable PvZ map/bac
 - **资源文件存在但取不到键**：补齐 loader/`resources.xml`/键注册，并加运行时加载断言。
 - **景物隐藏实体但未禁用实体**：会留下不可见碰撞、攻击或读档复活。资格必须覆盖创建、显式生成与恢复。
 
+
+## 矿场前景与工具验收
+
+`Scene` 的 `GameObjects` 命令一次绘制全部 GOM 对象，包含选卡面板；把岩壁另注册为较高 Scene 命令会压住面板，数值层级不能插入 GOM 内部。幽晶矿场岩壁在 `GameScene::DrawWorldOverlay` 的现有 pre-overlay 阶段绘制，位于战场之后、UI 对象之前。选卡截图先断言 `chooseCardReady=true`，只等 `CHOOSE_CARD` 会截到滑入前。工具贴图用 `LogicalToWorld`，传给 `GameAPP::DrawText` 的锚点也必须是世界坐标；必须检查镜头平移阶段。

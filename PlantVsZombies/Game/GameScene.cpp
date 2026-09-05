@@ -167,7 +167,8 @@ namespace {
 		if (overrideName == "ROOF") return Background::ROOF;
 		if (overrideName == "NIGHT_ROOF") return Background::NIGHT_ROOF;
 		if (overrideName == "WINTER_GARDEN") return Background::WINTER_GARDEN;
-		if (overrideName == "POLAR_NIGHT_SNOWFIELD") return Background::POLAR_NIGHT_SNOWFIELD;
+		if (overrideName == "GLOOMCRYSTAL_MINE") return Background::GLOOMCRYSTAL_MINE;
+	if (overrideName == "POLAR_NIGHT_SNOWFIELD") return Background::POLAR_NIGHT_SNOWFIELD;
 		return configured;
 	}
 
@@ -660,7 +661,8 @@ float GameScene::GetWeatherPanelHeight() const
 
 void GameScene::UpdateAfterGameObjects()
 {
-	if (mCardSlotManager) mCardSlotManager->Update();
+	if (mBoard) mBoard->UpdateMineInput();
+	if (mCardSlotManager && (!mBoard || !mBoard->mMineToolActive)) mCardSlotManager->Update();
 }
 
 void GameScene::Draw(Graphics* g)
@@ -792,6 +794,11 @@ void GameScene::DrawFog(Graphics* g) const
 void GameScene::DrawWorldOverlay(Graphics* g)
 {
 	if (!g || !mBoard) return;
+	// 岩壁属于战场前景，必须在 GOM 的 UI 尾段之前提交；Scene 命令数值不能插入 GOM 内部层级。
+	if (mBoard->IsMineBackground()) {
+		PROFILE_SCOPE("8b0.Draw_mineWalls");
+		mBoard->DrawMineWalls(g);
+	}
 	// 雾先遮住战场与世界粒子，随后再统一接受雨天暗幕；闪电最后照亮雾层但仍不覆盖 UI。
 	{
 		PROFILE_SCOPE("8b1.Draw_fog");
@@ -1806,6 +1813,10 @@ void GameScene::BuildDrawCommands()
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
+	else if (background == Background::GLOOMCRYSTAL_MINE) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_GLOOMCRYSTAL_MINE,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
 	else if (background == Background::POLAR_NIGHT_SNOWFIELD) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_POLAR_NIGHT,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
@@ -1848,6 +1859,10 @@ void GameScene::BuildDrawCommands()
 			RegisterDrawCommand("PolarNightGround",
 				[this](Graphics* g) { mBoard->DrawPolarNightGround(g); },
 				LAYER_BACKGROUND + 1);
+		}
+		if (background == Background::GLOOMCRYSTAL_MINE) {
+			RegisterDrawCommand("MineGround", [this](Graphics* g) { mBoard->DrawMineGround(g); }, LAYER_BACKGROUND + 3);
+			RegisterDrawCommand("MineUI", [this](Graphics* g) { mBoard->DrawMineUI(g); }, LAYER_UI + 60000);
 		}
 		RegisterDrawCommand("IceTrails",
 			[this](Graphics* g) { mBoard->DrawIceTrails(g); },
@@ -3071,7 +3086,7 @@ void GameScene::RegisterSurvivalGameUiOnce()
 
 void GameScene::ShowShovel()
 {
-	const Vector shovelBankCenter(850.0f, 30.0f);
+	const Vector shovelBankCenter(mBoard->IsMineBackground() ? 815.0f : 850.0f, 30.0f);
 
 	// 先创建铲子背景（renderOrder 较低，画在下面）
 	auto shovelBank = GameObjectManager::GetInstance()

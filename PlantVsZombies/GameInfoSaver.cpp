@@ -367,6 +367,11 @@ bool GameInfoSaver::SerializeLevelDocument(Board* board, CardSlotManager* manage
 	j["coldWaveThawDuration"] = board->mColdWaveThawDuration;
 	j["coldWaveForecastDisrupted"] = board->mColdWaveForecastDisrupted;
 	j["winterFrostVariant"] = board->mWinterFrostVariant;
+	if (board->IsMineBackground()) {
+		j["mine"] = { {"rocks", board->mMineGrid.rock}, {"digCell", board->mMineDigCell},
+			{"digRemaining", board->mMineDigRemaining}, {"tutorialSeen", board->mMineTutorialSeen},
+			{"plannedWave", board->mMinePlannedWave}, {"wavePlan", board->mMineWavePlan} };
+	}
 	j["polarNightInitialized"] = board->mPolarNightInitialized;
 	j["polarNightPhase"] = static_cast<int>(board->mPolarNightPhase);
 	j["polarPlanIsWhiteout"] = board->mPolarPlanIsWhiteout;
@@ -1060,6 +1065,36 @@ bool GameInfoSaver::DeserializeLevelDocument(Board* board, CardSlotManager* mana
 		&& j.value("coldWaveForecastDisrupted", false);
 	board->mWinterFrostVariant = board->mWinterTemperatureInitialized
 		? std::clamp(j.value("winterFrostVariant", 0), 0, 2) : 0;
+	if (board->IsMineBackground() && j.contains("mine") && j["mine"].is_object()) {
+		const auto& mine = j["mine"];
+		if (mine.contains("rocks") && mine["rocks"].is_array() && mine["rocks"].size() == MineGrid::Count) {
+			for (int cell = 0; cell < MineGrid::Count; ++cell) {
+				if (mine["rocks"][cell].is_boolean())
+					board->mMineGrid.rock[cell] = board->mMineGrid.rock[cell] && mine["rocks"][cell].get<bool>();
+			}
+		}
+		board->mMineGrid.Rebuild();
+		board->mMineDigCell = mine.value("digCell", -1);
+		board->mMineDigRemaining = std::clamp(mine.value("digRemaining", 0.0f), 0.0f, 8.0f);
+		if (board->mMineDigCell < 0 || board->mMineDigCell >= MineGrid::Count
+			|| !board->mMineGrid.CanExcavate(board->mMineDigCell / MineGrid::Columns, board->mMineDigCell % MineGrid::Columns)
+			|| !std::isfinite(board->mMineDigRemaining)) {
+			board->mMineDigCell = -1;
+			board->mMineDigRemaining = 0.0f;
+		}
+		board->mMineTutorialSeen = mine.value("tutorialSeen", false);
+		board->mMinePlannedWave = mine.value("plannedWave", -1);
+		board->mMineWavePlan.clear();
+		if (mine.contains("wavePlan") && mine["wavePlan"].is_array()) {
+			for (const auto& entry : mine["wavePlan"]) {
+				if (!entry.is_array() || entry.size() != 2 || !entry[0].is_number_integer() || !entry[1].is_number_integer()) continue;
+				const int type = entry[0].get<int>(), row = entry[1].get<int>();
+				if (type < 0 || type >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)
+					|| row < 0 || row >= MineGrid::Rows || !board->mMineGrid.entrance[row]) continue;
+				board->mMineWavePlan.emplace_back(static_cast<ZombieType>(type), row);
+			}
+		}
+	}
 	const int polarPhaseValue = j.value("polarNightPhase",
 		static_cast<int>(PolarNightPhase::DORMANT));
 	const bool validPolarPhase = polarPhaseValue

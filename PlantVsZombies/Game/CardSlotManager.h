@@ -50,6 +50,9 @@ public:
 	int GetPreviewRenderMouseOffsetX() const { return mPreviewRenderMouseOffsetX; }
 	int GetPreviewRenderMouseOffsetY() const { return mPreviewRenderMouseOffsetY; }
 	void UpdateAllCardsState();
+	/** 地图射界预览只读取当前正式选卡与悬停格，不创建测试目标或参与索敌。 */
+	PlantType GetPlacementPreviewType() const { return selectedCard ? selectedCard->GetGameplayPlantType() : PlantType::NUM_PLANT_TYPES; }
+	const Cell* GetPlacementPreviewCell() const { return mHoveredCell; }
 
 	// 卡牌操作
 	void AddCard(Card* card);

@@ -66,6 +66,7 @@ namespace {
 			return ResourceKeys::Music::MUSIC_NIGHT;
 		case Background::WINTER_GARDEN:
 			return ResourceKeys::Music::MUSIC_DAY;
+		case Background::GLOOMCRYSTAL_MINE:
 		case Background::POLAR_NIGHT_SNOWFIELD:
 			return ResourceKeys::Music::MUSIC_NIGHT;
 		}
@@ -246,6 +247,7 @@ Board::Board(BoardPresentation* presentation, Background background, int level)
 	}
 
 	InitializeCell(IsPoolBackground() ? 5 : 4, 8);
+	if (IsMineBackground()) { mMineGrid.Initialize(); mSun = 200; }
 	// 屋顶预览会读取行高与连续坡面；必须在网格尺寸完成初始化后再生成。
 	CreatePreviewZombies();
 	mIceMinX.fill(GetIceTrailRightX());
@@ -864,6 +866,7 @@ bool Board::IsZombieObscuredByFog(const Zombie* zombie) const
 bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie)
 {
 	if (!plant || !zombie || !plant->CanAcquireZombie(zombie)) return false;
+	if (MineBlocksSegment(plant->GetPosition(), zombie->GetPosition())) return false;
 	if (IsPolarSnowBlindActive() && mDawnNavigationTimer <= 0.0f) {
 		auto centerOf = [](const GameObject* object,
 			const ColliderComponent* collider) {
@@ -1282,7 +1285,7 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 	// 水路僵尸的 Transform 含美术下沉，纵向命中必须使用僵尸与植物的逻辑行。
 	for (int row = plantRow - 1; row <= plantRow + 1; ++row) {
 		mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
-			if (zombie->IsMindControlled()) return;
+			if (zombie->IsMindControlled() || MineBlocksSegment(position, zombie->GetPosition())) return;
 			if (std::abs(zombie->GetPosition().x - position.x) <= 130.0f) {
 				// 统一灰烬入口内部决定化灰或数值扣血；特殊僵尸可拒绝化灰并限制每次灰烬伤害。
 				zombie->TakePlantAshDamage(damage);
@@ -1303,7 +1306,7 @@ void Board::CreateDoomBoom(const Vector& position, int plantRow, int damage)
 	for (auto zombieID : zombieIDs)
 	{
 		if (auto zombie = mEntityRegistry.GetZombie(zombieID)) {
-			if (zombie->IsMindControlled()) continue;
+			if (zombie->IsMindControlled() || MineBlocksSegment(position, zombie->GetPosition())) continue;
 			// 圆(半径 250) vs 僵尸判定矩形 [x±25]×[y-65,y+35]，镜像原版 GetCircleRectOverlap；
 			// 250 纵向天然覆盖 ±2 行有余，无需再按行数过滤
 			Vector zombiePosition = zombie->GetPosition();
@@ -1615,7 +1618,8 @@ void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int 
 		mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!zombie || !zombie->IsActive() || zombie->IsDying()
 				|| zombie->IsMindControlled()
-				|| !zombie->CanBeAffectedByCobCannonExplosion()) return;
+				|| !zombie->CanBeAffectedByCobCannonExplosion()
+				|| MineBlocksSegment(position, zombie->GetPosition())) return;
 			SDL_FRect bounds{};
 			if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
 				bounds = collider->GetBoundingBox();
@@ -1708,6 +1712,8 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (!ResolvePlantPlacementAnchor(type, row, col, anchorRow, anchorColumn)) return false;
 	const PlantFootprint polarFootprint = GetPlantFootprint(type);
 	for (std::size_t i = 0; i < polarFootprint.count; ++i) {
+		if (!CanPlantOnMineCell(anchorRow + polarFootprint.cells[i].rowOffset,
+			anchorColumn + polarFootprint.cells[i].columnOffset)) return false;
 		if (HasSnowHoleAt(anchorRow + polarFootprint.cells[i].rowOffset,
 			anchorColumn + polarFootprint.cells[i].columnOffset)) return false;
 	}
@@ -2192,6 +2198,8 @@ Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 	// 正式创建入口也执行累计次数闸门，覆盖 AutoTest/develop 等绕过 CanPlantAt 的调用者。
 	// 读档实体恢复由已保存的累计计数约束，不能在逐株重建时重复消耗次数。
 	// 玩家落种始终消费次数；读档生命周期标记只能豁免内部实体恢复，不能豁免玩家输入。
+	if (IsMineBackground() && !isPreview && !mIsLoadSave
+		&& !CanPlantAt(placementType, row, column)) return nullptr;
 	const bool consumesPlantingQuota = !isPreview && !skipsettings
 		&& (playerDeployment || !mIsLoadSave);
 	if (consumesPlantingQuota && !HasPlantingQuota(placementType)) {
@@ -2619,9 +2627,14 @@ void Board::SummonNextWave()
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_AFTERHUGEWAVE, 0.7f);
 	}
 
-	TrySummonZombie();
+	if (IsMineBackground() && mMinePlannedWave == mCurrentWave) {
+		for (const auto& entry : mMineWavePlan)
+			CreateOrQueueWaveZombie(entry.first, entry.second, static_cast<float>(SCENE_WIDTH) + 40.0f);
+		mMineWavePlan.clear();
+	} else TrySummonZombie();
 	TrySummonAdventureBoss();
 	FinalizeWaveSpawnThreshold();
+	PrepareMineWave();
 }
 
 /**
@@ -2774,6 +2787,7 @@ bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 bool Board::IsNaturalWaveSpawnRowCompatible(ZombieType type, int row) const
 {
 	if (!IsSpawnRowCompatible(type, row)) return false;
+	if (IsMineBackground() && !mMineGrid.entrance[row]) return false;
 	return !IsPoolBackground() || mCurrentWave >= kPoolFirstWaterSpawnWave || !IsPoolRow(row);
 }
 
@@ -2792,8 +2806,9 @@ ZombieType Board::ResolveTerrainZombieType(ZombieType selected, int row) const
 	}
 }
 
-inline int Board::SelectSpawnRow(ZombieType type)
+inline int Board::SelectSpawnRow(ZombieType type, int wave)
 {
+	if (wave < 0) wave = mCurrentWave;
 	if (mRowInfos.empty()) InitializeRows();
 
 	// 第一步：根据 loseMower 计算基础权重
@@ -2804,7 +2819,7 @@ inline int Board::SelectSpawnRow(ZombieType type)
 			mRowInfos[i].weight = 0.0f;
 			continue;
 		}
-		int mowerTest = mCurrentWave - mRowInfos[i].loseMower;
+		int mowerTest = wave - mRowInfos[i].loseMower;
 		if (mowerTest <= 1)       mRowInfos[i].weight = 0.01f;
 		else if (mowerTest <= 2)  mRowInfos[i].weight = 0.5f;
 		else                      mRowInfos[i].weight = 1.0f;
@@ -2901,8 +2916,9 @@ inline ZombieType Board::GetCheapestZombie()
 	return cheapest;
 }
 
-inline ZombieType Board::PickZombieType(int remainingPoints)
+inline ZombieType Board::PickZombieType(int remainingPoints, int wave)
 {
+	if (wave < 0) wave = mCurrentWave;
 	for (int attempt = 0; attempt < 1000; attempt++)
 	{
 		ZombieType type = GetWeightedRandomZombie();
@@ -2910,7 +2926,7 @@ inline ZombieType Board::PickZombieType(int remainingPoints)
 		int minWave = GameDataManager::GetInstance().GetZombieAppearWave(type);
 		if (!mIsSurvival && mLevel == kThermalSniperCompositeLevel
 			&& type == ZombieType::ZOMBIE_THERMAL_SNIPER) minWave = 1;
-		if (remainingPoints >= cost && (mIsSurvival || mCurrentWave >= minWave))
+		if (remainingPoints >= cost && (mIsSurvival || wave >= minWave))
 			return type;
 	}
 	return GetCheapestZombie();
@@ -3162,10 +3178,11 @@ void Board::AssignMistFuelReward(Zombie* zombie)
 	zombie->SetMistFuelReward(static_cast<float>(rewardAmount));
 }
 
-inline int Board::CalculateWaveZombiePoints() const
+inline int Board::CalculateWaveZombiePoints(int wave) const
 {
+	if (wave < 0) wave = mCurrentWave;
 	// 基础点数
-	float points = (static_cast<float>(mCurrentWave) / 3 + 1.0f) * 1000.0f;
+	float points = (static_cast<float>(wave) / 3 + 1.0f) * 1000.0f;
 
 	points *= (GameAPP::GetInstance().Difficulty * 0.5f);
 	if (IsStormyNightActive()) {
@@ -3179,7 +3196,7 @@ inline int Board::CalculateWaveZombiePoints() const
 	}
 
 	// 判断是否为旗帜波
-	bool isFlagWave = (mCurrentWave % 10 == 0);
+	bool isFlagWave = (wave % 10 == 0);
 	if (isFlagWave)
 	{
 		points *= 2.5f;
@@ -3272,6 +3289,7 @@ void Board::Update()
 	UpdateWeatherPanelInterference(DeltaTime::GetDeltaTime());
 	UpdateIceTrails(DeltaTime::GetDeltaTime());
 	UpdatePolarFinaleRituals(DeltaTime::GetDeltaTime());
+	UpdateMine(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
 	mUpdateZombieMetricsTimer += DeltaTime::GetDeltaTime();
 	if (mUpdateZombieMetricsTimer >= 0.5f)
@@ -3281,6 +3299,38 @@ void Board::Update()
 	}
 	UpdateLevel();
 	AudioSystem::UpdateAdaptiveMusic(DeltaTime::GetDeltaTime(), mHostileZombieCountForMusic);
+}
+
+void Board::PrepareMineWave()
+{
+	if (!IsMineBackground() || mMinePlannedWave == mCurrentWave + 1) return;
+	mMineWavePlan.clear();
+	mMinePlannedWave = mCurrentWave + 1;
+	if (mMinePlannedWave > mMaxWave) return;
+	int remaining = CalculateWaveZombiePoints(mMinePlannedWave);
+	// 9-1仅沿用基础三类出怪；预算、权重、出场波次与行平滑规则仍走正式公共入口。
+	for (int attempt = 0; remaining > 0 && attempt < kWaveCandidateAttemptLimit
+		&& mMineWavePlan.size() < MAX_ZOMBIES_PER_WAVE; ++attempt) {
+		const ZombieType type = PickZombieType(remaining, mMinePlannedWave);
+		const int cost = GameDataManager::GetInstance().GetZombieWeight(type);
+		if (cost <= 0) break;
+		const int row = SelectSpawnRow(type, mMinePlannedWave);
+		if (row < 0) continue;
+		for (auto& info : mRowInfos) if (info.weight > 0.0f) {
+			++info.lastPicked; ++info.secondLastPicked;
+		}
+		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
+		mRowInfos[row].lastPicked = 0;
+		mMineWavePlan.emplace_back(type, row);
+		remaining -= cost;
+	}
+}
+
+int Board::GetMineForecastEntranceMask() const
+{
+	int mask = 0;
+	for (const auto& entry : mMineWavePlan) mask |= 1 << entry.second;
+	return mask;
 }
 
 void Board::StartGame()
@@ -3293,6 +3343,7 @@ void Board::StartGame()
 		InitializeMowers();
 	}
 	mBoardState = BoardState::GAME;
+	PrepareMineWave();
 	InitializeWeather();
 	InitializeWinterTemperature();
 	InitializePolarNightEnvironment();

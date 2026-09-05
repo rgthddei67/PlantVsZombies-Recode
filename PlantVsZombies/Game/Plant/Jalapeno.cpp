@@ -97,6 +97,7 @@ void Jalapeno::IgniteRow()
 		// C# 用每段 X+10 单独采样 GetPosYBasedOnRow；屋顶因此沿坡面铺开，平地结果不变。
 		const float fireY = mBoard->GetRowCenterYAtX(mRow, fireX + 10.0f)
 			- mBoard->GetCellHeight() * 0.5f + kFireTopOffsetY;
+		if (mBoard->MineBlocksSegment(GetPosition(), Vector(fireX, GetPosition().y))) continue;
 		const Vector position(fireX, fireY);
 		GameObjectManager::GetInstance().CreateGameObjectImmediate<JalapenoFire>(
 			LAYER_EFFECTS_WORLD, mBoard, position,
@@ -104,8 +105,9 @@ void Jalapeno::IgniteRow()
 	}
 
 	// 原版 BurnRow 先解冻/解减速，再按灰烬入口烧毁本行；魅惑僵尸不属于植物武器目标。
-	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [](Zombie* zombie) {
-		if (!zombie || zombie->IsMindControlled()) return;
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [this](Zombie* zombie) {
+		if (!zombie || zombie->IsMindControlled()
+			|| mBoard->MineBlocksSegment(GetPosition(), zombie->GetPosition())) return;
 		zombie->RemoveColdEffects();
 		zombie->TakePlantAshDamage(kJalapenoDamage);
 		});

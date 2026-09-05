@@ -9,6 +9,7 @@ enum class CursorObjectType {
 	PLANT_PREVIEW,
 	SHOVEL,
 	COB_CANNON_TARGET,
+	MINE_PICKAXE,
 };
 
 class CursorObjectManager {

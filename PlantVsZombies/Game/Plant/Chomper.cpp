@@ -13,7 +13,7 @@ int Chomper::FindTargetZombieID()
 
 	// 按行索引：只遍历本行僵尸，mRow 过滤已由桶保证。
 	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* z) {
-		if (z->IsMindControlled()) return;
+		if (z->IsMindControlled() || mBoard->MineBlocksSegment(myPos, z->GetPosition())) return;
 		if (!z->HasHead()) return;
 		if (!z->CanBeTargetedByProjectile(false)) return;
 		// 原版大嘴花不会与已经被水草锁定的目标争抢同一只僵尸。

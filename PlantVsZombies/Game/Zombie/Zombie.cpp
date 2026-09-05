@@ -264,6 +264,7 @@ void Zombie::ApplyHealthMultiplier(double multiplier)
 }
 
 void Zombie::SaveProtectedData(nlohmann::json& j) const {
+	j["mineTargetCell"] = mMineTargetCell;
 	j["isMindControlled"] = mIsMindControlled;
 	j["freeHitsRemaining"] = mFreeHitsRemaining;
 	j["isEating"] = mIsEating;
@@ -312,6 +313,9 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 }
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
+	mMineTargetCell = (mBoard && mBoard->IsMineBackground()) ? j.value("mineTargetCell", -1) : -1;
+	if (mMineTargetCell < -1 || mMineTargetCell >= MineGrid::Count
+		|| (mMineTargetCell >= 0 && mBoard->mMineGrid.rock[mMineTargetCell])) mMineTargetCell = -1;
 	mIsMindControlled = j.value("isMindControlled", false);
 	mFreeHitsRemaining = j.value("freeHitsRemaining", 0);   // 旧档缺字段→0
 	mIsEating = j.value("isEating", false);
@@ -967,6 +971,12 @@ bool Zombie::ChangeRowForGarlic()
 			|| !mBoard->CanSpawnZombieInRow(mZombieType, candidate)) {
 			continue;
 		}
+		if (mBoard->IsMineBackground()) {
+			const int column = static_cast<int>((GetPosition().x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X);
+			if (column < 2 || !MineGrid::Valid(candidate, column)
+				|| mBoard->mMineGrid.distance[MineGrid::Index(candidate,column)] >= MineGrid::Unreachable
+				|| mBoard->MineBlocksSegment(GetPosition(), Vector(GetPosition().x, mBoard->GetZombieSpawnY(candidate, GetPosition().x)))) continue;
+		}
 		candidates[candidateCount++] = candidate;
 	}
 	if (candidateCount == 0) return false;
@@ -975,6 +985,7 @@ bool Zombie::ChangeRowForGarlic()
 		? 0
 		: GameRandom::Range(0, candidateCount - 1)];
 	CommitRow(destination);
+	mMineTargetCell = -1;
 	return true;
 }
 
@@ -1204,6 +1215,10 @@ void Zombie::ZombieMove(float scaledDelta, Transform* transform)
 				mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
 		}
 		speed *= GetRoofMarshalAssaultMoveMultiplier();
+		if (mBoard && mBoard->IsMineBackground()) {
+			mBoard->AdvanceMineZombie(this, std::max(0.0f, speed * scaledDelta));
+			return;
+		}
 		if (IsMovingRight())
 		{
 			transform->Translate(speed * scaledDelta, 0);
@@ -2697,6 +2712,7 @@ bool Zombie::IsPlantValidEatTarget(Plant* plant) const
 		return false;
 	}
 	if (!mBoard) return true;
+	if (mBoard->MineBlocksSegment(GetPosition(), plant->GetPosition())) return false;
 
 	// C# CanTargetPlant(Chew) 会递归询问 EatingOrder 顶层；顶层若 NotOnGround，
 	// 下层仍可成为目标。不能把 Cell 的物理顶层无条件当成唯一合法目标。

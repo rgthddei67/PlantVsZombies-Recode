@@ -148,6 +148,12 @@ void Mower::Update()
 
 	float deltaTime = DeltaTime::GetDeltaTime();
 	pos.x += mSpeed * deltaTime;
+	if (mBoard && mBoard->MineBlocksSegment(
+		Vector(GetPosition().x + 60.0f, mBoard->GetCellCenterPosition(mRow, 0).y),
+		Vector(pos.x + 60.0f, mBoard->GetCellCenterPosition(mRow, 0).y))) {
+		Die();
+		return;
+	}
 	if (mBoard) {
 		const int holeColumn = mBoard->GetSnowHoleColumn(mRow);
 		if (holeColumn >= 0) {

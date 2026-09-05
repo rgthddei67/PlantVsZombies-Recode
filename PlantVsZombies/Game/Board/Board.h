@@ -3,6 +3,7 @@
 #ifndef _BOARD_H
 #define _BOARD_H
 #include "Game/Cell.h"
+#include "Game/Board/MineGrid.h"
 #include "Game/GameObject.h"
 #include "Game/GameObjectManager.h"
 #include "Game/Ladder.h"
@@ -90,7 +91,8 @@ enum class Background {
 	ROOF,
 	NIGHT_ROOF,
 	WINTER_GARDEN,
-	POLAR_NIGHT_SNOWFIELD
+	POLAR_NIGHT_SNOWFIELD,
+	GLOOMCRYSTAL_MINE
 };
 
 inline constexpr int SURVIVAL_ENDLESS_LEVEL = 1000; // 白天无尽专用 level 号
@@ -533,10 +535,10 @@ private:
 		const std::vector<int>& replacePlantIDs = {});
 	void InitializeRows();
 	/** 按地形与行平滑权重选择正式出生行；没有合法行时返回 -1。 */
-	inline int SelectSpawnRow(ZombieType type);
+	inline int SelectSpawnRow(ZombieType type, int wave = -1);
 	bool IsSpawnRowCompatible(ZombieType type, int row) const;
 	bool IsNaturalWaveSpawnRowCompatible(ZombieType type, int row) const;
-	inline ZombieType PickZombieType(int remainingPoints);
+	inline ZombieType PickZombieType(int remainingPoints, int wave = -1);
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
 	void InitializeWeather();
@@ -862,6 +864,41 @@ public:
 	bool SupportsPolarNightEnvironment() const {
 		return mBackGround == Background::POLAR_NIGHT_SNOWFIELD;
 	}
+	/** 矿场地形、施工与查询只有 Board 拥有；预览只读副本不提交地形。 */
+	bool IsMineBackground() const { return mBackGround == Background::GLOOMCRYSTAL_MINE; }
+	MineGrid mMineGrid;
+	int mMinePlannedWave = -1;
+	std::vector<std::pair<ZombieType, int>> mMineWavePlan;
+	/** 提前锁定下一波的正常点数选池结果，入口预报只投影该计划，不增兵。 */
+	void PrepareMineWave();
+	/** 返回已锁定下一波计划实际使用的入口行位掩码，不表示兵力数量。 */
+	int GetMineForecastEntranceMask() const;
+	int mMineDigCell = -1;
+	float mMineDigRemaining = 0.0f;
+	int mMineLastDugCell = -1;
+	float mMineRubbleTimer = 0.0f;
+	bool mMineToolActive = false;
+	bool mMineRoutesVisible = false;
+	int mMinePreviewCell = -1;
+	bool mMineTutorialSeen = false;
+	/** 按真实格边界判断直线遮挡，角点相切也算命中岩体。 */
+	bool MineBlocksSegment(const Vector& from, const Vector& to) const;
+	bool CanPlantOnMineCell(int row, int col) const;
+	/** 正式扣费/取消/完工事务；不允许预览或暂停输入绕过状态闸门。 */
+	bool BeginMineExcavation(int row, int col);
+	bool CancelMineExcavation();
+	/** 按游戏时间推进单处施工，完成时原子提交地形并刷新路径。 */
+	void UpdateMine(float deltaTime);
+	/** 仅正式战斗接受镐子/矿道图输入；共用全局手持物互斥管理器。 */
+	void UpdateMineInput();
+	/** 绘制真实格界、入口预报、种植射界与开凿前后的最短路径。 */
+	void DrawMineGround(Graphics* g);
+	/** 绘制岩壁、遮挡淡化与施工碎落；调用位置必须早于选卡和其他 UI。 */
+	void DrawMineWalls(Graphics* g);
+	/** 绘制开战后工具底座、手持镐子、路线按钮及施工说明。 */
+	void DrawMineUI(Graphics* g);
+	/** 将既有根运动距离映射到矿道，行进目标由僵尸保存以跨开凿/读档稳定续行。 */
+	void AdvanceMineZombie(Zombie* zombie, float distance);
 	bool IsPolarNightInitialized() const { return mPolarNightInitialized; }
 	PolarNightPhase GetPolarNightPhase() const { return mPolarNightPhase; }
 	float GetPolarTemperatureC() const { return mPolarTemperatureC; }
@@ -1633,7 +1670,7 @@ public:
 	void TrySummonAdventureBoss();
 
 	// 计算当前波的总点数
-	inline int CalculateWaveZombiePoints() const;
+	inline int CalculateWaveZombiePoints(int wave = -1) const;
 	/** 返回当前波正式生成使用的点数预算，供状态投影和回归测试读取。 */
 	int GetCurrentWaveZombiePoints() const;
 

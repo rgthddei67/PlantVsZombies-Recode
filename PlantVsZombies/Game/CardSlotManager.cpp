@@ -599,6 +599,7 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 }
 
 void CardSlotManager::HandleCellClick(int row, int col) {
+	if (mBoard && mBoard->mMineToolActive) return;
 	if (!CanAcceptGameplayInput()) return;
 	if (mBoard->IsCobCannonTargeting()) {
 		// 落点释放由全战场输入入口统一处理；Cell 只负责开始瞄准与普通落种。
