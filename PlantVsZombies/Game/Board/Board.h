@@ -1433,7 +1433,7 @@ public:
 	void ExtendGoldenIceTrail(int row, float frontX);
 	/** 火爆辣椒等效果把指定行普通与黄色冰道剩余时间压到给定上限，单位秒。 */
 	void ShortenIceTrail(int row, float maxRemainingSeconds);
-	/** 返回指定格当前是否被任一冰道覆盖；覆盖格禁止种植。 */
+	/** 返回指定格当前是否被任一冰道覆盖；场外冰道不占格，覆盖格禁止种植。 */
 	bool IsIceAt(int row, int col) const;
 	/** 返回指定世界点是否处在活动黄色冰道上，供僵尸速度层边沿检测。 */
 	bool IsGoldenIceAtWorld(int row, float worldX) const;

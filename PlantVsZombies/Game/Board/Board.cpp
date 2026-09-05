@@ -1121,9 +1121,10 @@ bool Board::IsIceAt(int row, int col) const
 		|| row >= static_cast<int>(mGoldenIceTimer.size())) return false;
 	auto trailCovers = [this, col](float minX, float timer) {
 		if (timer <= 0.0f) return false;
+		// 保留 mColumns 作为尚未覆盖棋盘的哨兵，避免场外冰道被夹到最后一格。
 		const int startCol = std::clamp(static_cast<int>(std::floor(
 			(minX + kIceTrailGridProbeOffset - CELL_INITALIZE_POS_X)
-			/ CELL_COLLIDER_SIZE_X)), 0, mColumns - 1);
+			/ CELL_COLLIDER_SIZE_X)), 0, mColumns);
 		return col >= startCol;
 	};
 	return trailCovers(mIceMinX[row], mIceTimer[row])
