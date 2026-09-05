@@ -313,7 +313,7 @@ void MainMenuScene::OpenConsole()
 			auto& app = GameAPP::GetInstance();
 			app.mEnableMonteCarloAI = !app.mEnableMonteCarloAI;
 		}, gameApp.mEnableMonteCarloAI,
-			u8"让部分僵尸模拟未来战局后选择目标；关闭时改用更简单、较省性能的决策。",
+			u8"让部分僵尸模拟未来战局后选择目标；关闭时改用更简单、较省性能的决策。不建议关闭。",
 			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, -60.0f), 22,
 			u8"蒙特卡洛模拟未来AI", labelColor)
@@ -321,7 +321,7 @@ void MainMenuScene::OpenConsole()
 			auto& app = GameAPP::GetInstance();
 			app.mAdvancedPauseEnabled = !app.mAdvancedPauseEnabled;
 		}, gameApp.mAdvancedPauseEnabled,
-			u8"开启后，空格暂停时仍可选择卡片和种植；关闭后，暂停会锁住战斗操作。",
+			u8"开启后，空格暂停时仍可选择卡片和种植；关闭后，暂停会锁住战斗操作。建议开启。",
 			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 0.0f), 22,
 			u8"高级暂停（暂停时可选卡和种植）", labelColor)
@@ -330,7 +330,7 @@ void MainMenuScene::OpenConsole()
 			app.mTyphoonWeatherEnabled = !app.mTyphoonWeatherEnabled;
 			mReadyToRefreshConsole = true;
 		}, gameApp.mTyphoonWeatherEnabled,
-			u8"决定关卡是否可能出现台风；关闭后，台风概率、预警和效果都会停用。注: 台风有较大运气成分，不愿意接受太多运气的玩家建议关闭；但是关闭会影响部分关卡（2-9等）的体验（变简单）不建议关闭。",
+			u8"决定关卡是否可能出现台风；关闭后，台风概率、预警和效果都会停用。游玩生存模式建议关闭。注: 台风有较大运气成分，不愿意接受太多运气的玩家建议关闭；但是关闭会影响部分关卡（2-9等）的体验（变简单）不建议关闭。",
 			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 60.0f), 22,
 			u8"会出现台风天气", labelColor);
@@ -339,7 +339,7 @@ void MainMenuScene::OpenConsole()
 			auto& app = GameAPP::GetInstance();
 			app.mOpeningTyphoonProtectionEnabled = !app.mOpeningTyphoonProtectionEnabled;
 		}, gameApp.mOpeningTyphoonProtectionEnabled,
-			u8"开启后，普通冒险与生存第一轮的第1～5波不会附加台风。",
+			u8"开启后，普通冒险与生存第一轮的第1～5波不会附加台风。建议开启。",
 			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 120.0f), 22,
 			u8"开局台风保护（第1～5波）", labelColor);
