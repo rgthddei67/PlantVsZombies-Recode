@@ -14,6 +14,18 @@ namespace {
 	}
 }
 
+SDL_RWops* FileManager::OpenRead(const std::string& path) {
+#if defined(__ANDROID__)
+	// AAssetManager 接受包内相对名称，不依赖桌面的 ./ 或反斜杠解析。
+	std::string normalized = path;
+	std::replace(normalized.begin(), normalized.end(), '\\', '/');
+	while (normalized.rfind("./", 0) == 0) normalized.erase(0, 2);
+	return SDL_RWFromFile(normalized.c_str(), "rb");
+#else
+	return SDL_RWFromFile(path.c_str(), "rb");
+#endif
+}
+
 bool FileManager::FileExists(const std::string& path) {
 	std::ifstream file(Utf8Path(path));
 	return file.good();
@@ -27,7 +39,7 @@ std::string FileManager::LoadFileAsString(const std::string& path) {
 
 std::vector<char> FileManager::LoadFileAsBinary(const std::string& path) {
 	// SDL_RWFromFile：相对路径在 Android 自动读 APK assets / 桌面读 CWD；绝对路径走真实文件系统。
-	SDL_RWops* rw = SDL_RWFromFile(path.c_str(), "rb");
+	SDL_RWops* rw = OpenRead(path);
 	if (!rw) {
 		// LogError("Failed to open file: " + path);
 		return {};

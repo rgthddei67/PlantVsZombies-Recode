@@ -1,7 +1,14 @@
 #pragma once
 
+#if defined(__ANDROID__)
+#include <GLES3/gl31.h>
+#ifndef APIENTRY
+#define APIENTRY GL_APIENTRY
+#endif
+#else
 #include <SDL2/SDL_opengl.h>
 #include <SDL2/SDL_opengl_glext.h>
+#endif
 
 #include <string>
 

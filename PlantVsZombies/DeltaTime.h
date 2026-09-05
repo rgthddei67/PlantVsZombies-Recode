@@ -126,6 +126,12 @@ public:
 	// 获取未缩放的游戏总时间
 	static double GetUnscaledTotalTime() { return unscaledTotalTime; }
 
+	/** 只丢弃后台墙钟间隔，不改变玩家暂停状态、倍速或累计游戏时间。 */
+	static void ResetFrameClock() {
+		lastTime = SDL_GetTicks64();
+		accumulator = 0.0f;
+	}
+
 	// 重置
 	static void Reset() {
 		lastTime = 0;

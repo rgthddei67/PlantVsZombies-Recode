@@ -23,6 +23,13 @@ class InputHandler
 private:
 	Graphics* mGraphics = nullptr;
 	bool mSceneMouseBlocked = false;
+#if defined(__ANDROID__)
+	bool mTouchActive = false;
+	SDL_FingerID mPrimaryFinger = 0;
+	bool mNextTouchRight = false;
+	bool mPrimaryTouchRight = false;
+	bool mTouchReleasePending[5] = {};
+#endif
 
 	std::map<SDL_Keycode, KeyState> m_keyStates;
 
@@ -44,6 +51,9 @@ public:
 	~InputHandler() = default;
 
 	void ProcessEvent(SDL_Event* event);
+
+	/** 清除所有按住和边沿状态；失焦或切后台后不得遗留拖动/点击。 */
+	void ResetInput();
 
 	void Update();
 

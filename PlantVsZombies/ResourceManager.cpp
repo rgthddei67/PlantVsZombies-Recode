@@ -36,7 +36,7 @@ namespace {
 		if (extension != ".jpg" && extension != ".jpeg") return true;
 
 		const std::string maskPath = filepath.substr(0, dot) + "_.png";
-		SDL_RWops* maskRw = SDL_RWFromFile(maskPath.c_str(), "rb");
+		SDL_RWops* maskRw = FileManager::OpenRead(maskPath);
 		if (!maskRw) return true;
 
 		SDL_Surface* loadedMask = IMG_Load_RW(maskRw, 1);
@@ -98,7 +98,7 @@ namespace {
 
 	DecodedImage DecodeImageFile(const std::string& filepath) {
 		DecodedImage out;
-		SDL_RWops* rw = SDL_RWFromFile(filepath.c_str(), "rb");
+		SDL_RWops* rw = FileManager::OpenRead(filepath);
 		if (!rw) {
 			out.error = "LoadTexture 无法打开图片: " + filepath;
 			return out;
@@ -305,7 +305,7 @@ bool ResourceManager::HasTexture(const std::string& key) const {
 
 bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix) {
 	// 加载原图到表面（用于分割）
-	SDL_RWops* rw = SDL_RWFromFile(info.path.c_str(), "rb");
+	SDL_RWops* rw = FileManager::OpenRead(info.path);
 	if (!rw) {
 		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法打开图片: " << info.path;
 		return false;
@@ -718,7 +718,7 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size) {
 		fontPath = key;
 	}
 
-	SDL_RWops* fontRw = SDL_RWFromFile(fontPath.c_str(), "rb");
+	SDL_RWops* fontRw = FileManager::OpenRead(fontPath);
 	if (!fontRw) {
 		LOG_ERROR("ResourceManager") << "GetFont 无法打开字体: " << fontPath << " size: " << size;
 		return nullptr;
@@ -800,7 +800,7 @@ Mix_Chunk* ResourceManager::LoadSound(const std::string& path, const std::string
 		return sounds[actualKey];
 	}
 
-	SDL_RWops* sndRw = SDL_RWFromFile(path.c_str(), "rb");
+	SDL_RWops* sndRw = FileManager::OpenRead(path);
 	if (!sndRw) {
 		LOG_ERROR("ResourceManager") << "LoadSound 无法打开音效: " << path;
 		return nullptr;
@@ -843,7 +843,7 @@ Mix_Music* ResourceManager::LoadMusic(const std::string& path, const std::string
 		return music[actualKey];
 	}
 
-	SDL_RWops* musRw = SDL_RWFromFile(path.c_str(), "rb");
+	SDL_RWops* musRw = FileManager::OpenRead(path);
 	if (!musRw) {
 		LOG_ERROR("ResourceManager") << "LoadMusic 无法打开音乐: " << path;
 		return nullptr;

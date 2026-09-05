@@ -1,6 +1,7 @@
 #include "AdaptiveMusicPlayer.h"
 
 #include "../Logger.h"
+#include "../FileManager.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <libopenmpt/libopenmpt_ext.hpp>
@@ -11,7 +12,6 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -47,23 +47,17 @@ namespace
 		return std::clamp(value, 0.0f, 1.0f);
 	}
 
+	/** 按候选路径读取音乐字节；统一资源入口同时支持桌面文件和 APK assets。 */
 	std::vector<std::uint8_t> ReadBinaryFile(const std::vector<std::string>& candidates,
 		std::string& loadedPath)
 	{
 		for (const auto& path : candidates)
 		{
-			std::ifstream stream(path, std::ios::binary | std::ios::ate);
-			if (!stream) continue;
-
-			const std::streamsize size = stream.tellg();
-			if (size <= 0) continue;
-			stream.seekg(0, std::ios::beg);
-
-			std::vector<std::uint8_t> data(static_cast<std::size_t>(size));
-			if (!stream.read(reinterpret_cast<char*>(data.data()), size)) continue;
+			const auto data = FileManager::LoadFileAsBinary(path);
+			if (data.empty()) continue;
 
 			loadedPath = path;
-			return data;
+			return { data.begin(), data.end() };
 		}
 		return {};
 	}

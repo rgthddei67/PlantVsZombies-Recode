@@ -92,6 +92,12 @@ void GameAPP::MarkCrazyDaveTutorialSeen(int level)
 
 bool GameAPP::InitializeSDL()
 {
+#if defined(__ANDROID__)
+	// 单指统一由 InputHandler 消费，关闭 SDL 合成鼠标以免重复种植。
+	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+	SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
+	SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+#endif
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 	{
 		LOG_ERROR("GameApp") << "SDL初始化失败: " << SDL_GetError();
@@ -194,7 +200,11 @@ bool GameAPP::TryCreateOpenGLRenderer(std::string& error)
 		SDL_GL_ResetAttributes();
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+#if defined(__ANDROID__)
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+#else
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
@@ -217,6 +227,9 @@ bool GameAPP::TryCreateOpenGLRenderer(std::string& error)
 		return true;
 	};
 
+#if defined(__ANDROID__)
+	return tryContext(3, 0, error);
+#else
 	std::string fastError;
 	if (!mForceOpenGL33 && tryContext(4, 3, fastError)) return true;
 	if (!mForceOpenGL33) {
@@ -228,10 +241,15 @@ bool GameAPP::TryCreateOpenGLRenderer(std::string& error)
 	error = mForceOpenGL33 ? compatibilityError
 		: "OpenGL 4.3: " + fastError + "; OpenGL 3.3: " + compatibilityError;
 	return false;
+#endif
 }
 
 bool GameAPP::CreateWindowAndRenderer()
 {
+#if defined(__ANDROID__)
+	// 首版移动端固定 GLES：不枚举 Vulkan 设备，也不依赖旧驱动的 bindless 能力。
+	mRendererPreference = pvz::RendererPreference::OpenGL;
+#endif
 	LOG_WARN("Startup") << "Renderer requested=" << pvz::RendererPreferenceName(mRendererPreference)
 		<< " SDL video driver=" << (SDL_GetCurrentVideoDriver() ? SDL_GetCurrentVideoDriver() : "unknown");
 
@@ -392,6 +410,7 @@ bool GameAPP::Initialize()
 	return true;
 }
 
+/** 初始化并驱动固定步长主循环；Android 后台停止提交画面，恢复时丢弃墙钟欠账。 */
 int GameAPP::Run()
 {
 	// 初始化各个系统
@@ -507,6 +526,11 @@ int GameAPP::Run()
 
 	mRunning = true;
 	SDL_Event event;
+#if defined(__ANDROID__)
+	bool appInBackground = false;
+	bool skipResumedFrame = false;
+	bool contextLost = false;
+#endif
 
 	while (mRunning && !sceneManager.IsEmpty())
 	{
@@ -518,6 +542,40 @@ int GameAPP::Run()
 			PROFILE_SCOPE("A.InputPoll");
 			while (SDL_PollEvent(&event))
 			{
+#if defined(__ANDROID__)
+				if (event.type == SDL_APP_WILLENTERBACKGROUND) {
+					appInBackground = true;
+					mInputHandler->ResetInput();
+					AudioSystem::PauseMusic();
+					Mix_Pause(-1);
+					// 在逻辑步之间保存，降低后台被系统回收时的进度损失；不保存胜负结算态。
+					mGameInfoSaver.SavePlayerInfo();
+					if (auto* game = dynamic_cast<GameScene*>(sceneManager.GetCurrentScene())) {
+						if (game->GetBoard() && game->GetCardSlotManager()
+							&& game->GetBoard()->mBoardState == BoardState::GAME) {
+							mGameInfoSaver.SaveLevelData(game->GetBoard(), game->GetCardSlotManager());
+						}
+					}
+					continue;
+				}
+				if (event.type == SDL_APP_DIDENTERFOREGROUND) {
+					appInBackground = false;
+					skipResumedFrame = true;
+					DeltaTime::ResetFrameClock();
+					mInputHandler->ResetInput();
+					if (!DeltaTime::IsPaused()) AudioSystem::ResumeMusic();
+					Mix_Resume(-1);
+					m_graphics->RecomputeLetterbox();
+					continue;
+				}
+				if (event.type == SDL_RENDER_DEVICE_RESET) {
+					// 首版尚不支持丢失 Context 后重建资源；明确退出，不能继续使用失效 GL 对象。
+					LOG_ERROR("Android") << "GL Context lost; restart the application";
+					contextLost = true;
+					mRunning = false;
+					continue;
+				}
+#endif
 				if (event.type == SDL_QUIT)
 				{
 					mRunning = false;
@@ -533,6 +591,14 @@ int GameAPP::Run()
 			}
 		};
 		pollEvents();
+		if (!mRunning) break;
+#if defined(__ANDROID__)
+		if (appInBackground || skipResumedFrame) {
+			skipResumedFrame = false;
+			SDL_Delay(10);
+			continue;
+		}
+#endif
 
 		// 更新：每逻辑步 dt 恒为 1/60 × timeScale（暂停为 0）
 		{
@@ -543,6 +609,10 @@ int GameAPP::Run()
 				// 否则上一步内推送的合成输入（TestDriver key/click 跨步状态机）会与
 				// 其收尾事件挤进下帧同一批 poll，按下沿未被任何逻辑步观察就被改写湮灭
 				if (i > 0) pollEvents();
+				if (!mRunning) break;
+#if defined(__ANDROID__)
+				if (appInBackground || skipResumedFrame) break;
+#endif
 				DeltaTime::BeginStep();
 				CursorManager::GetInstance().ResetHoverCount();
 				sceneManager.Update();
@@ -555,6 +625,13 @@ int GameAPP::Run()
 			}
 		}
 
+		if (!mRunning) break;
+#if defined(__ANDROID__)
+		if (appInBackground || skipResumedFrame) {
+			skipResumedFrame = false;
+			continue;
+		}
+#endif
 		// 渲染
 		{
 			PROFILE_SCOPE("C.SceneDraw_total");
@@ -579,6 +656,9 @@ int GameAPP::Run()
 	// 清理
 	Shutdown();
 
+#if defined(__ANDROID__)
+	if (contextLost) return -8;
+#endif
 	return 0;
 }
 

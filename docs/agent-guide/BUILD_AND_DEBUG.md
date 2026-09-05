@@ -6,7 +6,7 @@
 
 ## 构建与运行
 
-这是一个使用 CMake + vcpkg（manifest 模式）的 C++ 项目，仅支持 x64 Windows。构建系统已于 2026-06-13 统一迁移到 CMake，不再使用 `.sln/.vcxproj`（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet 为 `x64-windows-static`）；仓库内专用依赖通过 `cmake/vcpkg-ports` overlay port 提供。
+这是一个使用 CMake + vcpkg（manifest 模式）的 C++ 项目，正式平台为 x64 Windows，另有 [Android ARM64 试玩构建](../../android/README.md)。明确的 Android 构建使用 `android/build.ps1`、NDK 与 `arm64-pvz-android` triplet，不套用下方 Windows 编译参数。构建系统已于 2026-06-13 统一迁移到 CMake，不再使用 `.sln/.vcxproj`（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，Windows triplet 为 `x64-windows-static`）；仓库内专用依赖通过 `cmake/vcpkg-ports` overlay port 提供。
 
 - **构建（Codex 可自主运行）：** CMake 已加入系统 `PATH`，应直接调用 `cmake`，不再定位或硬编码 Visual Studio 自带的 `cmake.exe`。构建仍必须在 VS 开发者环境中运行，以便提供编译器、Windows SDK 和相关工具链。**关键顺序：先把 `vswhere` 所在的 Installer 目录加入 `PATH`，再导入 `VsDevCmd.bat`**；否则 VsDevCmd 内部调用 vswhere 时会输出 `'vswhere.exe' is not recognized`（构建仍能成功，但会产生噪声）。无噪声的一次性环境导入与构建命令：
 

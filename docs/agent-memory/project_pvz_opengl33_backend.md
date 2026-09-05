@@ -21,6 +21,10 @@ metadata:
 - 全屏/窗口切换必须在重算 letterbox 前用 `SDL_GL_GetDrawableSize` 刷新高 DPI framebuffer；截图从 back buffer 回读并翻转 Y；VSync 走 `SDL_GL_SetSwapInterval`。
 - 2026-08-23 为模仿者增加 `WashedOut` / `LessWashedOut` 两个 GLSL 330 fragment program；CPU 展开和原提交顺序不变，只按 blend/filter 边界切换 program。两条滤镜与 Vulkan 使用相同 HSL 参数，并遵守预乘 alpha 的“还原 RGB→滤色→重新预乘”契约，不能以纯白叠层近似。
 
+## Android 首版补充（2026-09-05）
+
+Android 固定 GLES 3.0 CPU Batch，不执行桌面 4.3/3.3 Core 选择或 Vulkan 初始化。OpenGLApi 使用 GLES 头，基线 shader 转为 GLSL ES 300 并声明 highp；算法与纹理/clip/Pool 约定保持。编译与运行验收必须区分，主人自行验机；入口及已知 Context 丢失限制见 [Android README](../../android/README.md)。
+
 ## 诊断与验证证据
 
 - AutoTest 首帧 `run.log` 记录 requested/selected、`-NoInstance`、测试故障注入、SDL driver；Vulkan 记录 API/dynamic rendering/sync，OpenGL 记录 Vendor/Renderer/Version/GLSL/framebuffer/VSync，并记录进程是否已存在 `vulkan-1.dll`。真实 Vulkan 初始化错误由 `VulkanContext::LastError()` 保留 stage、SDL 原始文本或 `VkResult`。

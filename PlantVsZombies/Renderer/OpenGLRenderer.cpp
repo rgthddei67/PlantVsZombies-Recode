@@ -59,6 +59,14 @@ namespace pvz {
 		mRendererName = GlString(mApi, GL_RENDERER);
 		mVersion = GlString(mApi, GL_VERSION);
 		mShadingLanguageVersion = GlString(mApi, GL_SHADING_LANGUAGE_VERSION);
+#if defined(__ANDROID__)
+		// GLES 与桌面 GL 的版本数字不能直接比较；移动端最低为 ES 3.0。
+		if (mContextMajor < 3 || mVersion.find("OpenGL ES") == std::string::npos) {
+			error = "最低要求 OpenGL ES 3.0，设备报告: " + mVersion;
+			Shutdown();
+			return false;
+		}
+#else
 		if (mContextMajor < 3 || (mContextMajor == 3 && mContextMinor < 3)) {
 			error = "检测到 OpenGL " + std::to_string(mContextMajor) + "." + std::to_string(mContextMinor)
 				+ "；最低要求是 OpenGL 3.3 Core";
@@ -73,12 +81,14 @@ namespace pvz {
 			return false;
 		}
 
+#endif
 		if (!CreatePrograms(error) || !CreateBuffers(error) || !ApplyVsync(vsync, error)) {
 			Shutdown();
 			return false;
 		}
 		// SSBO 是 OpenGL 4.3 Core 能力；此 Context 的快路初始化失败时，
 		// 让 GameApp 销毁整个窗口并重建真正的 3.3 Context，避免能力状态含混。
+#if !defined(__ANDROID__)
 		if (mContextMajor > 4 || (mContextMajor == 4 && mContextMinor >= 3)) {
 			std::string ssboError;
 			if (!TryCreateSsboBatch(ssboError)) {
@@ -87,6 +97,7 @@ namespace pvz {
 				return false;
 			}
 		}
+#endif
 		mApi.Disable(GL_DEPTH_TEST);
 		mApi.Disable(GL_CULL_FACE);
 		mApi.Disable(GL_SCISSOR_TEST);
@@ -137,10 +148,22 @@ namespace pvz {
 		mWindow = nullptr;
 	}
 
+	/** 编译共享批次 shader；Android 仅转换语言前导，保持绘制和颜色算法一致。 */
 	unsigned int OpenGLRenderer::CompileShader(const char* programName, unsigned int type,
 		const std::string& source, std::string& error) {
 		const unsigned int shader = mApi.CreateShader(type);
-		const char* text = source.c_str();
+		std::string platformSource = source;
+#if defined(__ANDROID__)
+		const auto versionEnd = platformSource.find('\n');
+		if (platformSource.rfind("#version 330 core", 0) != 0 || versionEnd == std::string::npos) {
+			error = std::string("GLES 仅接受共享 330 基线 shader: ") + programName;
+			mApi.DeleteShader(shader);
+			return 0;
+		}
+		platformSource.replace(0, versionEnd + 1,
+			"#version 300 es\nprecision highp float;\nprecision highp int;\n");
+#endif
+		const char* text = platformSource.c_str();
 		mApi.ShaderSource(shader, 1, &text, nullptr);
 		mApi.CompileShader(shader);
 		int compiled = 0;

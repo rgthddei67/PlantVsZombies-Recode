@@ -34,6 +34,10 @@ bool CursorManager::Initialize() {
 }
 
 void CursorManager::InitializeSystemCursors() {
+#if defined(__ANDROID__)
+	// 触屏端不创建桌面系统光标；手持物仍由游戏自身绘制。
+	return;
+#endif
 	mSystemCursors[CursorType::ARROW] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
 	mSystemCursors[CursorType::HAND] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
 	mSystemCursors[CursorType::IBEAM] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);

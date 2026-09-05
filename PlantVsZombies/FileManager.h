@@ -7,8 +7,12 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
+struct SDL_RWops;
+
 class FileManager {
 public:
+	/** 打开只读资源或绝对存档路径；调用方负责 SDL_RWclose，Android 规范化 assets 路径。 */
+	static SDL_RWops* OpenRead(const std::string& path);
 	// 构造函数/析构函数
 	FileManager() = default;
 	~FileManager() = default;

@@ -88,12 +88,15 @@ private:
 	GameAPP(const GameAPP&) = delete;
 	GameAPP& operator=(const GameAPP&) = delete;
 
+	/** 初始化 SDL 平台服务；Android 同时设定横屏和单一触摸事件来源。 */
 	bool InitializeSDL();
 	bool InitializeSDL_Image();
 	bool InitializeSDL_TTF();
 	bool InitializeAudioSystem();
+	/** 创建当前平台渲染器：Windows 保留自动回退，Android 固定 GLES。 */
 	bool CreateWindowAndRenderer();
 	bool TryCreateVulkanRenderer(std::string& error);
+	/** 创建独立 GL 窗口；桌面尝试 Core 4.3/3.3，Android 请求 ES 3.0。 */
 	bool TryCreateOpenGLRenderer(std::string& error);
 	void DestroyRenderWindow();
 	bool InitializeResourceManager();

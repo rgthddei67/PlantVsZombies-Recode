@@ -18,3 +18,5 @@ metadata:
 验证：clang-release **0 warn/0 error**；清单 2644 行(image/reanim 2418、particles/config 14，与磁盘精确吻合且不含自身)；AutoTest demo_peashooter 退出 0、run.log 零 ERROR、截图植物/僵尸/豌豆 reanim 正常。spec=docs/superpowers/specs/2026-06-25-resource-manifest-enumeration-design.md。
 
 承接 [project_pvz_xplat_phase1_review](project_pvz_xplat_phase1_review.md)（其"目录枚举×2 留 phase-3 烘焙清单"现已落地）。资产/AutoTest 坑见 [reference_pvz_assets_worktree_autotest_gotchas](reference_pvz_assets_worktree_autotest_gotchas.md)。
+
+2026-09-05 Android APK 实现补充：`android/build.ps1` 从 clang-release 权威 resources/font 生成 `build/android-package/assets`，在该暂存根重新生成 manifest，不手改第二份资源。`FileManager::OpenRead` 去掉 Android 路径的 `./` 前缀并统一分隔符，ResourceManager 和 MO3 动态音乐读取均经此入口。Android GameMonitor 被排除，运行期资源闭环仍待主人真机验收；构建入口见 `android/README.md`。

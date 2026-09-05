@@ -4,6 +4,12 @@ cmake_minimum_required(VERSION 3.29)
 
 project(PlantsVsZombies LANGUAGES CXX)
 
+# Android 由 NDK 构建共享库；Windows 预设与发布参数继续走原有路径。
+if(ANDROID)
+    include(cmake/android.cmake)
+    return()
+endif()
+
 option(PVZ_ENABLE_LTO "为发布构建启用 Clang LTO" OFF)
 option(PVZ_ENABLE_AVX2 "允许游戏目标生成 AVX/AVX2 指令" ON)
 option(PVZ_ENABLE_PDB "为优化构建生成函数栈与源码行可读的精简 PDB" OFF)

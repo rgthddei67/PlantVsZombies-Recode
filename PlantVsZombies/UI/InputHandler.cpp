@@ -8,8 +8,78 @@ InputHandler::InputHandler(Graphics* graphics)
 	// m_mouseButtons/m_prevMouseButtons/m_mousePosition/m_mouseDelta 由头文件就地初始化
 }
 
+void InputHandler::ResetInput()
+{
+	m_keyStates.clear();
+	m_prevKeyStates.clear();
+	for (int i = 0; i < 5; ++i) {
+		m_mouseButtons[i] = m_prevMouseButtons[i] = KeyState::UP;
+	}
+	m_mouseDelta = Vector(0, 0);
+#if defined(__ANDROID__)
+	mTouchActive = mNextTouchRight = mPrimaryTouchRight = false;
+	for (bool& pending : mTouchReleasePending) pending = false;
+#endif
+}
+
+/** 将 SDL 输入归一化为逻辑画布坐标与单步边沿，Android 工具栏选择下一次触摸的按键。 */
 void InputHandler::ProcessEvent(SDL_Event* event)
 {
+#if defined(__ANDROID__)
+	// 工具栏事件走 SDL 键盘队列，按逻辑步消费，不从 Java 线程直接改游戏状态。
+	if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_F9) {
+		mNextTouchRight = true;
+		return;
+	}
+	if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_F10) {
+		ResetInput();
+		// 放到画布外，取消操作不会误命中三叶草卡牌的右键方向切换。
+		m_mousePosition = Vector(-100, -100);
+		m_mouseButtons[SDL_BUTTON_RIGHT - 1] = KeyState::PRESSED;
+		return;
+	}
+	if (event->type == SDL_KEYUP && event->key.keysym.sym == SDLK_F10) {
+		if (m_mouseButtons[SDL_BUTTON_RIGHT - 1] == KeyState::PRESSED)
+			mTouchReleasePending[SDL_BUTTON_RIGHT - 1] = true;
+		else m_mouseButtons[SDL_BUTTON_RIGHT - 1] = KeyState::RELEASED;
+		return;
+	}
+	// SDL Android 的返回键以 AC_BACK 报告，复用现有暂停菜单的 Escape 契约。
+	if ((event->type == SDL_KEYDOWN || event->type == SDL_KEYUP)
+		&& event->key.keysym.sym == SDLK_AC_BACK) event->key.keysym.sym = SDLK_ESCAPE;
+	if (event->type == SDL_FINGERDOWN || event->type == SDL_FINGERMOTION || event->type == SDL_FINGERUP) {
+		const auto& touch = event->tfinger;
+		if (event->type == SDL_FINGERDOWN && !mTouchActive) {
+			mTouchActive = true;
+			mPrimaryFinger = touch.fingerId;
+			mPrimaryTouchRight = mNextTouchRight;
+			mNextTouchRight = false;
+		}
+		if (mTouchActive && touch.fingerId == mPrimaryFinger) {
+			SDL_Window* window = SDL_GetWindowFromID(touch.windowID);
+			int width = 0, height = 0;
+			if (window) SDL_GL_GetDrawableSize(window, &width, &height);
+			if (width > 0 && height > 0) {
+				const auto point = mGraphics->ScreenToLogical(touch.x * width, touch.y * height);
+				m_mousePosition = Vector(point.x, point.y);
+				const int button = mPrimaryTouchRight ? SDL_BUTTON_RIGHT - 1 : 0;
+				if (event->type == SDL_FINGERDOWN) m_mouseButtons[button] = KeyState::PRESSED;
+				if (event->type == SDL_FINGERUP) {
+					// 同一轮 poll 内完成的短触也必须让按下和释放各被一个逻辑步看到。
+					if (m_mouseButtons[button] == KeyState::PRESSED) mTouchReleasePending[button] = true;
+					else m_mouseButtons[button] = KeyState::RELEASED;
+				}
+			}
+			if (event->type == SDL_FINGERUP) mTouchActive = false;
+		}
+		return;
+	}
+#endif
+	if (event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) {
+		const auto point = mGraphics->ScreenToLogical(
+			static_cast<float>(event->button.x), static_cast<float>(event->button.y));
+		m_mousePosition = Vector(point.x, point.y);
+	}
 	switch (event->type)
 	{
 	case SDL_KEYDOWN:
@@ -95,6 +165,12 @@ void InputHandler::Update()
 	{
 		if (m_mouseButtons[i] == KeyState::PRESSED) {
 			m_mouseButtons[i] = KeyState::DOWN;
+#if defined(__ANDROID__)
+			if (mTouchReleasePending[i]) {
+				mTouchReleasePending[i] = false;
+				m_mouseButtons[i] = KeyState::RELEASED;
+			}
+#endif
 		}
 		else if (m_mouseButtons[i] == KeyState::RELEASED) {
 			m_mouseButtons[i] = KeyState::UP;

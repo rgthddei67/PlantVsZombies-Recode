@@ -1,8 +1,12 @@
+#if !defined(__ANDROID__)
 #define SDL_MAIN_HANDLED
+#endif
 #include "./CrashHandler.h"
 #include "./GameRandom.h"
 #include "./GameApp.h"
+#if defined(_WIN32)
 #include "GameMonitor.h"
+#endif
 #include "Logger.h"
 #include "./Profiler.h"
 #include "./Game/AutoTest/TestDriver.h"
@@ -20,7 +24,9 @@ int main(int argc, char** argv)
 	CrashHandler::Initialize();
 	GameRandom::RandomizeSeed();
 
+#if defined(_WIN32)
 	GameMonitor::Init();
+#endif
 
 	// 检查命令行参数
 	std::string autoTestScript;
