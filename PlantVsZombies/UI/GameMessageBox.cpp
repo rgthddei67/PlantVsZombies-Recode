@@ -37,6 +37,8 @@ namespace {
 	constexpr float kTooltipScreenMargin = 8.0f; // 浮动说明框距屏幕边缘的最小留白，单位：逻辑像素
 	constexpr float kTooltipHorizontalPadding = 24.0f; // 浮动说明框文字左右内边距总和，单位：逻辑像素
 	constexpr float kTooltipMinimumWidth = 120.0f; // 浮动说明框最小宽度，单位：逻辑像素
+	constexpr float kTooltipVerticalPadding = 20.0f; // 说明文字上下内边距总和，单位：逻辑像素
+	constexpr float kTooltipLineGap = 4.0f; // 多行说明的行间距，单位：逻辑像素
 
 	/** 标准弹窗先画八方向黑边再画字面；复用文字缓存，不修改共享字体状态。 */
 	void DrawStandardText(const std::string& text, const Vector& world,
@@ -82,7 +84,7 @@ namespace {
 
 	/** 按字形实际宽度贪心换行，保留显式换行并不拆分 UTF-8 码点。 */
 	std::vector<std::string> WrapUtf8Text(Graphics& graphics, const std::string& text,
-		int fontSize, float maxWidth)
+		int fontSize, float maxWidth, const std::string& fontKey = ResourceKeys::Fonts::FONT_FZJT)
 	{
 		std::vector<std::string> lines;
 		std::string current;
@@ -102,7 +104,7 @@ namespace {
 			const std::string codepoint = text.substr(i, end - i);
 			const std::string candidate = current + codepoint;
 			if (!current.empty() && graphics.MeasureTextWidth(candidate,
-				ResourceKeys::Fonts::FONT_FZJT, fontSize) > maxWidth) {
+				fontKey, fontSize) > maxWidth) {
 				lines.push_back(current);
 				current = codepoint;
 			}
@@ -553,7 +555,7 @@ void GameMessageBox::Draw(Graphics* g)
 
 	// 浮动说明必须位于面板自有控件之上，避免相邻行的复选框覆盖提示文字。
 	const std::string& tooltipText = GetHoveredTooltipText();
-	if (!tooltipText.empty() && m_tooltipPanel.maxSize.x > 0.0f && m_tooltipPanel.maxSize.y > 0.0f) {
+	if (!tooltipText.empty() && m_tooltipPanel.maxWidth > 0.0f) {
 		const float borderWidth = 2.0f; // 悬停说明框边框宽度，单位：逻辑像素
 		const Vector tooltipPos = GetTooltipDrawPosition();
 		const Vector tooltipSize = GetTooltipDrawSize(tooltipText);
@@ -566,11 +568,15 @@ void GameMessageBox::Draw(Graphics* g)
 			tooltipSize.x - borderWidth * 2.0f,
 			tooltipSize.y - borderWidth * 2.0f,
 			glm::vec4(27, 29, 24, 244));
-		Vector textPos = g->LogicalToWorld(
-			tooltipPos.x + 12.0f, tooltipPos.y + 10.0f);
-		GameAPP::GetInstance().DrawText(tooltipText, textPos, m_tooltipPanel.textColor,
-			ResourceKeys::Fonts::FONT_FZCQ,
-			std::max(8, static_cast<int>(m_tooltipPanel.fontSize * m_scale)));
+		float textY = tooltipPos.y + kTooltipVerticalPadding / 2.0f;
+		for (const std::string& line : m_tooltipLines) {
+			const Vector textPos = g->LogicalToWorld(
+				tooltipPos.x + kTooltipHorizontalPadding / 2.0f, textY);
+			GameAPP::GetInstance().DrawText(line, textPos, m_tooltipPanel.textColor,
+				ResourceKeys::Fonts::FONT_FZCQ,
+				std::max(8, static_cast<int>(m_tooltipPanel.fontSize * m_scale)));
+			textY += m_tooltipLineHeight + kTooltipLineGap;
+		}
 	}
 }
 
@@ -603,17 +609,28 @@ const std::string& GameMessageBox::GetHoveredTooltipText() const
 
 Vector GameMessageBox::GetTooltipDrawSize(const std::string& text) const
 {
+	Graphics& graphics = GameAPP::GetInstance().GetGraphics();
+	const float rasterScale = graphics.GetLetterboxScale();
+	if (m_tooltipLayoutText == text && m_tooltipRasterScale == rasterScale) return m_tooltipSize;
 	const int fontSize = std::max(8, static_cast<int>(m_tooltipPanel.fontSize * m_scale));
-	int textWidth = 0;
-	int textHeight = 0;
-	if (TTF_Font* font = ResourceManager::GetInstance().GetFont(
-		ResourceKeys::Fonts::FONT_FZCQ, fontSize)) {
-		TTF_SizeUTF8(font, text.c_str(), &textWidth, &textHeight);
+	const float maxWidth = std::clamp(m_tooltipPanel.maxWidth,
+		kTooltipMinimumWidth, SCENE_WIDTH - 2.0f * kTooltipScreenMargin);
+	m_tooltipLines = WrapUtf8Text(graphics, text, fontSize,
+		maxWidth - kTooltipHorizontalPadding, ResourceKeys::Fonts::FONT_FZCQ);
+	float textWidth = 0.0f;
+	// 空白行也占据完整行高；测量与绘制使用同一字体和字号。
+	m_tooltipLineHeight = graphics.MeasureTextSize("Mg", ResourceKeys::Fonts::FONT_FZCQ, fontSize).y;
+	for (const std::string& line : m_tooltipLines) {
+		const auto size = graphics.MeasureTextSize(line, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
+		textWidth = std::max(textWidth, size.x);
+		m_tooltipLineHeight = std::max(m_tooltipLineHeight, size.y);
 	}
-	const float desiredWidth = std::max(kTooltipMinimumWidth,
-		static_cast<float>(textWidth) + kTooltipHorizontalPadding);
-	return Vector(std::min(m_tooltipPanel.maxSize.x, desiredWidth),
-		m_tooltipPanel.maxSize.y);
+	m_tooltipSize = Vector(std::max(kTooltipMinimumWidth, textWidth + kTooltipHorizontalPadding),
+		m_tooltipLines.size() * (m_tooltipLineHeight + kTooltipLineGap)
+		- kTooltipLineGap + kTooltipVerticalPadding);
+	m_tooltipLayoutText = text;
+	m_tooltipRasterScale = rasterScale;
+	return m_tooltipSize;
 }
 
 Vector GameMessageBox::GetTooltipDrawPosition() const

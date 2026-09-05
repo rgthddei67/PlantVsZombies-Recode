@@ -16,7 +16,7 @@ namespace
 	const Vector kConsoleButtonPosition(920.0f, 548.0f); // 主菜单右下角控制台入口左上角坐标
 	const Vector kConsoleButtonSize(150.0f, 40.0f); // 控制台入口按钮尺寸，单位：逻辑像素
 	const Vector kConsoleOptionHitSize(620.0f, 46.0f); // 控制台选项整行命中区域，单位：逻辑像素
-	const Vector kConsoleTooltipSize(770.0f, 42.0f); // 控制台悬停说明栏尺寸，单位：逻辑像素
+	constexpr float kConsoleTooltipMaxWidth = 770.0f; // 控制台说明框最大宽度，高度随内容自适应，单位：逻辑像素
 }
 
 MainMenuScene::~MainMenuScene() = default;
@@ -308,7 +308,7 @@ void MainMenuScene::OpenConsole()
 	builder
 		.Panel(static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT))
 		.Text(panelCenter + Vector(-76.0f, -190.0f), 38, u8"控制台", titleColor)
-		.TooltipPanel(kConsoleTooltipSize, 17.0f)
+		.TooltipPanel(kConsoleTooltipMaxWidth, 17.0f)
 		.Checkbox(panelCenter + Vector(-205.0f, -75.0f), Vector(50.0f, 46.0f), []() {
 			auto& app = GameAPP::GetInstance();
 			app.mEnableMonteCarloAI = !app.mEnableMonteCarloAI;
@@ -330,7 +330,7 @@ void MainMenuScene::OpenConsole()
 			app.mTyphoonWeatherEnabled = !app.mTyphoonWeatherEnabled;
 			mReadyToRefreshConsole = true;
 		}, gameApp.mTyphoonWeatherEnabled,
-			u8"决定关卡是否可能出现台风；关闭后，台风概率、预警和效果都会停用。",
+			u8"决定关卡是否可能出现台风；关闭后，台风概率、预警和效果都会停用。注: 台风有较大运气成分，不愿意接受太多运气的玩家建议关闭；但是关闭会影响部分关卡（2-9等）的体验（变简单）不建议关闭。",
 			kConsoleOptionHitSize)
 		.Text(panelCenter + Vector(-140.0f, 60.0f), 22,
 			u8"会出现台风天气", labelColor);

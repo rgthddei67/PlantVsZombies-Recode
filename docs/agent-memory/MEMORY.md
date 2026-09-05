@@ -127,7 +127,7 @@
 - [粉色橄榄球僵尸 ✅](project_pvz_pink_football_zombie.md) — 2026-08-02 黑夜专属轻装变体：220本体/900头盔、速度1.85/1.95、减速动画系数0.7，首口400后续40；掉盔对半径120圆内无壳植物造成50，南瓜格只让外壳承受300，水路内层与睡莲安全；2-9 出怪、圆内/圆外及水路三层均有可见专项
 - [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-08-05 四态害怕状态机；南瓜免疫须在节流前清空旧 `mScaredCached` 并保持检查到期，否则旧 true 会驱动反复缩头；既有 foot-gun 仍包括帧事件帧号必问主人、站位/影子两套 offset 分居 gamedata 与代码、读档首帧必须真算
 - [金盏花最小观赏版本](project_pvz_marigold_minimal.md) — 2026-08-09 `Marigold : Plant` 只播 `anim_idle`，不吐钱；费用 `-100`、冷却 25 秒，正式卡槽实测阳光 `0→100`；blink1/2 只用通用 `IMAGE_*` 键，默认与 `-NoInstance` 可见专项及整数 worldBounds 一致
-- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-28 控制台四项使用整行命中与随鼠标移动、边缘换侧、移出消失的 Tooltip；台风关闭时开局保护及其说明一起隐藏；主菜单模态、2-1跳关和石碑中心最近仲裁契约保持
+- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-09-05 控制台 Tooltip 按实际字体自动换行并测量背景宽高，保留整行命中、随鼠标移动、边缘换侧及隐藏清理；主菜单模态、2-1跳关和石碑中心最近仲裁契约保持
 - [血量字形worker侧instance化与满血整行快路](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07字形worker直写InstanceRecord消除串行replay N×ε；2026-08-27满血本体改裁透明边的单共享整行实例，2万档590071→410071 instances、约134→137-138FPS（只曾单窗140.1，未稳定140+）；动态/防具保留字形路径，未裁整行与双纹理分段候选均因GPU退化否决；真实档AutoTest须`-AutoTestLoadSave`且只比较小推车事件前稳定窗口
 - [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-08-14 JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；植物轻量防线推演 `simulation` 增加 `supportOnly`，普通花盆/睡莲由数据声明压缩、特殊支撑保持完整画像；只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN

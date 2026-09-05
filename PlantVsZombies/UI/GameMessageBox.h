@@ -59,7 +59,7 @@ public:
 	};
 
 	struct TooltipPanelConfig {
-		Vector maxSize{ 0.0f, 0.0f };
+		float maxWidth = 0.0f; // 外框最大逻辑宽度；高度由换行后的内容决定
 		float fontSize = 17.0f;
 		glm::vec4 textColor{ 245, 214, 127, 255 };
 	};
@@ -115,6 +115,11 @@ private:
 	std::vector<SliderConfig> m_sliderConfigs;
 	std::vector<TextConfig> m_textConfigs;
 	TooltipPanelConfig m_tooltipPanel;
+	mutable std::string m_tooltipLayoutText;
+	mutable std::vector<std::string> m_tooltipLines;
+	mutable Vector m_tooltipSize;
+	mutable float m_tooltipLineHeight = 0.0f;
+	mutable float m_tooltipRasterScale = 0.0f;
 
 	std::vector<std::shared_ptr<Button>> m_buttons;
 	std::vector<std::shared_ptr<Slider>> m_sliders;
@@ -134,6 +139,7 @@ private:
 	void LayoutStandardDialog();
 	/** 用原版上、中、下分件平铺标准对话框，边缘不随尺寸拉伸。 */
 	void DrawStandardDialog(Graphics* g) const;
+	/** 缓存当前说明的 UTF-8 换行与实测尺寸，供文字、背景和边缘定位共用。 */
 	Vector GetTooltipDrawSize(const std::string& text) const;
 };
 
@@ -188,9 +194,9 @@ public:
 	}
 
 	/** 配置仅在带说明的控件被悬停时绘制的顶层浮动说明框。 */
-	Builder& TooltipPanel(const Vector& maxSize, float fontSize,
+	Builder& TooltipPanel(float maxWidth, float fontSize,
 		const glm::vec4& textColor = glm::vec4(245, 214, 127, 255)) {
-		m_tooltipPanel = { maxSize, fontSize, textColor };
+		m_tooltipPanel = { maxWidth, fontSize, textColor };
 		return *this;
 	}
 

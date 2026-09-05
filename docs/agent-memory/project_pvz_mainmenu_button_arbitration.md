@@ -95,3 +95,18 @@ Win7 378 项导入审计通过；桌面可见运行该专项、`smoke_mainmenu_b
 `smoke_mainmenu_console` 现以 75 条命令断言四项实文、Y 坐标随同一行内鼠标移动、移出/隐藏后
 `Visible=false` 且坐标归零，并用截图目验换侧与布局；整行文字点击同时证明扩大命中区生效。
 同次桌面可见 `mainmenu_options_shot` 15 条与 `pause_menu_shot` 8 条也均通过。
+
+## 2026-09-05：控制台说明自动换行与尺寸测量
+
+`GameMessageBox::Builder::TooltipPanel` 只接收最大宽度与字号，高度由内容决定。
+说明复用 UTF-8 码点换行，按实际绘制字体 `FONT_FZCQ` 测量；背景宽度为最长行加左右
+内边距，高度为各行高度、行间距及上下内边距之和。控制台宽度上限保持 770 逻辑像素，
+屏幕边缘定位使用同一份排版尺寸。排版按当前说明缓存，窗口缩放变化时重新测量。
+`smoke_mainmenu_console` 的实文断言同步覆盖主人加长的台风说明，并保留长文、短文、
+鼠标移动及隐藏后的截图与状态验证。相关天气技能及 references 的悬停、边缘和隐藏契约
+仍适用，无需修改技能。
+
+当前 `clang-release` 构建成功、Win7 378 项导入审计通过；vcpkg applocal 提示未找到
+objdump 工具，但未阻断链接与运行。桌面可见 `smoke_mainmenu_console` 75 条命令
+exit 0、`status=passed`、`script finished OK`，日志无 WARN/ERROR/FATAL；截图确认
+加长说明完整分成三行并扩高背景，开局保护短说明保持单行且背景按实测宽度收缩。
